@@ -1,0 +1,39 @@
+[project]
+name = "dentai-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1", "uvicorn[standard]>=0.30,<1", "sqlalchemy[asyncio]>=2.0.36,<3",
+  "asyncpg>=0.30,<1", "aiosqlite>=0.20,<1", "alembic>=1.14,<2", "pydantic-settings>=2.7,<3",
+  "email-validator>=2.2,<3", "pwdlib[argon2]>=0.2,<1", "PyJWT>=2.10,<3",
+  "cryptography>=50,<51", "python-multipart>=0.0.20,<1", "boto3>=1.35,<2",
+  "structlog>=24.4,<26", "httpx>=0.28,<1"
+  , "numpy>=2.2,<3", "pillow>=11,<13", "PyYAML>=6,<7"
+]
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0.3,<10", "pytest-asyncio>=1.0,<2", "pytest-cov>=6,<8",
+  "ruff>=0.9,<1", "mypy>=1.14,<2", "pip-audit>=2.8,<3", "bandit>=1.8,<2",
+  "types-PyYAML>=6,<7",
+]
+
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*", "scripts*", "ai_engine*"]
+exclude = ["migrations*", "tests*"]
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--basetemp=.pytest-tmp"
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true

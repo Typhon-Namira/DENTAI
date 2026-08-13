@@ -1,0 +1,14 @@
+dataset_id: tooth_segmentation_jrz4nj82zv_v1
+name: Dental Panoramic Radiography Dataset for Pixel level Semantic Segmentation of Teeth
+version: "1"
+source_url: https://data.mendeley.com/datasets/jrz4nj82zv/1
+source_doi: 10.17632/jrz4nj82zv.1
+license: CC-BY-4.0
+tier: UNKNOWN_REVIEW_REQUIRED
+commercial_use_allowed: true
+attribution_required: true
+share_alike_required: false
+modification_allowed: true
+tasks: [tooth_segmentation]
+notes: Registry metadata verified; archive checksum must be recorded before production download.
+

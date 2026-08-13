@@ -1,0 +1,14 @@
+dataset_id: mopg7_v1
+name: MOPG-7
+version: "1"
+source_url: https://data.mendeley.com/datasets/r43v452t29/1
+source_doi: 10.17632/r43v452t29.1
+license: CC-BY-NC-4.0
+tier: RESEARCH_ONLY
+commercial_use_allowed: false
+attribution_required: true
+share_alike_required: false
+modification_allowed: true
+tasks: [research_benchmark_only]
+notes: Must never enter production model weights without separate commercial permission.
+
