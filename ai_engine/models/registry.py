@@ -1,5 +1,6 @@
 import hashlib
 from datetime import date
+from enum import StrEnum
 from pathlib import Path
 
 import yaml
@@ -7,6 +8,24 @@ from pydantic import BaseModel, Field
 
 from ai_engine.data.license_guard import require_production_allowed
 from ai_engine.data.registry import DatasetRegistry
+
+
+class ModelLifecycle(StrEnum):
+    EXPERIMENTAL = "EXPERIMENTAL"
+    TRAINED = "TRAINED"
+    VALIDATED_INTERNAL = "VALIDATED_INTERNAL"
+    VALIDATED_EXTERNAL = "VALIDATED_EXTERNAL"
+    PRODUCTION_CANDIDATE = "PRODUCTION_CANDIDATE"
+    PRODUCTION_ENABLED = "PRODUCTION_ENABLED"
+    DISABLED = "DISABLED"
+    DATASET_REQUIRED = "DATASET_REQUIRED"
+
+
+class ClinicalReviewState(StrEnum):
+    NOT_REVIEWED = "NOT_REVIEWED"
+    REVIEW_IN_PROGRESS = "REVIEW_IN_PROGRESS"
+    APPROVED_FOR_PILOT = "APPROVED_FOR_PILOT"
+    REJECTED = "REJECTED"
 
 
 class ModelManifest(BaseModel):
@@ -27,6 +46,8 @@ class ModelManifest(BaseModel):
     clinical_review_approved: bool = False
     calibration_metrics: dict[str, float] = Field(default_factory=dict)
     onnx_parity_max_abs_error: float | None = None
+    lifecycle: ModelLifecycle = ModelLifecycle.EXPERIMENTAL
+    clinical_review_state: ClinicalReviewState = ClinicalReviewState.NOT_REVIEWED
 
 
 class ModelRegistry:

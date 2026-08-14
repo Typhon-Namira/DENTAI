@@ -1,3 +1,4 @@
+from datetime import date
 from enum import StrEnum
 from pathlib import Path
 
@@ -29,6 +30,15 @@ class DatasetManifest(BaseModel):
     source_labels: dict[str, str] = Field(default_factory=dict)
     patient_group_field: str | None = None
     notes: str = ""
+    title: str | None = None
+    primary_source: str | None = None
+    attribution_requirements: str | None = None
+    archive_names: list[str] = Field(default_factory=list)
+    annotation_format: str | None = None
+    reported_image_count: int | None = Field(default=None, ge=0)
+    clinical_task: str | None = None
+    known_limitations: list[str] = Field(default_factory=list)
+    verification_date: date | None = None
 
 
 class DatasetRegistry:

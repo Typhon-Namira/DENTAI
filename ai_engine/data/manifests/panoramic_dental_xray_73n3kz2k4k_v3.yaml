@@ -1,0 +1,27 @@
+dataset_id: panoramic_dental_xray_73n3kz2k4k_v3
+name: Panoramic Dental Xray Dataset
+title: Panoramic Dental Xray Dataset
+version: "3"
+source_url: https://data.mendeley.com/datasets/73n3kz2k4k/3
+primary_source: https://data.mendeley.com/datasets/73n3kz2k4k/3
+source_doi: 10.17632/73n3kz2k4k.3
+license: CC-BY-4.0
+tier: PRODUCTION_ALLOWED
+commercial_use_allowed: true
+attribution_required: true
+attribution_requirements: Cite Brahmi, Jdey, and Drira and DOI 10.17632/73n3kz2k4k.3; link CC BY 4.0 and identify changes.
+share_alike_required: false
+modification_allowed: true
+archive_names: [annotations.json, secondpanoramicdataset.rar, Secondpart.rar, thirdpartpanoramicdataset.rar]
+annotation_format: VIA JSON tooth-instance polylines for a subset; additional archives require separate inspection
+reported_image_count: 221
+clinical_task: tooth instance segmentation and tooth morphology classification
+tasks: [tooth_instance_segmentation]
+patient_group_field: source_image_id
+known_limitations:
+  - Only 25 of 107 root-level images have polygon annotations; 82 are empty.
+  - Root-level files contain exact duplicate images under different filenames.
+  - Patient identifiers are absent; source-derived hash grouping is mandatory.
+  - Mixed acquisition sources and tasks must not be silently pooled.
+verification_date: 2026-08-13
+notes: Commercial reuse permitted by CC BY 4.0, but the currently audited instance subset is inadequate alone for Tooth V1.

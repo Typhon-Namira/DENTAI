@@ -1,0 +1,19 @@
+{
+  "captured_at": "2026-08-13T09:30:00Z",
+  "os": "Ubuntu 24.04.4 LTS",
+  "kernel": "Linux 6.8.0-1062-aws x86_64",
+  "python": "3.12.11",
+  "cpu": {"model": "Intel Xeon Platinum 8488C", "logical_cpus": 4, "physical_cores": 2},
+  "memory_bytes": {"total": 16469012480, "available": 13904498688, "swap_total": 10737414144},
+  "disk_bytes": {"total": 414921494528, "available_before_download": 384423374848},
+  "persistent_storage": "/teamspace/studios/this_studio/DENTAI (Lightning filesystem)",
+  "git": "2.42.0",
+  "uv": "0.11.18",
+  "runtime": {"cpu_only": true, "cuda_available": false, "cuda_device_count": 0},
+  "ml_packages": {
+    "torch": "2.8.0+cu128", "torchvision": "0.23.0+cu128", "pytorch_lightning": "2.6.5",
+    "numpy": "1.26.4", "pillow": "12.2.0", "scikit_learn": "1.3.2",
+    "monai": null, "onnx": null, "onnxruntime": null, "opencv": null, "scikit_image": null
+  },
+  "notes": ["CUDA-linked wheels are present in the studio base environment, but no GPU is exposed.", "No secrets were collected."]
+}

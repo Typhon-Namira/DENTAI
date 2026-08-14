@@ -13,7 +13,14 @@ __pycache__/
 .coverage
 storage/
 datasets/
+data/raw/
+data/normalized/
 model_artifacts/
 training_artifacts/
 experiments/
+checkpoints/
+*.onnx
+*.pt
+*.pth
+*.ckpt
 *.db

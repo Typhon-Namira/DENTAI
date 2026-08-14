@@ -7,8 +7,13 @@ from PIL import Image
 
 from ai_engine.data.license_guard import DatasetLicenseError, require_production_allowed
 from ai_engine.data.registry import DatasetManifest, DatasetRegistry, DatasetTier
-from ai_engine.data.split import patient_level_split
-from ai_engine.evaluation.metrics import expected_calibration_error, segmentation_metrics
+from ai_engine.data.split import assert_no_group_leakage, patient_level_split, write_locked_split
+from ai_engine.evaluation.metrics import (
+    bootstrap_confidence_interval,
+    brier_score,
+    expected_calibration_error,
+    segmentation_metrics,
+)
 from ai_engine.longitudinal.engine import ChangeState, LongitudinalDentalEngine
 from ai_engine.quality.engine import OPGQualityEngine
 from ai_engine.risk.engine import RuleBasedRecallRiskProvider
@@ -21,6 +26,7 @@ from ai_engine.schemas import (
     VisionFinding,
 )
 from ai_engine.tooth.fdi import ToothCandidate, assign_fdi
+from ai_engine.training.config import load_training_config
 from ai_engine.training.train import synthetic_cpu_smoke
 from app.ai.providers import DENTAIRealOPGProvider
 
@@ -151,3 +157,19 @@ def test_evaluation_and_cpu_training_smoke(tmp_path: Path):
     artifact = synthetic_cpu_smoke(Path("configs/ai/synthetic_smoke.yaml"), tmp_path)
     assert artifact.is_file()
     assert '"clinical_use": false' in artifact.read_text(encoding="utf-8")
+    assert brier_score(np.array([0.9, 0.1]), np.array([1, 0])) == pytest.approx(0.01)
+    interval = bootstrap_confidence_interval(np.array([0.5, 0.7, 0.9]), resamples=100)
+    assert interval["ci_low"] <= interval["estimate"] <= interval["ci_high"]
+
+
+def test_locked_split_and_training_config_are_fail_closed(tmp_path: Path):
+    records = [{"image_id": "a", "group_id": "patient-a", "split": "train"}]
+    digest = write_locked_split(records, tmp_path / "split.json", 47)
+    assert len(digest) == 64
+    assert_no_group_leakage(records)
+    with pytest.raises(ValueError, match="group leakage"):
+        assert_no_group_leakage(
+            records + [{"image_id": "b", "group_id": "patient-a", "split": "test"}]
+        )
+    config = load_training_config(Path("configs/ai/tooth_v1.yaml"))
+    assert config.capability_state == "DATASET_REQUIRED"
