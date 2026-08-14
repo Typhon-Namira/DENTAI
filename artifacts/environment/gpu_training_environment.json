@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-14T09:38:31Z",
+  "phase": "tooth_v1_first_gpu_training",
+  "status": "blocked",
+  "training_started": false,
+  "host": {
+    "kernel": "Linux 6.8.0-1062-aws x86_64",
+    "python_version": "3.12.11",
+    "python_executable": "/home/zeus/miniconda3/envs/cloudspace/bin/python",
+    "cpu_ram_total_gib": 60,
+    "cpu_ram_available_gib": 55,
+    "swap_total_gib": 31,
+    "workspace_filesystem_size_gib": 549,
+    "workspace_filesystem_available_gib": 446
+  },
+  "gpu": {
+    "expected_model": "NVIDIA L4",
+    "pci_device_detected": "NVIDIA Corporation AD104GL [L4] (rev a1)",
+    "device_nodes_present": false,
+    "nvidia_smi_available": true,
+    "nvidia_smi_healthy": false,
+    "model_confirmed_by_nvidia_smi": null,
+    "total_vram_mib": null,
+    "driver_version": "580.173.02",
+    "driver_source": "/proc/driver/nvidia/version",
+    "cuda_runtime_compatibility_confirmed": false
+  },
+  "pytorch": {
+    "version": "2.8.0+cu128",
+    "compiled_cuda_version": "12.8",
+    "cuda_available": false,
+    "cuda_device_count": 0,
+    "cuda_device_name_0": null,
+    "cuda_initialization_error": "Error 304: OS call failed or operation not supported on this OS",
+    "nvml_initialization_error": "Can't initialize NVML"
+  },
+  "cuda_tensor_sanity_check": {
+    "attempted": true,
+    "succeeded": false,
+    "operation": "2048x2048 CUDA matrix multiplication",
+    "error": "RuntimeError during torch CUDA initialization: cudaGetDeviceCount error 304"
+  },
+  "stop_reason": "NVIDIA GPU device nodes are not exposed to the Studio process; nvidia-smi cannot communicate with the driver and torch.cuda.is_available() is false.",
+  "required_remediation": "Restart or reconfigure the Lightning Studio so the attached L4 is exposed through /dev/nvidia* and nvidia-smi succeeds, then rerun GPU verification before installation or training."
+}

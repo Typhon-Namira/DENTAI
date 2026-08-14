@@ -55,7 +55,9 @@ def test_checkpoint_uses_restricted_loader_and_restores_training_state(tmp_path:
     with torch.no_grad():
         for parameter in model.parameters():
             parameter.zero_()
-    assert load_checkpoint(path, model, optimizer, scheduler) == 4
+    epoch, state = load_checkpoint(path, model, optimizer, scheduler)
+    assert epoch == 4
+    assert state == {}
     assert all(torch.equal(model.state_dict()[name], value) for name, value in original.items())
 
 

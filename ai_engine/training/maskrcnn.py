@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import random
 from pathlib import Path
 from typing import Any
@@ -10,7 +11,7 @@ import numpy as np
 import torch
 from torch import nn
 from torchvision.models import ResNet50_Weights
-from torchvision.models.detection import MaskRCNN_ResNet50_FPN_V2_Weights, maskrcnn_resnet50_fpn_v2
+from torchvision.models.detection import maskrcnn_resnet50_fpn_v2
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
@@ -21,10 +22,9 @@ def build_maskrcnn(
     min_size: int = 512,
     max_size: int = 1024,
 ) -> nn.Module:
-    weights = MaskRCNN_ResNet50_FPN_V2_Weights.DEFAULT if pretrained else None
-    backbone_weights = None if pretrained else None
-    if pretrained and weights is None:
-        backbone_weights = ResNet50_Weights.DEFAULT
+    # Tooth V1 config specifies ImageNet backbone initialization, not COCO detector weights.
+    weights = None
+    backbone_weights = ResNet50_Weights.IMAGENET1K_V2 if pretrained else None
     model = maskrcnn_resnet50_fpn_v2(
         weights=weights,
         weights_backbone=backbone_weights,
@@ -48,30 +48,42 @@ def move_targets(targets: list[dict[str, Any]], device: torch.device) -> list[di
     ]
 
 
-def save_checkpoint(path: Path, model: nn.Module, optimizer, scheduler, epoch: int) -> None:
+def save_checkpoint(
+    path: Path,
+    model: nn.Module,
+    optimizer,
+    scheduler,
+    epoch: int,
+    *,
+    training_state: dict[str, Any] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     numpy_state: Any = np.random.get_state()
-    torch.save(
-        {
-            "epoch": epoch,
-            "model": model.state_dict(),
-            "optimizer": optimizer.state_dict(),
-            "scheduler": scheduler.state_dict() if scheduler else None,
-            "torch_rng": torch.get_rng_state(),
-            "numpy_rng": {
-                "name": numpy_state[0],
-                "keys": numpy_state[1].tolist(),
-                "position": numpy_state[2],
-                "has_gauss": numpy_state[3],
-                "cached_gaussian": numpy_state[4],
-            },
-            "python_rng": random.getstate(),
+    payload = {
+        "epoch": epoch,
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "scheduler": scheduler.state_dict() if scheduler else None,
+        "torch_rng": torch.get_rng_state(),
+        "cuda_rng": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+        "numpy_rng": {
+            "name": numpy_state[0],
+            "keys": numpy_state[1].tolist(),
+            "position": numpy_state[2],
+            "has_gauss": numpy_state[3],
+            "cached_gaussian": numpy_state[4],
         },
-        path,
-    )
+        "python_rng": random.getstate(),
+        "training_state": training_state or {},
+    }
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    torch.save(payload, temporary)
+    os.replace(temporary, path)
 
 
-def load_checkpoint(path: Path, model: nn.Module, optimizer=None, scheduler=None) -> int:
+def load_checkpoint(
+    path: Path, model: nn.Module, optimizer=None, scheduler=None
+) -> tuple[int, dict[str, Any]]:
     state = torch.load(path, map_location="cpu", weights_only=True)
     model.load_state_dict(state["model"])
     if optimizer:
@@ -79,6 +91,8 @@ def load_checkpoint(path: Path, model: nn.Module, optimizer=None, scheduler=None
     if scheduler and state["scheduler"]:
         scheduler.load_state_dict(state["scheduler"])
     torch.set_rng_state(state["torch_rng"])
+    if state.get("cuda_rng") is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(state["cuda_rng"])
     numpy_rng = state["numpy_rng"]
     np.random.set_state(
         (
@@ -90,7 +104,22 @@ def load_checkpoint(path: Path, model: nn.Module, optimizer=None, scheduler=None
         )
     )
     random.setstate(state["python_rng"])
-    return int(state["epoch"]) + 1
+    return int(state["epoch"]) + 1, state.get("training_state", {})
+
+
+def _average_precision(entries: list[tuple[float, bool]], positives: int) -> float:
+    if positives == 0:
+        return 0.0
+    entries.sort(key=lambda item: item[0], reverse=True)
+    true_positives = np.cumsum([matched for _, matched in entries])
+    false_positives = np.cumsum([not matched for _, matched in entries])
+    recall = true_positives / positives
+    precision = true_positives / np.maximum(true_positives + false_positives, 1)
+    recall = np.concatenate(([0.0], recall, [1.0]))
+    precision = np.concatenate(([0.0], precision, [0.0]))
+    precision = np.maximum.accumulate(precision[::-1])[::-1]
+    changes = np.where(recall[1:] != recall[:-1])[0]
+    return float(np.sum((recall[changes + 1] - recall[changes]) * precision[changes + 1]))
 
 
 @torch.no_grad()
@@ -98,19 +127,48 @@ def validate(
     model: nn.Module, loader, device: torch.device, max_batches: int | None = None
 ) -> dict[str, float]:
     model.eval()
-    images_seen = detections = 0
-    mean_scores: list[float] = []
-    for batch_index, (images, _targets) in enumerate(loader, start=1):
+    images_seen = detections = positives = 0
+    thresholds = [value / 100 for value in range(50, 100, 5)]
+    matches: dict[float, list[tuple[float, bool]]] = {value: [] for value in thresholds}
+    for batch_index, (images, targets) in enumerate(loader, start=1):
         outputs = model([image.to(device) for image in images])
         images_seen += len(outputs)
         detections += sum(len(output["boxes"]) for output in outputs)
-        mean_scores.extend(float(score) for output in outputs for score in output["scores"])
+        for output, target in zip(outputs, targets, strict=True):
+            predicted_boxes = output["boxes"].detach().cpu()
+            scores = output["scores"].detach().cpu()
+            expected_boxes = target["boxes"].cpu()
+            positives += len(expected_boxes)
+            if len(predicted_boxes) and len(expected_boxes):
+                from torchvision.ops import box_iou
+
+                ious = box_iou(predicted_boxes, expected_boxes)
+            else:
+                ious = torch.zeros((len(predicted_boxes), len(expected_boxes)))
+            order = scores.argsort(descending=True).tolist()
+            for threshold in thresholds:
+                claimed: set[int] = set()
+                for prediction_index in order:
+                    is_match = False
+                    if len(expected_boxes):
+                        candidates = ious[prediction_index].clone()
+                        if claimed:
+                            candidates[list(claimed)] = -1
+                        best_iou, best_target = candidates.max(dim=0)
+                        if float(best_iou) >= threshold:
+                            claimed.add(int(best_target))
+                            is_match = True
+                    matches[threshold].append((float(scores[prediction_index]), is_match))
         if max_batches is not None and batch_index >= max_batches:
             break
+    aps = {
+        threshold: _average_precision(entries, positives) for threshold, entries in matches.items()
+    }
     return {
         "images": float(images_seen),
         "detections": float(detections),
-        "mean_score": float(np.mean(mean_scores)) if mean_scores else 0.0,
+        "map_50": aps[0.5],
+        "map_50_95": float(np.mean(list(aps.values()))),
     }
 
 
@@ -120,19 +178,26 @@ def train_one_epoch(
     optimizer,
     device: torch.device,
     accumulation_steps: int = 1,
-    amp: bool = True,
+    amp_dtype: torch.dtype | None = torch.float16,
     max_batches: int | None = None,
 ) -> dict[str, float]:
     model.train()
     optimizer.zero_grad(set_to_none=True)
     totals: dict[str, float] = {}
-    scaler = torch.amp.GradScaler("cuda", enabled=amp and device.type == "cuda")
+    use_amp = amp_dtype is not None and device.type == "cuda"
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp and amp_dtype == torch.float16)
     for step, (images, targets) in enumerate(loader, start=1):
         images = [image.to(device) for image in images]
         targets = move_targets(list(targets), device)
-        with torch.autocast(device_type=device.type, enabled=amp and device.type == "cuda"):
+        group_start = ((step - 1) // accumulation_steps) * accumulation_steps + 1
+        group_size = min(accumulation_steps, len(loader) - group_start + 1)
+        if max_batches is not None:
+            group_size = min(group_size, max_batches - group_start + 1)
+        with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=use_amp):
             losses = model(images, targets)
-            loss = sum(losses.values()) / accumulation_steps
+            loss = sum(losses.values()) / group_size
+        if not torch.isfinite(loss):
+            raise FloatingPointError(f"non-finite training loss at batch {step}: {float(loss)}")
         scaler.scale(loss).backward()
         final_step = step == len(loader) or (max_batches is not None and step >= max_batches)
         if step % accumulation_steps == 0 or final_step:

@@ -7,6 +7,8 @@ import hashlib
 import json
 import platform
 import random
+import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -15,6 +17,7 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 
+from ai_engine.training.config import load_training_config
 from ai_engine.training.dataset import CanonicalToothInstanceDataset, detection_collate
 from ai_engine.training.maskrcnn import (
     build_maskrcnn,
@@ -73,9 +76,12 @@ def _git_commit(repository: Path = Path(".")) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
-    parser.add_argument("--resume", type=Path)
+    parser.add_argument(
+        "--resume", type=Path, nargs="?", const=Path("checkpoints/tooth_v1/latest.pt")
+    )
     parser.add_argument("--benchmark-batches", type=int, default=0)
     args = parser.parse_args()
+    load_training_config(args.config)
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     if config.get("model_lifecycle") != "RESEARCH_ONLY":
         raise ValueError("this entry point requires explicit RESEARCH_ONLY lifecycle")
@@ -132,54 +138,133 @@ def main() -> None:
         factor=float(config["scheduler"]["factor"]),
         patience=int(config["scheduler"]["patience"]),
     )
-    start_epoch = load_checkpoint(args.resume, model, optimizer, scheduler) if args.resume else 0
     checkpoint_dir = Path(config["checkpointing"]["directory"])
+    if args.benchmark_batches:
+        checkpoint_dir = checkpoint_dir / "benchmark"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    config_hash = _sha256(args.config)
+    split_hash = _sha256(Path(data["split_manifest"]))
+    resume_path = args.resume
+    if (
+        resume_path is None
+        and not args.benchmark_batches
+        and config["training"].get("resume") == "auto"
+        and (checkpoint_dir / "latest.pt").is_file()
+    ):
+        resume_path = checkpoint_dir / "latest.pt"
+    start_epoch = 0
+    best = float("-inf")
+    stale = 0
+    if resume_path:
+        start_epoch, restored = load_checkpoint(resume_path, model, optimizer, scheduler)
+        if restored.get("config_sha256") != config_hash:
+            raise ValueError("resume checkpoint was created with a different training config")
+        if restored.get("split_sha256") != split_hash:
+            raise ValueError("resume checkpoint was created with a different data split")
+        best = float(restored.get("best", float("-inf")))
+        stale = int(restored.get("stale", 0))
     metadata = {
         "status": "RESEARCH_ONLY",
         "started_at": datetime.now(UTC).isoformat(),
         "config": str(args.config),
-        "config_sha256": _sha256(args.config),
+        "config_sha256": config_hash,
         "split_manifest": data["split_manifest"],
-        "split_sha256": _sha256(Path(data["split_manifest"])),
+        "split_sha256": split_hash,
         "dataset_ids": data["dataset_ids"],
         "git_commit": _git_commit(),
         "device": torch.cuda.get_device_name(0),
+        "resume": str(resume_path) if resume_path else None,
+        "start_epoch": start_epoch,
+        "benchmark_batches": args.benchmark_batches,
     }
     (checkpoint_dir / "run_metadata.json").write_text(
         json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
     )
-    best = float("-inf")
-    stale = 0
     max_epochs = int(config["training"]["epochs"])
     if args.benchmark_batches:
         max_epochs = min(max_epochs, 1)
-    for epoch in range(start_epoch, max_epochs):
-        losses = train_one_epoch(
-            model,
-            train_loader,
-            optimizer,
-            device,
-            accumulation_steps=int(config["training"]["gradient_accumulation"]),
-            amp=True,
-            max_batches=args.benchmark_batches or None,
-        )
-        metrics = validate(
-            model, validation_loader, device, max_batches=args.benchmark_batches or None
-        )
-        score = metrics["mean_score"]
-        scheduler.step(score)
-        record = {"epoch": epoch, "losses": losses, "validation": metrics}
+    precision = str(config["training"]["mixed_precision"])
+    amp_dtype = torch.bfloat16 if precision == "bf16-mixed" else torch.float16
+    if precision not in {"bf16-mixed", "16-mixed"}:
+        raise ValueError(f"unsupported mixed_precision: {precision}")
+    if amp_dtype == torch.bfloat16 and not torch.cuda.is_bf16_supported():
+        raise RuntimeError("the configured bf16-mixed precision is unsupported by this CUDA GPU")
+    try:
+        for epoch in range(start_epoch, max_epochs):
+            epoch_started = time.monotonic()
+            losses = train_one_epoch(
+                model,
+                train_loader,
+                optimizer,
+                device,
+                accumulation_steps=int(config["training"]["gradient_accumulation"]),
+                amp_dtype=amp_dtype,
+                max_batches=args.benchmark_batches or None,
+            )
+            metrics = validate(
+                model, validation_loader, device, max_batches=args.benchmark_batches or None
+            )
+            score = metrics["map_50_95"]
+            if not np.isfinite(score) or not all(np.isfinite(value) for value in losses.values()):
+                raise FloatingPointError(f"non-finite epoch metrics at epoch {epoch}")
+            scheduler.step(score)
+            improved = score > best
+            if improved:
+                best, stale = score, 0
+            else:
+                stale += 1
+            state = {
+                "best": best,
+                "stale": stale,
+                "config_sha256": config_hash,
+                "split_sha256": split_hash,
+            }
+            record = {
+                "event": "epoch_complete",
+                "epoch": epoch,
+                "duration_seconds": time.monotonic() - epoch_started,
+                "learning_rate": optimizer.param_groups[0]["lr"],
+                "losses": losses,
+                "validation": metrics,
+                "best_map_50_95": best,
+                "early_stopping_stale_epochs": stale,
+            }
+            with (checkpoint_dir / "metrics.jsonl").open("a", encoding="utf-8") as stream:
+                stream.write(json.dumps(record) + "\n")
+            print(json.dumps(record), flush=True)
+            save_checkpoint(
+                checkpoint_dir / "latest.pt",
+                model,
+                optimizer,
+                scheduler,
+                epoch,
+                training_state=state,
+            )
+            if improved:
+                save_checkpoint(
+                    checkpoint_dir / "best.pt",
+                    model,
+                    optimizer,
+                    scheduler,
+                    epoch,
+                    training_state=state,
+                )
+            if args.benchmark_batches or stale >= int(
+                config["training"]["early_stopping_patience"]
+            ):
+                break
+    except (FloatingPointError, torch.cuda.OutOfMemoryError) as error:
+        failure = {
+            "event": "training_stopped_safely",
+            "error_type": type(error).__name__,
+            "message": str(error),
+            "last_completed_epoch": epoch - 1 if "epoch" in locals() else start_epoch - 1,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
         with (checkpoint_dir / "metrics.jsonl").open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(record) + "\n")
-        save_checkpoint(checkpoint_dir / "latest.pt", model, optimizer, scheduler, epoch)
-        if score > best:
-            best, stale = score, 0
-            save_checkpoint(checkpoint_dir / "best.pt", model, optimizer, scheduler, epoch)
-        else:
-            stale += 1
-        if args.benchmark_batches or stale >= int(config["training"]["early_stopping_patience"]):
-            break
+            stream.write(json.dumps(failure) + "\n")
+        print(json.dumps(failure), file=sys.stderr, flush=True)
+        raise SystemExit(1) from error
 
 
 if __name__ == "__main__":
