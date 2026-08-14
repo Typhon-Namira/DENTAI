@@ -7,6 +7,7 @@ import hashlib
 import json
 import platform
 import random
+import resource
 import sys
 import time
 from datetime import UTC, datetime
@@ -18,7 +19,12 @@ import yaml
 from torch.utils.data import DataLoader
 
 from ai_engine.training.config import load_training_config
-from ai_engine.training.dataset import CanonicalToothInstanceDataset, detection_collate
+from ai_engine.training.dataset import (
+    CanonicalToothInstanceDataset,
+    V2ManifestDataset,
+    detection_collate,
+)
+from ai_engine.training.hard_cases import make_weighted_sampler
 from ai_engine.training.maskrcnn import (
     build_maskrcnn,
     load_checkpoint,
@@ -94,23 +100,43 @@ def main() -> None:
     torch.cuda.manual_seed_all(seed)
     torch.use_deterministic_algorithms(bool(config["training"]["deterministic"]), warn_only=True)
     data = config["data"]
-    image_dir = Path(data["primary_image_dir"])
-    canonical_file = Path(data["primary_canonical_annotations"])
     split_file = Path(data["split_manifest"])
     output_size = (int(data["input_size"][0]), int(data["input_size"][1]))
-    train_set = CanonicalToothInstanceDataset(
-        image_dir, canonical_file, split_file, "train", output_size, train=True
-    )
-    validation_set = CanonicalToothInstanceDataset(
-        image_dir, canonical_file, split_file, "validation", output_size, train=False
-    )
+    train_set: V2ManifestDataset | CanonicalToothInstanceDataset
+    validation_set: V2ManifestDataset | CanonicalToothInstanceDataset
+    if split_file.is_dir():
+        train_set = V2ManifestDataset(split_file / "train.json", output_size, train=True)
+        validation_set = V2ManifestDataset(split_file / "validation.json", output_size, train=False)
+    else:
+        image_dir = Path(data["primary_image_dir"])
+        canonical_file = Path(data["primary_canonical_annotations"])
+        train_set = CanonicalToothInstanceDataset(
+            image_dir, canonical_file, split_file, "train", output_size, train=True
+        )
+        validation_set = CanonicalToothInstanceDataset(
+            image_dir, canonical_file, split_file, "validation", output_size, train=False
+        )
     generator = torch.Generator().manual_seed(seed)
     batch_size = int(config["training"]["batch_size"])
     workers = int(config["training"]["data_loader_workers"])
+    sampler = None
+    hard_case_file = split_file / "hard_cases.json" if split_file.is_dir() else None
+    if hard_case_file and hard_case_file.is_file():
+        hard_payload = json.loads(hard_case_file.read_text(encoding="utf-8"))
+        if hard_payload.get("status") == "RESEARCH_ONLY":
+            scores_by_id = {
+                item["canonical_image_id"]: float(item["hard_case_score"])
+                for item in hard_payload["cases"]
+            }
+            scores = [
+                scores_by_id.get(item["canonical_image_id"], 0.0) for item in train_set.records
+            ]
+            sampler = make_weighted_sampler(scores, seed=seed)
     train_loader = DataLoader(
         train_set,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=sampler is None,
+        sampler=sampler,
         num_workers=workers,
         collate_fn=detection_collate,
         generator=generator,
@@ -126,7 +152,10 @@ def main() -> None:
         pin_memory=True,
     )
     device = torch.device("cuda")
-    model = build_maskrcnn(num_classes=int(config["model"]["num_classes"])).to(device)
+    model = build_maskrcnn(
+        num_classes=int(config["model"]["num_classes"]),
+        architecture=str(config["model"]["architecture"]),
+    ).to(device)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=float(config["optimizer"]["learning_rate"]),
@@ -143,7 +172,12 @@ def main() -> None:
         checkpoint_dir = checkpoint_dir / "benchmark"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     config_hash = _sha256(args.config)
-    split_hash = _sha256(Path(data["split_manifest"]))
+    split_hash_path = split_file / "split.sha256" if split_file.is_dir() else split_file
+    split_hash = (
+        split_hash_path.read_text(encoding="utf-8").strip()
+        if split_file.is_dir()
+        else _sha256(split_hash_path)
+    )
     resume_path = args.resume
     if (
         resume_path is None
@@ -191,6 +225,7 @@ def main() -> None:
         raise RuntimeError("the configured bf16-mixed precision is unsupported by this CUDA GPU")
     try:
         for epoch in range(start_epoch, max_epochs):
+            torch.cuda.reset_peak_memory_stats()
             epoch_started = time.monotonic()
             losses = train_one_epoch(
                 model,
@@ -228,6 +263,14 @@ def main() -> None:
                 "validation": metrics,
                 "best_map_50_95": best,
                 "early_stopping_stale_epochs": stale,
+                "telemetry": {
+                    "peak_vram_bytes": torch.cuda.max_memory_allocated(),
+                    "cpu_max_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+                    "gpu_utilization": "capture with nvidia-smi dmon in parent shell",
+                    "batch_size": batch_size,
+                    "gradient_accumulation": int(config["training"]["gradient_accumulation"]),
+                    "amp_mode": precision,
+                },
             }
             with (checkpoint_dir / "metrics.jsonl").open("a", encoding="utf-8") as stream:
                 stream.write(json.dumps(record) + "\n")

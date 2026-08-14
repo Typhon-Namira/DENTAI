@@ -1,0 +1,12 @@
+{
+  "status": "CANDIDATES_DEFINED_BENCHMARK_PENDING",
+  "model_lifecycle": "RESEARCH_ONLY",
+  "fair_comparison": {"split": "data/splits/tooth_v2", "seed": 47, "benchmark_batches": 25, "input_size": [1024, 512], "optimization_steps": "equal"},
+  "candidates": [
+    {"id": "A", "architecture": "maskrcnn_resnet50_fpn_v2", "library": "torchvision 0.23", "role": "V1 architecture with V2 data and augmentation", "mask_support": true, "license": "BSD-3-Clause", "checkpoint_directory": "checkpoints/tooth_v2/maskrcnn"},
+    {"id": "B", "architecture": "maskrcnn_resnet50_fpn", "library": "torchvision 0.23", "role": "mature lighter-compute FPN-head comparison", "mask_support": true, "license": "BSD-3-Clause", "checkpoint_directory": "checkpoints/tooth_v2/maskrcnn_fpn_v1"}
+  ],
+  "provisional_recommendation": "A",
+  "recommendation_basis": "Lowest dependency and export risk and continuity with the measured V1 baseline; final selection requires validation and L4 telemetry.",
+  "selection_metric": "validation mAP50:95 with mask/hard-case quality and resource telemetry as co-criteria"
+}

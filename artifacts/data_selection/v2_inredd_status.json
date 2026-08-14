@@ -1,0 +1,12 @@
+{
+  "dataset": "InReDD-PAN924",
+  "version": "1.0.0",
+  "local_data_found": false,
+  "status": "ACCESS_REQUIRED",
+  "license_status": "RESEARCH_ONLY / PhysioNet Contributor Review DUA 1.5.0",
+  "required_step": "Complete PhysioNet credentialing and recognized GCP training, accept the DUA, submit a project-specific request, and receive contributor approval.",
+  "published_scope_not_locally_verified": {"opgs": 924, "tooth_boxes": 20033, "fdi_polygon_images": 200, "fdi_polygons": 4621},
+  "patient_independence": "PATIENT_INDEPENDENCE_UNVERIFIED",
+  "next_ingest_path_after_approval": "data/raw/inredd_dataset_pan924/1.0.0/",
+  "project_blocked": false
+}

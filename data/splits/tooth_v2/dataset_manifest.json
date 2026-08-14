@@ -1,0 +1,2086 @@
+{
+  "schema_version": "dentai-tooth-v2-corpus-1.0",
+  "status": "RESEARCH_ONLY",
+  "seed": 47,
+  "counts": {
+    "train": 1108,
+    "validation": 139,
+    "test": 138
+  },
+  "total_images": 1385,
+  "total_supervision_records_before_deduplication": 1645,
+  "total_tooth_instances": 28827,
+  "fdi_labelled_instances": 28827,
+  "duplicate_groups": [
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_0.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_239.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_101.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_338.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_104.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_235.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_107.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_515.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_109.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_504.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_118.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_139.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_119.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_122.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_12.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_161.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_127.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_79.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_129.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_382.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_13.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_555.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_130.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_518.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_133.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_33.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_135.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_41.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_140.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_341.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_142.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_72.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_279.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_152.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_505.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_154.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_615.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_157.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_409.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_160.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_260.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_165.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_174.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_168.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_169.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_170.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_106.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_172.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_234.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_177.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_194.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_179.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_412.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_612.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_28.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_18.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_625.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_181.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_375.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_488.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_374.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_182.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_430.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_183.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_699.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_187.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_45.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_19.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_485.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_190.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_85.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_193.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_401.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_197.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_483.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_2.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_140.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_202.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_489.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_209.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_617.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_214.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_413.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_218.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_402.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_220.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_290.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_222.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_386.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_226.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_669.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_228.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_702.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_229.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_54.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_231.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_210.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_234.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_288.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_236.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_281.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_237.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_296.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_238.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_603.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_239.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_327.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_240.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_326.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_241.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_368.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_244.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_159.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_245.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_556.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_248.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_394.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_25.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_68.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_251.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_630.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_255.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_557.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_256.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_643.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_260.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_80.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_269.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_317.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_27.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_639.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_270.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_119.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_274.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_516.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_276.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_653.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_277.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_328.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_308.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_278.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_138.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_28.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_236.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_282.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_446.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_283.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_648.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_284.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_3.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_288.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_18.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_291.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_673.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_294.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_552.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_298.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_369.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_299.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_692.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_30.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_482.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_300.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_649.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_303.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_179.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_305.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_628.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_310.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_551.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_311.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_457.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_315.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_0.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_317.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_431.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_318.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_98.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_320.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_587.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_321.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_115.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_322.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_277.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_323.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_632.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_324.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_658.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_325.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_280.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_327.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_112.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_329.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_576.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_330.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_355.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_335.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_638.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_336.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_291.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_337.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_427.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_345.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_58.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_346.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_278.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_348.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_468.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_349.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_311.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_35.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_320.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_351.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_690.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_355.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_120.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_359.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_173.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_36.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_266.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_360.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_268.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_369.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_325.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_373.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_350.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_376.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_620.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_377.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_252.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_380.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_595.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_381.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_251.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_384.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_49.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_385.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_683.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_387.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_530.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_388.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_104.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_390.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_372.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_392.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_580.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_397.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_400.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_40.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_425.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_401.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_10.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_403.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_606.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_405.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_21.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_407.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_87.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_408.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_568.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_41.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_397.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_410.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_572.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_415.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_647.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_423.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_203.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_424.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_389.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_425.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_52.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_427.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_500.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_429.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_631.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_43.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_664.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_432.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_42.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_435.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_581.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_437.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_1.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_438.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_703.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_440.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_339.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_441.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_250.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_443.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_229.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_445.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_429.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_447.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_127.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_448.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_177.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_449.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_418.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_450.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_663.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_451.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_379.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_454.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_135.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_455.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_84.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_457.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_490.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_458.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_182.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_46.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_590.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_461.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_358.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_462.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_676.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_465.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_612.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_466.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_335.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_467.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_670.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_468.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_503.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_47.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_445.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_471.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_62.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_474.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_134.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_475.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_253.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_476.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_218.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_477.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_207.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_478.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_668.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_479.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_204.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_48.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_19.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_481.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_451.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_482.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_316.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_483.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_387.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_493.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_493.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_495.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_461.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_499.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_633.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_5.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_172.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_501.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_259.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_502.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_622.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_506.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_212.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_509.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_356.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_510.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_456.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_511.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_44.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_513.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_340.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_516.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_476.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_518.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_165.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_520.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_29.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_521.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_509.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_524.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_215.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_527.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_655.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_529.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_32.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_53.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_99.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_530.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_24.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_531.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_520.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_533.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_370.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_534.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_634.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_535.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_366.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_536.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_289.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_541.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_171.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_543.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_399.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_55.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_214.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_555.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_624.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_557.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_544.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_56.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_448.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_560.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_343.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_561.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_506.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_562.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_51.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_563.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_608.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_568.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_319.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_569.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_563.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_570.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_315.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_571.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_227.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_573.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_626.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_579.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_564.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_580.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_519.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_581.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_549.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_586.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_126.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_587.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_347.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_588.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_536.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_592.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_59.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_595.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_499.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_6.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_111.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_600.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_491.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_606.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_681.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_609.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_209.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_613.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_408.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_615.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_526.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_617.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_220.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_62.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_447.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_621.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_146.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_623.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_201.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_625.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_5.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_627.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_307.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_628.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_685.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_63.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_627.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_631.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_164.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_633.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_73.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_65.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_217.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_67.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_689.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_68.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_271.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_7.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_46.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_73.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_305.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_74.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_687.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_77.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_349.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_78.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_124.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_8.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_144.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_80.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_469.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_83.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_342.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_86.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_216.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_88.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_487.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_9.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_478.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_91.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_105.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_94.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_242.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_95.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_385.png"
+    ],
+    [
+      "dentex_hf_7b27ccc8:quadrant_enumeration/train_97.png",
+      "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_619.png"
+    ]
+  ],
+  "exact_duplicate_supervision_copies_removed": 260,
+  "duplicate_removals": [
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_239.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_0.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_338.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_101.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_235.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_104.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_515.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_107.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_504.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_109.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_139.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_118.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_122.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_119.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_161.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_12.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_79.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_127.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_382.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_129.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_555.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_13.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_518.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_130.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_33.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_133.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_41.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_135.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_341.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_140.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_72.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_142.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_279.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_142.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_505.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_152.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_615.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_154.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_409.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_157.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_260.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_160.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_174.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_165.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_169.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_168.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_106.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_170.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_234.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_172.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_194.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_177.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_412.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_179.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_612.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_179.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_28.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_179.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_625.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_18.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_375.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_181.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_488.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_181.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_374.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_181.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_430.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_182.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_699.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_183.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_45.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_187.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_485.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_19.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_85.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_190.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_401.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_193.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_483.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_197.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_140.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_2.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_489.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_202.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_617.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_209.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_413.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_214.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_402.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_218.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_290.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_220.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_386.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_222.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_669.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_226.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_702.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_228.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_54.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_229.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_210.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_231.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_288.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_234.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_281.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_236.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_296.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_237.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_603.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_238.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_327.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_239.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_326.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_240.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_368.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_241.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_159.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_244.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_556.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_245.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_394.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_248.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_68.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_25.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_630.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_251.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_557.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_255.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_643.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_256.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_80.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_260.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_317.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_269.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_639.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_27.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_119.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_270.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_516.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_274.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_653.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_276.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_328.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_277.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_308.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_277.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_138.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_278.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_236.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_28.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_446.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_282.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_648.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_283.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_3.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_284.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_18.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_288.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_673.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_291.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_552.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_294.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_369.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_298.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_692.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_299.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_482.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_30.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_649.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_300.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_179.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_303.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_628.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_305.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_551.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_310.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_457.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_311.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_0.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_315.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_431.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_317.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_98.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_318.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_587.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_320.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_115.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_321.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_277.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_322.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_632.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_323.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_658.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_324.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_280.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_325.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_112.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_327.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_576.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_329.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_355.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_330.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_638.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_335.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_291.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_336.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_427.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_337.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_58.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_345.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_278.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_346.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_468.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_348.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_311.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_349.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_320.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_35.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_690.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_351.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_120.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_355.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_173.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_359.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_266.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_36.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_268.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_360.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_325.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_369.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_350.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_373.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_376.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_620.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_252.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_377.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_595.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_380.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_251.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_381.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_49.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_384.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_683.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_385.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_530.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_387.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_104.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_388.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_372.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_390.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_580.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_392.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_400.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_397.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_425.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_40.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_10.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_401.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_606.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_403.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_21.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_405.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_87.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_407.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_568.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_408.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_397.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_41.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_572.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_410.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_647.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_415.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_203.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_423.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_389.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_424.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_52.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_425.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration/train_500.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_427.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_631.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_429.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_664.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_43.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_42.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_432.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_581.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_435.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_1.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_437.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_703.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_438.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_339.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_440.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_250.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_441.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_229.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_443.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_429.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_445.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_127.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_447.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_177.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_448.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_418.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_449.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_663.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_450.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_379.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_451.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_135.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_454.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_84.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_455.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_490.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_457.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_182.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_458.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_590.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_46.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_358.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_461.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_676.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_462.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_612.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_465.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_335.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_466.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_670.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_467.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_503.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_468.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_445.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_47.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_62.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_471.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_134.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_474.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_253.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_475.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_218.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_476.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_207.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_477.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_668.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_478.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_204.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_479.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_19.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_48.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_451.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_481.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_316.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_482.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_387.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_483.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_493.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_493.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_461.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_495.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_633.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_499.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_172.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_5.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_259.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_501.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_622.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_502.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_212.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_506.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_356.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_509.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_456.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_510.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_44.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_511.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_340.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_513.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_476.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_516.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_165.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_518.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_29.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_520.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_509.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_521.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_215.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_524.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_655.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_527.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_32.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_529.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_99.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_53.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_24.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_530.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_520.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_531.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_370.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_533.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_634.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_534.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_366.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_535.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_289.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_536.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_171.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_541.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_399.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_543.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_214.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_55.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_624.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_555.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_544.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_557.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_448.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_56.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_343.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_560.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_506.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_561.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_51.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_562.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_608.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_563.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_319.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_568.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_563.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_569.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_315.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_570.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_227.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_571.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_626.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_573.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_564.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_579.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_519.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_580.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_549.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_581.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_126.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_586.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_347.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_587.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_536.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_588.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_59.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_592.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_499.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_595.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_111.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_6.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_491.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_600.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_681.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_606.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_209.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_609.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_408.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_613.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_526.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_615.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_220.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_617.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_447.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_62.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_146.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_621.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_201.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_623.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_5.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_625.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_307.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_627.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_685.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_628.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_627.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_63.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_164.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_631.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_73.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_633.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_217.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_65.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_689.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_67.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_271.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_68.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_46.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_7.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_305.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_73.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_687.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_74.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_349.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_77.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_124.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_78.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_144.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_8.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_469.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_80.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_342.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_83.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_216.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_86.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_487.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_88.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_478.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_9.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_105.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_91.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_242.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_94.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_385.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_95.png"
+    },
+    {
+      "removed": "dentex_hf_7b27ccc8:quadrant_enumeration_disease/train_619.png",
+      "retained": "dentex_hf_7b27ccc8:quadrant_enumeration/train_97.png"
+    }
+  ],
+  "near_duplicate_count": null,
+  "near_duplicate_status": "NOT_MEASURED; perceptual hashes recorded for review",
+  "patient_independence": "PATIENT_INDEPENDENCE_UNVERIFIED",
+  "locked_test_policy": "final_evaluation_only",
+  "dataset_hash": "c6dbd371149ac88fb436f971af3a3d5fa78b3644d899885293596fa08168cdba"
+}

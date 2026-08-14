@@ -1,0 +1,10 @@
+{
+  "status": "PENDING_GPU_TEACHER_INFERENCE",
+  "model_lifecycle": "RESEARCH_ONLY",
+  "teacher_checkpoint": "checkpoints/tooth_v1/best.pt",
+  "source_split": "train_only",
+  "locked_test_labels_used": false,
+  "hard_case_count": null,
+  "categories": ["false_negative", "false_positive", "low_confidence_true_positive", "merged_adjacent_teeth", "split_single_tooth", "posterior", "third_molar", "impacted", "restored", "metallic_artifact", "crowding", "missing_neighbour", "low_contrast", "unusual_position", "partial_visibility", "edge_of_opg", "overlap"],
+  "command": ".venv/bin/python -m scripts.mine_tooth_v2_hard_cases --checkpoint checkpoints/tooth_v1/best.pt"
+}

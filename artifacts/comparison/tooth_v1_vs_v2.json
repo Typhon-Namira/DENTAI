@@ -1,0 +1,10 @@
+{
+  "status": "PENDING_V2_TRAINING_AND_IDENTICAL_SET_EVALUATION",
+  "model_lifecycle": "RESEARCH_ONLY",
+  "v1_checkpoint": "checkpoints/tooth_v1/best.pt",
+  "v2_checkpoint": "checkpoints/tooth_v2/best.pt",
+  "v1_known_validation_metrics": {"map50": 0.714504735529915, "map50_95": 0.3935168571789262},
+  "comparison_metrics": ["bbox_map50", "bbox_map50_95", "mask_ap", "precision", "recall", "iou", "dice", "missed_teeth_per_image", "false_positives_per_image", "latency", "peak_ram", "peak_vram", "model_size", "hard_case_performance"],
+  "v2_superior": null,
+  "reason": "No V2 checkpoint or identical-set evaluation exists."
+}

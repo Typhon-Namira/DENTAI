@@ -1,0 +1,25 @@
+{
+  "schema_version": "dentai-tooth-v2-audit-1.0",
+  "status": "RESEARCH_ONLY",
+  "audit_date": "2026-08-14",
+  "datasets_discovered": [
+    {"id":"dentex_hf_7b27ccc8","opgs":2032,"readable":2032,"corrupt":0,"annotations":24396,"fdi_instances":21624,"format":"COCO polygons/boxes with FDI","v2_role":"gold instance anchor","license":"CC-BY-NC-SA-4.0"},
+    {"id":"akudental_git_92e2cc3","opgs":333,"readable":333,"corrupt":0,"annotations":9957,"fdi_instances":8821,"format":"LabelMe polygons with FDI","v2_role":"gold instance diversity","license":"CC-BY-NC-SA-4.0"},
+    {"id":"sts_2d_tooth_hf_a6bf5e99","opgs":4000,"readable":4000,"corrupt":0,"format":"900 semantic masks plus 3100 unlabeled","v2_role":"semantic pretraining/external domain only","exact_duplicate_groups":369,"license":"CC-BY-4.0"},
+    {"id":"tooth_segmentation_jrz4nj82zv_v1","opgs":329,"readable":329,"corrupt":0,"format":"binary semantic masks","v2_role":"semantic pretraining/external domain only","license":"CC-BY-4.0"},
+    {"id":"panoramic_dental_xray_73n3kz2k4k_v3","opgs":107,"readable":107,"corrupt":0,"annotations":772,"format":"VIA polylines; only 25 annotated images","v2_role":"excluded from gold merge pending annotation-copy reconciliation","exact_duplicate_groups":11,"license":"CC-BY-4.0"},
+    {"id":"mopg7_v2","opgs":2095,"readable":2095,"corrupt":0,"annotations":9834,"format":"pathology boxes","v2_role":"hard-domain image pool; not tooth-instance supervision","license":"CC-BY-NC-4.0"},
+    {"id":"restorative_endodontic_mdvs6mjgf2_v1","opgs":2356,"readable":2356,"corrupt":0,"annotations":11726,"format":"restorative/endodontic polygons","v2_role":"restoration-heavy domain pool; no inferred tooth labels","license":"CC-BY-4.0"},
+    {"id":"apicoectomy_9d8mcyp284_v1","opgs":715,"readable":715,"corrupt":0,"annotations":2141,"format":"apicoectomy/root-canal boxes","v2_role":"hard-domain pool; not tooth supervision","license":"CC-BY-4.0"},
+    {"id":"kennedy_ccw5mvg69r_v1","opgs":622,"readable":622,"corrupt":0,"annotations":2063,"format":"numeric boxes with unmapped semantics","v2_role":"missing-dentition domain pool only","license":"CC-BY-4.0 / review required"},
+    {"id":"dental_implant_x4gr6mmwy4_v1","opgs":5107,"readable":5107,"corrupt":0,"format":"implant-type image classification","v2_role":"metal/restoration domain pool only","exact_duplicate_groups":961,"license":"CC-BY-4.0"},
+    {"id":"exan_mtm_t8k59p35p6_v1","opgs":973,"readable":928,"corrupt":45,"annotations":1479,"format":"MTM category boxes","v2_role":"external domain only","exact_duplicate_groups":3,"license":"source-preserved"},
+    {"id":"inredd_pan924_v1","opgs":null,"readable":null,"status":"ACCESS_REQUIRED","v2_role":"priority future gold boxes/masks/FDI","license":"PhysioNet Contributor Review / RESEARCH_ONLY"},
+    {"id":"odontoai","status":"ACCESS_REQUIRED","v2_role":"unavailable","license":"publisher approval required"},
+    {"id":"tl_pano_2026","status":"ACCESS_REQUIRED","v2_role":"unavailable","license":"CC-BY-NC-SA-2.0 / restricted access"}
+  ],
+  "v2_gold_corpus": {"unique_opgs":1385,"tooth_instances":28827,"fdi_labelled_instances":28827,"exact_duplicate_supervision_copies_removed":260,"near_duplicate_count":null,"near_duplicate_status":"NOT_MEASURED; 256-bit dHashes retained","split_counts":{"train":1108,"validation":139,"test":138},"patient_independence":"PATIENT_INDEPENDENCE_UNVERIFIED"},
+  "source_institution_status": "Preserved when published; not available for most local records",
+  "intensity_and_dimensions": "Per-source dimension distributions and readable/corrupt records remain in the referenced source audit JSON files.",
+  "limitations": ["Patient identifiers are absent in both gold sources.", "Hard-case clinical categories are not inferred from unlabeled images.", "Near-duplicate threshold review remains pending.", "InReDD files were not available for local verification."]
+}

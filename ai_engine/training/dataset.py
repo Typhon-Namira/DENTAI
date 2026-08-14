@@ -13,6 +13,18 @@ from torch.utils.data import Dataset
 from torchvision.transforms import functional as F
 
 
+def _photometric_v2(image: Tensor) -> Tensor:
+    """Conservative OPG-safe policy; geometry and laterality are unchanged."""
+    image = F.adjust_brightness(image, 0.92 + 0.16 * torch.rand(1).item())
+    image = F.adjust_contrast(image, 0.90 + 0.20 * torch.rand(1).item())
+    image = F.adjust_gamma(image, 0.92 + 0.16 * torch.rand(1).item())
+    if torch.rand(1).item() < 0.2:
+        image = image + torch.randn_like(image) * (0.008 * torch.rand(1).item())
+    if torch.rand(1).item() < 0.1:
+        image = F.gaussian_blur(image, [3, 3], [0.1, 0.6])
+    return image.clamp(0, 1)
+
+
 class ViaToothInstanceDataset(Dataset):
     """Load VIA polygons without altering source images or annotations.
 
@@ -195,3 +207,61 @@ class CanonicalToothInstanceDataset(Dataset):
 
 def detection_collate(batch: list[tuple[Tensor, dict[str, Any]]]):
     return tuple(zip(*batch, strict=True))
+
+
+class V2ManifestDataset(Dataset):
+    """Load a leakage-protected Tooth V2 split manifest."""
+
+    def __init__(
+        self, manifest: Path, output_size: tuple[int, int], *, train: bool = False
+    ) -> None:
+        self.records = json.loads(manifest.read_text(encoding="utf-8"))["records"]
+        self.output_size = output_size
+        self.train = train
+
+    def __len__(self) -> int:
+        return len(self.records)
+
+    def __getitem__(self, index: int) -> tuple[Tensor, dict[str, Any]]:
+        record = self.records[index]
+        image = Image.open(record["image_path"]).convert("RGB")
+        width, height = image.size
+        masks, boxes, source_ids, fdi_numbers = [], [], [], []
+        for instance in record["instances"]:
+            polygon = instance.get("polygon")
+            box = instance.get("bbox_xyxy")
+            if not polygon or not box or box[2] <= box[0] or box[3] <= box[1]:
+                continue
+            mask_image = Image.new("L", (width, height))
+            ImageDraw.Draw(mask_image).polygon(polygon, fill=1)
+            mask = torch.from_numpy(__import__("numpy").array(mask_image, dtype="uint8"))
+            if mask.any():
+                masks.append(mask)
+                boxes.append([float(value) for value in box])
+                source_ids.append(instance["source_annotation_id"])
+                fdi_numbers.append(instance.get("fdi_number"))
+        if not masks:
+            raise ValueError(f"no valid tooth instances in {record['canonical_image_id']}")
+        image_tensor = F.pil_to_tensor(image).float().div(255)
+        out_w, out_h = self.output_size
+        image_tensor = F.resize(image_tensor, [out_h, out_w], antialias=True)
+        mask_tensor = F.resize(
+            torch.stack(masks), [out_h, out_w], interpolation=F.InterpolationMode.NEAREST
+        )
+        box_tensor = torch.tensor(boxes, dtype=torch.float32)
+        box_tensor *= torch.tensor([out_w / width, out_h / height] * 2)
+        if self.train:
+            image_tensor = _photometric_v2(image_tensor)
+        area = (box_tensor[:, 2] - box_tensor[:, 0]) * (box_tensor[:, 3] - box_tensor[:, 1])
+        return image_tensor, {
+            "boxes": box_tensor,
+            "masks": mask_tensor.to(torch.uint8),
+            "labels": torch.ones(len(masks), dtype=torch.int64),
+            "image_id": torch.tensor([index], dtype=torch.int64),
+            "area": area,
+            "iscrowd": torch.zeros(len(masks), dtype=torch.int64),
+            "source_image": record["canonical_image_id"],
+            "source_dataset": record["source_dataset"],
+            "source_annotation_ids": source_ids,
+            "fdi_numbers": fdi_numbers,
+        }

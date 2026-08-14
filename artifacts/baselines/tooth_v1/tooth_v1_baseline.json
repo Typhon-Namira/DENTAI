@@ -1,0 +1,18 @@
+{
+  "status": "RESEARCH_ONLY",
+  "immutability_policy": "Do not modify, overwrite, resume, or retrain checkpoints/tooth_v1",
+  "architecture": "maskrcnn_resnet50_fpn_v2",
+  "best_epoch_zero_based": 7,
+  "best_validation_map50": 0.714504735529915,
+  "best_validation_map50_95": 0.3935168571789262,
+  "best_checkpoint": {"path": "checkpoints/tooth_v1/best.pt", "sha256": "e855eae61a08d932e054777aa815dddbf83cb5e22bd7ca43ce4d0ceaf32da1f5", "size_bytes": 549336037},
+  "latest_checkpoint": {"path": "checkpoints/tooth_v1/latest.pt", "epoch_zero_based": 16, "sha256": "88c21d68dd280996cd6932dcab926387d98afff7a52c7733ef7d9ad41e154017", "size_bytes": 549338581},
+  "training_dataset_hash": "18b2a2dbc5a2b10b0cc6a7677c46a382f4709ab8c9c3bb94f57b74e38e11ffd3",
+  "training_dataset_hash_scope": "DENTEX pinned source archive, the primary V1 instance dataset",
+  "split_hash": "2544ad9e38f942f9342d5f5eaaa7af26c377f15ee3aed98ee7de9863db1928a1",
+  "config_hash": "878fa694c2dc98148fea5bee347f2c1f9dd1d19d0ba0e8dccb479521b05a7244",
+  "model_initialization": "ImageNet1K_V2 ResNet-50 backbone; detector and mask heads randomly initialized; no COCO detector weights",
+  "augmentation": {"horizontal_flip_probability": 0.0, "rotation_degrees": 3.0, "translate_fraction": 0.02, "scale_range": [0.97, 1.03], "brightness_limit": 0.08, "contrast_limit": 0.08, "gamma_range": [0.95, 1.05], "gaussian_noise_std_max": 0.01},
+  "learning_rate": {"optimizer": "AdamW", "initial": 0.0001, "weight_decay": 0.0001, "scheduler": "ReduceLROnPlateau", "factor": 0.5, "patience": 5},
+  "evidence": {"metrics_sha256": "f178d772a25183b968aa90c6c9b67c3394f5fe9b741d5b2b896696b5bf892697", "run_metadata_sha256": "6134c0ec9f7ab8fdb57ebc70560e4a7b2332d9586003f78d873cca8a943cb935"}
+}

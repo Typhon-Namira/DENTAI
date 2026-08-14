@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import random
+import time
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +12,7 @@ import numpy as np
 import torch
 from torch import nn
 from torchvision.models import ResNet50_Weights
-from torchvision.models.detection import maskrcnn_resnet50_fpn_v2
+from torchvision.models.detection import maskrcnn_resnet50_fpn, maskrcnn_resnet50_fpn_v2
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
@@ -21,11 +22,18 @@ def build_maskrcnn(
     pretrained: bool = True,
     min_size: int = 512,
     max_size: int = 1024,
+    architecture: str = "maskrcnn_resnet50_fpn_v2",
 ) -> nn.Module:
     # Tooth V1 config specifies ImageNet backbone initialization, not COCO detector weights.
     weights = None
     backbone_weights = ResNet50_Weights.IMAGENET1K_V2 if pretrained else None
-    model = maskrcnn_resnet50_fpn_v2(
+    builders = {
+        "maskrcnn_resnet50_fpn": maskrcnn_resnet50_fpn,
+        "maskrcnn_resnet50_fpn_v2": maskrcnn_resnet50_fpn_v2,
+    }
+    if architecture not in builders:
+        raise ValueError(f"unsupported mature torchvision architecture: {architecture}")
+    model = builders[architecture](
         weights=weights,
         weights_backbone=backbone_weights,
         min_size=min_size,
@@ -128,6 +136,9 @@ def validate(
 ) -> dict[str, float]:
     model.eval()
     images_seen = detections = positives = 0
+    true_positives = false_positives = missed = 0
+    mask_dice: list[float] = []
+    mask_iou: list[float] = []
     thresholds = [value / 100 for value in range(50, 100, 5)]
     matches: dict[float, list[tuple[float, bool]]] = {value: [] for value in thresholds}
     for batch_index, (images, targets) in enumerate(loader, start=1):
@@ -159,16 +170,46 @@ def validate(
                             claimed.add(int(best_target))
                             is_match = True
                     matches[threshold].append((float(scores[prediction_index]), is_match))
+            claimed_at_50: set[int] = set()
+            for prediction_index in order:
+                if float(scores[prediction_index]) < 0.5:
+                    continue
+                candidates = ious[prediction_index].clone()
+                if claimed_at_50:
+                    candidates[list(claimed_at_50)] = -1
+                if len(candidates) and float(candidates.max()) >= 0.5:
+                    _, target_index = candidates.max(dim=0)
+                    claimed_at_50.add(int(target_index))
+                    true_positives += 1
+                    if "masks" in output and "masks" in target:
+                        predicted_mask = output["masks"][prediction_index, 0].cpu() >= 0.5
+                        expected_mask = target["masks"][target_index].cpu().bool()
+                        intersection = torch.logical_and(predicted_mask, expected_mask).sum().item()
+                        union = torch.logical_or(predicted_mask, expected_mask).sum().item()
+                        denominator = predicted_mask.sum().item() + expected_mask.sum().item()
+                        mask_dice.append(2 * intersection / denominator if denominator else 1.0)
+                        mask_iou.append(intersection / union if union else 1.0)
+                else:
+                    false_positives += 1
+            missed += len(expected_boxes) - len(claimed_at_50)
         if max_batches is not None and batch_index >= max_batches:
             break
     aps = {
         threshold: _average_precision(entries, positives) for threshold, entries in matches.items()
     }
+    precision = true_positives / max(true_positives + false_positives, 1)
+    recall = true_positives / max(true_positives + missed, 1)
     return {
         "images": float(images_seen),
         "detections": float(detections),
         "map_50": aps[0.5],
         "map_50_95": float(np.mean(list(aps.values()))),
+        "precision_50": precision,
+        "recall_50": recall,
+        "false_positives_per_image": false_positives / max(images_seen, 1),
+        "missed_teeth_per_image": missed / max(images_seen, 1),
+        "mask_dice": float(np.mean(mask_dice)) if mask_dice else 0.0,
+        "mask_iou": float(np.mean(mask_iou)) if mask_iou else 0.0,
     }
 
 
@@ -186,27 +227,56 @@ def train_one_epoch(
     totals: dict[str, float] = {}
     use_amp = amp_dtype is not None and device.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp and amp_dtype == torch.float16)
+    timing = {"dataloader": 0.0, "forward": 0.0, "backward": 0.0, "optimizer": 0.0}
+    images_seen = 0
+    batch_finished = time.monotonic()
     for step, (images, targets) in enumerate(loader, start=1):
+        timing["dataloader"] += time.monotonic() - batch_finished
+        images_seen += len(images)
         images = [image.to(device) for image in images]
         targets = move_targets(list(targets), device)
         group_start = ((step - 1) // accumulation_steps) * accumulation_steps + 1
         group_size = min(accumulation_steps, len(loader) - group_start + 1)
         if max_batches is not None:
             group_size = min(group_size, max_batches - group_start + 1)
+        started = time.monotonic()
         with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=use_amp):
             losses = model(images, targets)
             loss = sum(losses.values()) / group_size
+        if use_amp:
+            torch.cuda.synchronize()
+        timing["forward"] += time.monotonic() - started
         if not torch.isfinite(loss):
             raise FloatingPointError(f"non-finite training loss at batch {step}: {float(loss)}")
+        started = time.monotonic()
         scaler.scale(loss).backward()
+        if use_amp:
+            torch.cuda.synchronize()
+        timing["backward"] += time.monotonic() - started
         final_step = step == len(loader) or (max_batches is not None and step >= max_batches)
         if step % accumulation_steps == 0 or final_step:
+            started = time.monotonic()
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad(set_to_none=True)
+            if use_amp:
+                torch.cuda.synchronize()
+            timing["optimizer"] += time.monotonic() - started
         for name, value in losses.items():
             totals[name] = totals.get(name, 0.0) + float(value.detach())
         if max_batches is not None and step >= max_batches:
             break
+        batch_finished = time.monotonic()
     denominator = min(len(loader), max_batches) if max_batches is not None else len(loader)
-    return {name: value / denominator for name, value in totals.items()}
+    result = {name: value / denominator for name, value in totals.items()}
+    elapsed = sum(timing.values())
+    result.update(
+        {
+            "telemetry_dataloader_seconds": timing["dataloader"],
+            "telemetry_forward_seconds": timing["forward"],
+            "telemetry_backward_seconds": timing["backward"],
+            "telemetry_optimizer_seconds": timing["optimizer"],
+            "telemetry_images_per_second": images_seen / elapsed if elapsed else 0.0,
+        }
+    )
+    return result
