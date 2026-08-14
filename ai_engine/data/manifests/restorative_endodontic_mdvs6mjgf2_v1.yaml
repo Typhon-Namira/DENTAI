@@ -1,0 +1,16 @@
+dataset_id: restorative_endodontic_mdvs6mjgf2_v1
+name: Panoramic radiographs annotated for restorative and endodontic treatments
+version: "1"
+source_url: https://data.mendeley.com/datasets/mdvs6mjgf2/1
+source_doi: 10.17632/mdvs6mjgf2.1
+license: CC-BY-4.0
+tier: PRODUCTION_ALLOWED
+commercial_use_allowed: true
+attribution_required: true
+modification_allowed: true
+sha256: e68fce337656d798fc4d24d32e4f4a11d3ad10ffc02e193b3bd9872c79e139f5
+tasks: [restoration_segmentation, endodontic_segmentation]
+annotation_format: YOLO polygons
+reported_image_count: 2356
+patient_group_field: null
+verification_date: 2026-08-14

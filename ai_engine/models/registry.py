@@ -12,6 +12,10 @@ from ai_engine.data.registry import DatasetRegistry
 
 class ModelLifecycle(StrEnum):
     EXPERIMENTAL = "EXPERIMENTAL"
+    RESEARCH_ONLY = "RESEARCH_ONLY"
+    VALIDATION_CANDIDATE = "VALIDATION_CANDIDATE"
+    PRODUCTION_ELIGIBLE = "PRODUCTION_ELIGIBLE"
+    PRODUCTION = "PRODUCTION"
     TRAINED = "TRAINED"
     VALIDATED_INTERNAL = "VALIDATED_INTERNAL"
     VALIDATED_EXTERNAL = "VALIDATED_EXTERNAL"
@@ -61,6 +65,10 @@ class ModelRegistry:
         payload = yaml.safe_load(self.path.read_text(encoding="utf-8")) or {"models": []}
         models = [ModelManifest.model_validate(item) for item in payload["models"]]
         for model in models:
+            if model.lifecycle is ModelLifecycle.RESEARCH_ONLY and model.production_enabled:
+                raise ValueError(
+                    f"research-only model cannot be production enabled: {model.model_id}"
+                )
             if model.production_enabled:
                 for dataset_id in model.training_dataset_ids:
                     require_production_allowed(self.dataset_registry.load(dataset_id))

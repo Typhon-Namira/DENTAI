@@ -172,4 +172,5 @@ def test_locked_split_and_training_config_are_fail_closed(tmp_path: Path):
             records + [{"image_id": "b", "group_id": "patient-a", "split": "test"}]
         )
     config = load_training_config(Path("configs/ai/tooth_v1.yaml"))
-    assert config.capability_state == "DATASET_REQUIRED"
+    assert config.capability_state == "RESEARCH_DATASET_READY"
+    assert config.data.patient_independence == "PATIENT_INDEPENDENCE_UNVERIFIED"

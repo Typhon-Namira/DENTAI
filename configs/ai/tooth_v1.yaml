@@ -1,6 +1,7 @@
 schema_version: tooth-training-1.0
 task: tooth_instance_segmentation
-capability_state: DATASET_REQUIRED
+capability_state: RESEARCH_DATASET_READY
+model_lifecycle: RESEARCH_ONLY
 clinical_review_state: NOT_REVIEWED
 model:
   architecture: maskrcnn_resnet50_fpn_v2
@@ -15,8 +16,15 @@ model:
     library: MONAI
     limitation: semantic segmentation only; requires validated instance postprocessing
 data:
-  dataset_ids: [panoramic_dental_xray_73n3kz2k4k_v3]
-  split_manifest: data/splits/panoramic_dental_xray_73n3kz2k4k_v3/3/split.json
+  dataset_ids: [dentex_hf_7b27ccc8, akudental_git_92e2cc3, panoramic_dental_xray_73n3kz2k4k_v3]
+  primary_instance_dataset: dentex_hf_7b27ccc8
+  primary_canonical_annotations: data/canonical/dentex/hf-7b27ccc8/instances.json
+  primary_image_dir: data/raw/dentex/hf-7b27ccc8/extracted/training_data
+  split_manifest: data/splits/dentex_hf_7b27ccc8/hf-7b27ccc8/split.json
+  auxiliary_instance_datasets: [akudental_git_92e2cc3, panoramic_dental_xray_73n3kz2k4k_v3]
+  semantic_pretraining_datasets: [sts_2d_tooth_hf_a6bf5e99, tooth_segmentation_jrz4nj82zv_v1]
+  patient_independence: PATIENT_INDEPENDENCE_UNVERIFIED
+  license_inheritance: RESEARCH_ONLY
   minimum_annotated_training_cases: 200
   input_size: [1024, 512]
   channels: 3

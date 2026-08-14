@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ai_engine.data.registry import DatasetRegistry
-from ai_engine.models.registry import ModelRegistry
+from ai_engine.models.registry import ModelLifecycle, ModelRegistry
 
 
 @dataclass(frozen=True)
@@ -30,6 +30,14 @@ def validate_release(
     if not enabled:
         return [ReleaseIssue("registry", "NO_PRODUCTION_MODEL", "No model is enabled.")]
     for model in enabled:
+        if model.lifecycle is ModelLifecycle.RESEARCH_ONLY:
+            issues.append(
+                ReleaseIssue(
+                    model.model_id,
+                    "RESEARCH_ONLY_MODEL",
+                    "Research-only lineage cannot pass the production release gate.",
+                )
+            )
         checks = (
             (
                 bool(model.validation_metrics),

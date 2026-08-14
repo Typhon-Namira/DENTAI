@@ -14,6 +14,7 @@ __pycache__/
 storage/
 datasets/
 data/raw/
+data/canonical/
 data/normalized/
 model_artifacts/
 training_artifacts/

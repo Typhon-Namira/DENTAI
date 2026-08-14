@@ -1,0 +1,19 @@
+dataset_id: dentex_hf_7b27ccc8
+name: DENTEX
+version: hf-7b27ccc8e342dcb774f69adc6ca5e6c09fefce93
+source_url: https://huggingface.co/datasets/ibrahimhamamci/DENTEX
+license: CC-BY-NC-SA-4.0
+tier: RESEARCH_ONLY
+commercial_use_allowed: false
+archive: data/raw/dentex/hf-7b27ccc8/training_data.zip
+archive_sha256: 18b2a2dbc5a2b10b0cc6a7677c46a382f4709ab8c9c3bb94f57b74e38e11ffd3
+retrieval_date: 2026-08-14
+tasks: [tooth_instance_segmentation, fdi_numbering, pathology_detection, quadrant_detection]
+annotation_format: COCO-style polygons and boxes with hierarchical quadrant/tooth/disease labels
+actual_task_images: 2032
+actual_fdi_images: 1339
+actual_valid_annotations: 24396
+actual_fdi_instances: 21624
+patient_group_field: null
+split_sha256: 2544ad9e38f942f9342d5f5eaaa7af26c377f15ee3aed98ee7de9863db1928a1
+notes: Exact duplicate images across supervision levels are SHA-256 grouped. Patient independence is unverified. All derivative checkpoints inherit RESEARCH_ONLY.

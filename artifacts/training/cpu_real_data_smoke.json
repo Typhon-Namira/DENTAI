@@ -1,0 +1,21 @@
+{
+  "status": "SMOKE TEST ONLY \u2014 NOT CLINICAL MODEL TRAINING",
+  "dataset": "DENTEX",
+  "images": 1,
+  "instances": 30,
+  "loss": 4.107179164886475,
+  "losses": {
+    "loss_classifier": 0.7013251781463623,
+    "loss_box_reg": 0.15572459995746613,
+    "loss_mask": 2.1102304458618164,
+    "loss_objectness": 0.6940639019012451,
+    "loss_rpn_box_reg": 0.4458349049091339
+  },
+  "checkpoint": "artifacts/training/cpu_real_data_smoke.pt",
+  "resume_epoch": 1,
+  "validation": {
+    "images": 1.0,
+    "detections": 100.0,
+    "mean_score": 0.518597503900528
+  }
+}

@@ -1,0 +1,16 @@
+dataset_id: dental_implant_x4gr6mmwy4_v1
+name: Dental Implant Dataset
+version: "1"
+source_url: https://data.mendeley.com/datasets/x4gr6mmwy4/1
+source_doi: 10.17632/x4gr6mmwy4.1
+license: CC-BY-4.0
+tier: PRODUCTION_ALLOWED
+commercial_use_allowed: true
+attribution_required: true
+modification_allowed: true
+sha256: 999ed8109056c5c814d8e138f05f619ec0b5ff2873f955fecb313efa2a83764f
+tasks: [implant_type_classification]
+annotation_format: folder-level classification
+reported_image_count: 5273
+patient_group_field: null
+verification_date: 2026-08-14

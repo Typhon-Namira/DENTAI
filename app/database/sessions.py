@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
 
@@ -14,7 +15,11 @@ settings = get_settings()
 
 def make_engine(url: str) -> AsyncEngine:
     options: dict[str, object] = {"pool_pre_ping": True}
-    if not url.startswith("sqlite"):
+    if url.startswith("sqlite"):
+        # SQLite is a local/test fallback. Avoid retaining aiosqlite worker
+        # threads across request or event-loop lifetimes.
+        options["poolclass"] = NullPool
+    else:
         options.update(
             pool_size=settings.database_pool_size,
             max_overflow=settings.database_max_overflow,

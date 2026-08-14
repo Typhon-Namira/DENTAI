@@ -1,0 +1,20 @@
+{
+  "schema_version": "dentai-research-acquisition-1.0",
+  "review_date": "2026-08-14",
+  "blocked": [
+    {"dataset":"InReDD-PAN924","reason":"PhysioNet credentialing, recognized GCP training, DUA acceptance, and contributor project approval required"},
+    {"dataset":"OdontoAI","reason":"a professor must email the signed request PDF from a valid institutional account to lrebouca@ufba.br and receive publisher approval"},
+    {"dataset":"TL-pano","reason":"Zenodo restricted-access depositor approval required"}
+  ],
+  "acquired": {
+    "dentex": {"version":"hf-7b27ccc8","images":2032,"valid_polygons":24396,"fdi_instances":21624,"license":"CC-BY-NC-SA-4.0"},
+    "akudental": {"version":"git-92e2cc3","images":333,"tooth_polygons":8821,"license":"CC-BY-NC-SA-4.0"},
+    "sts_2d_tooth": {"version":"hf-a6bf5e99","images":4000,"semantic_masks":900,"license":"CC-BY-4.0"}
+  },
+  "controls": {
+    "research_only_inheritance": true,
+    "production_gate_unchanged": true,
+    "patient_independence_default": "PATIENT_INDEPENDENCE_UNVERIFIED",
+    "test_policy": "locked and never used for model selection"
+  }
+}

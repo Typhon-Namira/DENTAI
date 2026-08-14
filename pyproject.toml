@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1", "uvicorn[standard]>=0.30,<1", "sqlalchemy[asyncio]>=2.0.36,<3",
-  "asyncpg>=0.30,<1", "aiosqlite>=0.20,<1", "alembic>=1.14,<2", "pydantic-settings>=2.7,<3",
+  "asyncpg>=0.30,<1", "aiosqlite>=0.22.1,<0.23", "alembic>=1.14,<2", "pydantic-settings>=2.7,<3",
   "email-validator>=2.2,<3", "pwdlib[argon2]>=0.2,<1", "PyJWT>=2.10,<3",
   "cryptography>=50,<51", "python-multipart>=0.0.20,<1", "boto3>=1.35,<2",
   "structlog>=24.4,<26", "httpx>=0.28,<1"
@@ -15,11 +15,13 @@ dev = [
   "pytest>=9.0.3,<10", "pytest-asyncio>=1.0,<2", "pytest-cov>=6,<8",
   "ruff>=0.9,<1", "mypy>=1.14,<2", "pip-audit>=2.8,<3", "bandit>=1.8,<2",
   "types-PyYAML>=6,<7",
+  "starlette==1.3.1",
 ]
 ml = [
-  "torch==2.8.0", "torchvision==0.23.0", "lightning==2.6.4", "monai==1.5.1",
+  "torch==2.8.0", "torchvision==0.23.0",
   "opencv-python-headless==4.12.0.88", "scikit-image==0.25.2", "scikit-learn==1.7.2",
-  "onnx==1.19.0", "onnxruntime==1.22.1", "albumentations==2.0.8",
+  "onnx==1.22.0", "onnxruntime==1.22.1", "albumentations==2.0.8",
+  "pyarrow>=21,<24", "pycocotools>=2.0.10,<3",
 ]
 
 [build-system]
@@ -31,6 +33,8 @@ include = ["app*", "scripts*", "ai_engine*"]
 exclude = ["migrations*", "tests*"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+asyncio_default_test_loop_scope = "function"
 testpaths = ["tests"]
 addopts = "--basetemp=.pytest-tmp"
 [tool.ruff]

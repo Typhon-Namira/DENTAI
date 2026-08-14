@@ -1,0 +1,17 @@
+{
+  "schema_version": "dentai-data-selection-1.0",
+  "review_date": "2026-08-14",
+  "rubric_notice": "Engineering rubric only; not a clinical score.",
+  "decision": "MULTI_DATASET_RESEARCH_READY",
+  "candidates": [
+    {"id":"panoramic_dental_xray_73n3kz2k4k_v3","state":"PRODUCTION_ALLOWED","opg_total":107,"annotated_opg":25,"tooth_instances_raw":772,"annotation":"VIA polygons","fdi":false,"patient_ids":false,"duplicate_groups":11,"mask_rcnn":"low","fdi_downstream":"low","recommendation":"LIMITED_DATA_PILOT_ONLY"},
+    {"id":"tooth_segmentation_jrz4nj82zv_v1","state":"PRODUCTION_ALLOWED","opg_total":329,"annotated_opg":329,"tooth_instances":0,"annotation":"binary semantic masks","fdi":false,"patient_ids":false,"mask_rcnn":"none","fdi_downstream":"low","recommendation":"SEMANTIC_PRETRAINING_ONLY"},
+    {"id":"inredd_pan924_v1_0_0","state":"RESEARCH_ONLY_ACCESS_REQUIRED","opg_total":924,"annotated_box_opg":924,"annotated_mask_opg":200,"tooth_boxes":20033,"tooth_masks":4621,"annotation":"COCO boxes and polygons","fdi":true,"patient_ids":"random per-image identifier; linkage unproven","resolution":[2903,1536],"source_diversity":"single institution","mask_rcnn":"high","fdi_downstream":"high","recommendation":"REQUEST_CREDENTIALING_GCP_DUA_AND_CONTRIBUTOR_APPROVAL"},
+    {"id":"tl_pano_18715533","state":"RESEARCH_ONLY_ACCESS_REQUIRED","opg_total":311,"annotated_opg":197,"tooth_instances":5725,"annotation":"polygons","fdi":true,"patient_ids":false,"license":"CC-BY-NC-SA-2.0","mask_rcnn":"high","fdi_downstream":"high","recommendation":"REQUEST_ZENODO_DEPOSITOR_ACCESS"},
+    {"id":"akudental_git_92e2cc3","state":"RESEARCH_ONLY","opg_total":333,"annotated_opg":333,"tooth_instances":8821,"annotation":"LabelMe polygons and derived boxes","fdi":true,"patient_ids":false,"duplicate_groups":0,"mask_rcnn":"high","fdi_downstream":"high","recommendation":"PRIMARY_RESEARCH_INSTANCE_AND_FDI_DATASET"},
+    {"id":"odontoai","state":"ACCESS_REQUIRED","opg_total":4000,"annotated_released":2000,"manual_original":850,"hitl":3150,"annotation":"instance masks and FDI","fdi":true,"patient_ids":"unknown","mask_rcnn":"high","fdi_downstream":"high","recommendation":"PUBLISHER_REQUEST_FORM_REQUIRED"},
+    {"id":"sts_2d_tooth_hf_a6bf5e99","state":"PRODUCTION_ALLOWED","opg_total":4000,"annotated_opg":900,"nonempty_masks":898,"tooth_instances":0,"annotation":"binary semantic masks","fdi":false,"adult":3500,"child":500,"resolution":[640,320],"duplicate_groups":369,"exact_duplicate_entries":854,"mask_rcnn":"none","fdi_downstream":"low","recommendation":"SEMANTIC_AUXILIARY_AND_SSL_WITH_HASH_GROUPED_SPLITS"},
+    {"id":"dentex_hf_7b27ccc8","state":"RESEARCH_ONLY","opg_total":2032,"fdi_task_opg":1339,"nonempty_fdi_opg":1312,"valid_polygons":24396,"tooth_instances":21624,"fdi_instances":21624,"annotation":"COCO-style polygons and boxes","fdi":true,"patient_ids":false,"exact_duplicate_groups":618,"source_diversity":"three institutions","mask_rcnn":"high","fdi_downstream":"high","recommendation":"PRIMARY_RESEARCH_INSTANCE_FDI_AND_PATHOLOGY_SOURCE"},
+    {"id":"yolo_fdi_weights_83k2rtz4bc_v1","state":"UNKNOWN_REVIEW_REQUIRED","reported_training_opg":1061,"reported_instances":29012,"annotation":"checkpoint only","fdi":true,"patient_ids":"unknown","mask_rcnn":"not_applicable","fdi_downstream":"unknown","recommendation":"DO_NOT_USE_WITHOUT_WEIGHT_AND_DATA_LINEAGE_CLEARANCE"}
+  ]
+}

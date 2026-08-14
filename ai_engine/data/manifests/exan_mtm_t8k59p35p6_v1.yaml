@@ -1,0 +1,20 @@
+dataset_id: exan_mtm_t8k59p35p6_v1
+name: Expert Annotated Mandibular Third Molar Dataset
+version: "1"
+source_url: https://data.mendeley.com/datasets/t8k59p35p6/1
+source_doi: 10.17632/t8k59p35p6.1
+license: CC-BY-4.0
+tier: PRODUCTION_ALLOWED
+commercial_use_allowed: true
+attribution_required: true
+modification_allowed: true
+sha256: a0262de4783bf20a9908b06d4ce018f23d11b832fc7e51ac92ff72af332fe402
+tasks: [third_molar_detection, impaction_detection]
+annotation_format: YOLO bounding boxes
+reported_image_count: 973
+patient_group_field: null
+verification_date: 2026-08-14
+known_limitations:
+  - The publisher-matching RAR produces decompression failures; only 928 of 973 extracted images are readable.
+  - 112 readable images have no valid extracted annotations.
+  - Patient identifiers are absent.

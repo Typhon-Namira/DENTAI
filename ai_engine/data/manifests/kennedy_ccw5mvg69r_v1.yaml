@@ -1,0 +1,17 @@
+dataset_id: kennedy_ccw5mvg69r_v1
+name: Kennedy-related panoramic dataset
+version: "1"
+source_url: https://data.mendeley.com/datasets/ccw5mvg69r/1
+source_doi: 10.17632/ccw5mvg69r.1
+license: CC-BY-4.0
+tier: UNKNOWN_REVIEW_REQUIRED
+commercial_use_allowed: true
+attribution_required: true
+modification_allowed: true
+sha256: 5b30ab88d4ca472c105f9cde7cdaf6279aebba9e8ba5e4f98e209e3c7253d528
+tasks: [unknown_unmapped_detection]
+annotation_format: YOLO bounding boxes
+reported_image_count: 622
+patient_group_field: null
+verification_date: 2026-08-14
+notes: Published archive maps classes only to digits 0-9; clinical meanings remain UNKNOWN_UNMAPPED pending authoritative mapping.

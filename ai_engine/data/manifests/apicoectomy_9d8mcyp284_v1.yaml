@@ -1,0 +1,16 @@
+dataset_id: apicoectomy_9d8mcyp284_v1
+name: Apicoectomy-labelled panoramic radiographs
+version: "1"
+source_url: https://data.mendeley.com/datasets/9d8mcyp284/1
+source_doi: 10.17632/9d8mcyp284.1
+license: CC-BY-4.0
+tier: PRODUCTION_ALLOWED
+commercial_use_allowed: true
+attribution_required: true
+modification_allowed: true
+sha256: 4a5770f079bd5350a2a15e187dfc0777290823cd19d7a5d08758821793686ae4
+tasks: [apicoectomy_detection, root_canal_treated_detection]
+annotation_format: YOLO bounding boxes
+reported_image_count: 715
+patient_group_field: null
+verification_date: 2026-08-14

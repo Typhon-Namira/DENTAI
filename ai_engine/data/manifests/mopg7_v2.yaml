@@ -1,0 +1,18 @@
+dataset_id: mopg7_v2
+name: MOPG-7
+version: "2"
+source_url: https://data.mendeley.com/datasets/r43v452t29/2
+source_doi: 10.17632/r43v452t29.2
+license: CC-BY-NC-4.0
+tier: RESEARCH_ONLY
+commercial_use_allowed: false
+attribution_required: true
+share_alike_required: false
+modification_allowed: true
+sha256: 1bfa8790c0d40c11d9e3c90edf8e066f5e614cebf8231ee4194c3dc0d1f4dba8
+tasks: [tooth_condition_detection, tooth_presence_absence]
+annotation_format: YOLO bounding boxes
+reported_image_count: 2095
+patient_group_field: null
+verification_date: 2026-08-14
+known_limitations: [613 annotations use undocumented class id 7 and remain UNKNOWN_UNMAPPED]

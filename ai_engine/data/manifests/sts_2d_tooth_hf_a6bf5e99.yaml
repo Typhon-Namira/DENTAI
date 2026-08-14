@@ -1,0 +1,26 @@
+dataset_id: sts_2d_tooth_hf_a6bf5e99
+name: STS-2D-Tooth
+version: hf-a6bf5e99b6e6b605ccfb78b8ff0fd695f39bf3b8
+source_url: https://huggingface.co/datasets/MedOtter/STS-2D-Tooth/tree/a6bf5e99b6e6b605ccfb78b8ff0fd695f39bf3b8
+source_doi: 10.5281/zenodo.10597292
+license: CC-BY-4.0
+tier: PRODUCTION_ALLOWED
+commercial_use_allowed: true
+attribution_required: true
+share_alike_required: false
+modification_allowed: true
+tasks: [tooth_semantic_segmentation, self_supervised_pretraining]
+annotation_format: Hugging Face Parquet; binary semantic masks for 900 images
+archive_names:
+  - a_pxi_labeled-00000-of-00001.parquet
+  - a_pxi_unlabeled-00000-of-00001.parquet
+  - c_pxi_labeled-00000-of-00001.parquet
+  - c_pxi_unlabeled-00000-of-00001.parquet
+reported_image_count: 4000
+patient_group_field: null
+verification_date: 2026-08-14
+known_limitations:
+  - Semantic masks are not tooth instance ground truth.
+  - 369 exact duplicate groups contain 854 entries; locked splits group exact hashes.
+  - Patient identifiers are absent and patient independence cannot be proven.
+notes: Four Parquet SHA-256 values are recorded in the audit; the mirror revision is immutable.

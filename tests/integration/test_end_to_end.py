@@ -1,12 +1,17 @@
+import asyncio
 import uuid
 from io import BytesIO
 from pathlib import Path
 
+import httpx
 import numpy as np
 import pytest
-from fastapi.testclient import TestClient
+import pytest_asyncio
 from PIL import Image
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import NullPool
 
 import app.database.sessions as sessions
 import app.main as main_module
@@ -27,18 +32,14 @@ from app.database.models import (
 PASSWORD = "Fictional-Development-Password-47"
 
 
-async def seed_clinic(path: Path, label: str, shared_patient_id: uuid.UUID) -> dict:
+def seed_clinic(path: Path, label: str, shared_patient_id: uuid.UUID) -> dict:
     url = f"sqlite+aiosqlite:///{path.as_posix()}"
-    engine = create_async_engine(url)
-    async with engine.begin() as connection:
-        await connection.run_sync(
-            Base.metadata.create_all,
-            tables=[
-                table for name, table in Base.metadata.tables.items() if name != "clinic_registry"
-            ],
-        )
-    factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with factory() as db, db.begin():
+    engine = create_engine(f"sqlite:///{path.as_posix()}")
+    Base.metadata.create_all(
+        engine,
+        tables=[table for name, table in Base.metadata.tables.items() if name != "clinic_registry"],
+    )
+    with Session(engine, expire_on_commit=False) as db, db.begin():
         branch = Branch(name=f"{label} Branch", code=f"{label}-1")
         director = User(
             username=f"{label.lower()}-director",
@@ -65,7 +66,7 @@ async def seed_clinic(path: Path, label: str, shared_patient_id: uuid.UUID) -> d
             last_name="Doctor",
         )
         db.add_all([branch, director, manager, doctor])
-        await db.flush()
+        db.flush()
         patient = Patient(
             id=shared_patient_id,
             patient_number=f"{label}-P-1",
@@ -80,7 +81,7 @@ async def seed_clinic(path: Path, label: str, shared_patient_id: uuid.UUID) -> d
             branch_id=branch.id,
         )
         db.add_all([patient, unassigned])
-        await db.flush()
+        db.flush()
         db.add_all(
             [
                 UserBranchScope(user_id=manager.id, branch_id=branch.id),
@@ -93,7 +94,7 @@ async def seed_clinic(path: Path, label: str, shared_patient_id: uuid.UUID) -> d
                 ),
             ]
         )
-    await engine.dispose()
+    engine.dispose()
     return {
         "url": url,
         "branch": branch.id,
@@ -105,20 +106,24 @@ async def seed_clinic(path: Path, label: str, shared_patient_id: uuid.UUID) -> d
     }
 
 
-@pytest.fixture
-async def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+@pytest_asyncio.fixture(scope="module", loop_scope="module")
+async def api(tmp_path_factory: pytest.TempPathFactory):
+    """Use one event loop for the ASGI app and every async database engine."""
+    tmp_path = tmp_path_factory.mktemp("end-to-end")
+    monkeypatch = pytest.MonkeyPatch()
     shared_patient_id = uuid.uuid4()
-    clinic_a = await seed_clinic(tmp_path / "clinic-a.db", "A", shared_patient_id)
-    clinic_b = await seed_clinic(tmp_path / "clinic-b.db", "B", shared_patient_id)
+    clinic_a = seed_clinic(tmp_path / "clinic-a.db", "A", shared_patient_id)
+    clinic_b = seed_clinic(tmp_path / "clinic-b.db", "B", shared_patient_id)
     control_url = f"sqlite+aiosqlite:///{(tmp_path / 'control.db').as_posix()}"
-    control_engine = create_async_engine(control_url)
-    async with control_engine.begin() as connection:
-        await connection.run_sync(
-            Base.metadata.create_all, tables=[Base.metadata.tables["clinic_registry"]]
-        )
+    # NullPool prevents aiosqlite connections created during setup from crossing
+    # into TestClient's separate event loop.
+    control_engine = create_async_engine(control_url, poolclass=NullPool)
     control_factory = async_sessionmaker(control_engine, expire_on_commit=False)
     clinic_a_id, clinic_b_id = uuid.uuid4(), uuid.uuid4()
-    async with control_factory() as db, db.begin():
+
+    sync_control_engine = create_engine(f"sqlite:///{(tmp_path / 'control.db').as_posix()}")
+    Base.metadata.create_all(sync_control_engine, tables=[Base.metadata.tables["clinic_registry"]])
+    with Session(sync_control_engine) as db, db.begin():
         db.add_all(
             [
                 ClinicRegistry(
@@ -137,19 +142,26 @@ async def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                 ),
             ]
         )
+    sync_control_engine.dispose()
     monkeypatch.setattr(sessions, "ControlSession", control_factory)
     monkeypatch.setattr(main_module, "ControlSession", control_factory)
     monkeypatch.setattr(main_module.settings, "local_storage_path", tmp_path / "storage")
     await resolver.dispose_all()
-    with TestClient(main_module.app) as client:
+    transport = httpx.ASGITransport(app=main_module.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client, clinic_a, clinic_b
+    await resolver.dispose_all()
     await control_engine.dispose()
+    monkeypatch.undo()
 
 
-def login(client: TestClient, clinic: str, identifier: str) -> dict:
-    response = client.post(
-        "/api/v1/auth/login",
-        json={"clinic_slug": clinic, "identifier": identifier, "password": PASSWORD},
+async def login(client: httpx.AsyncClient, clinic: str, identifier: str) -> dict:
+    response = await asyncio.wait_for(
+        client.post(
+            "/api/v1/auth/login",
+            json={"clinic_slug": clinic, "identifier": identifier, "password": PASSWORD},
+        ),
+        timeout=60,
     )
     assert response.status_code == 200, response.text
     return response.json()
@@ -159,26 +171,23 @@ def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_auth_rotation_scoping_xray_ai_and_review(api):
+@pytest.mark.asyncio(loop_scope="module")
+async def test_auth_rotation_scoping_xray_ai_and_review(api):
     client, clinic_a, clinic_b = api
-    pair = login(client, "clinic-a", "a-doctor")
+    pair = await login(client, "clinic-a", "a-doctor")
     doctor_headers = auth(pair["access_token"])
 
     assert (
-        client.get(
-            f"/api/v1/patients/{clinic_a['patient']}/profile", headers=doctor_headers
-        ).status_code
-        == 200
-    )
+        await client.get(f"/api/v1/patients/{clinic_a['patient']}/profile", headers=doctor_headers)
+    ).status_code == 200
     assert (
-        client.get(
+        await client.get(
             f"/api/v1/patients/{clinic_a['unassigned']}/profile", headers=doctor_headers
-        ).status_code
-        == 403
-    )
+        )
+    ).status_code == 403
 
     # The same UUID exists in Clinic B, but the Clinic A token can only see Clinic A's row.
-    scoped = client.get(
+    scoped = await client.get(
         f"/api/v1/patients/{clinic_b['patient']}/profile",
         headers={**doctor_headers, "X-Clinic-ID": "clinic-b"},
         params={"clinic_id": "clinic-b"},
@@ -186,19 +195,19 @@ def test_auth_rotation_scoping_xray_ai_and_review(api):
     assert scoped.status_code == 200
     assert scoped.json()["patient"]["patient_number"] == "A-P-1"
 
-    denied_upload = client.post(
+    denied_upload = await client.post(
         f"/api/v1/xrays/patients/{clinic_a['unassigned']}",
         headers=doctor_headers,
         files={"file": ("bad.png", b"\x89PNG\r\n\x1a\ncontent", "image/png")},
     )
     assert denied_upload.status_code == 403
-    invalid_upload = client.post(
+    invalid_upload = await client.post(
         f"/api/v1/xrays/patients/{clinic_a['patient']}",
         headers=doctor_headers,
         files={"file": ("fake.png", b"not an image", "image/png")},
     )
     assert invalid_upload.status_code == 415
-    upload = client.post(
+    upload = await client.post(
         f"/api/v1/xrays/patients/{clinic_a['patient']}",
         headers=doctor_headers,
         files={"file": ("../scan.png", b"\x89PNG\r\n\x1a\ncontent", "image/png")},
@@ -208,58 +217,58 @@ def test_auth_rotation_scoping_xray_ai_and_review(api):
     assert "storage_key" not in upload.json()
     xray_id = upload.json()["id"]
 
-    grant = client.get(f"/api/v1/xrays/{xray_id}/download", headers=doctor_headers)
+    grant = await client.get(f"/api/v1/xrays/{xray_id}/download", headers=doctor_headers)
     assert grant.status_code == 200
     assert grant.json()["url"].endswith("/content")
-    content = client.get(grant.json()["url"], headers=doctor_headers)
+    content = await client.get(grant.json()["url"], headers=doctor_headers)
     assert content.status_code == 200
     assert content.headers["cache-control"] == "private, no-store"
 
-    analysis = client.post("/api/v1/ai-analyses", headers=doctor_headers, json={"xray_id": xray_id})
+    analysis = await client.post(
+        "/api/v1/ai-analyses", headers=doctor_headers, json={"xray_id": xray_id}
+    )
     assert analysis.status_code == 201, analysis.text
     assert analysis.json()["status"] == "COMPLETED"
-    profile = client.get(
-        f"/api/v1/patients/{clinic_a['patient']}/profile", headers=doctor_headers
+    profile = (
+        await client.get(f"/api/v1/patients/{clinic_a['patient']}/profile", headers=doctor_headers)
     ).json()
     ai_finding = next(item for item in profile["findings"] if item["source"] == "AI")
-    review = client.post(
+    review = await client.post(
         f"/api/v1/ai-analyses/{analysis.json()['id']}/review",
         headers=doctor_headers,
         json={"decisions": [{"finding_id": ai_finding["id"], "decision": "CONFIRMED"}]},
     )
     assert review.status_code == 200, review.text
-    reviewed_profile = client.get(
-        f"/api/v1/patients/{clinic_a['patient']}/profile", headers=doctor_headers
+    reviewed_profile = (
+        await client.get(f"/api/v1/patients/{clinic_a['patient']}/profile", headers=doctor_headers)
     ).json()
     assert {item["source"] for item in reviewed_profile["findings"]} == {"AI", "DENTIST"}
 
-    rotated = client.post("/api/v1/auth/refresh", json={"refresh_token": pair["refresh_token"]})
+    rotated = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": pair["refresh_token"]}
+    )
     assert rotated.status_code == 200
     assert (
-        client.post(
-            "/api/v1/auth/refresh", json={"refresh_token": pair["refresh_token"]}
-        ).status_code
-        == 401
-    )
+        await client.post("/api/v1/auth/refresh", json={"refresh_token": pair["refresh_token"]})
+    ).status_code == 401
     assert (
-        client.post(
+        await client.post(
             "/api/v1/auth/logout", json={"refresh_token": rotated.json()["refresh_token"]}
-        ).status_code
-        == 204
-    )
+        )
+    ).status_code == 204
     assert (
-        client.post(
+        await client.post(
             "/api/v1/auth/refresh", json={"refresh_token": rotated.json()["refresh_token"]}
-        ).status_code
-        == 401
-    )
+        )
+    ).status_code == 401
 
 
-def test_manager_and_director_rbac(api):
+@pytest.mark.asyncio(loop_scope="module")
+async def test_manager_and_director_rbac(api):
     client, clinic_a, _ = api
-    manager = login(client, "clinic-a", "a-manager")
+    manager = await login(client, "clinic-a", "a-manager")
     manager_headers = auth(manager["access_token"])
-    doctor_create = client.post(
+    doctor_create = await client.post(
         "/api/v1/users/doctors",
         headers=manager_headers,
         json={
@@ -274,58 +283,60 @@ def test_manager_and_director_rbac(api):
     assert doctor_create.status_code == 201, doctor_create.text
     assert "password_hash" not in doctor_create.json()
     assert (
-        client.post("/api/v1/users/managers", headers=manager_headers, json={}).status_code == 403
-    )
-    assert client.get("/api/v1/packages", headers=manager_headers).status_code == 403
+        await client.post("/api/v1/users/managers", headers=manager_headers, json={})
+    ).status_code == 403
+    assert (await client.get("/api/v1/packages", headers=manager_headers)).status_code == 403
 
-    director = login(client, "clinic-a", "a-director")
+    director = await login(client, "clinic-a", "a-director")
     director_headers = auth(director["access_token"])
-    assert client.get("/api/v1/packages", headers=director_headers).status_code == 200
-    assert client.get("/api/v1/audit", headers=director_headers).status_code == 200
-    assert client.get("/health").status_code == 200
-    assert client.get("/ready").status_code == 200
-    openapi = client.get("/openapi.json")
+    assert (await client.get("/api/v1/packages", headers=director_headers)).status_code == 200
+    assert (await client.get("/api/v1/audit", headers=director_headers)).status_code == 200
+    assert (await client.get("/health")).status_code == 200
+    assert (await client.get("/ready")).status_code == 200
+    openapi = await client.get("/openapi.json")
     assert openapi.status_code == 200
     assert len(openapi.json()["paths"]) >= 20
 
 
-def test_failed_login_is_safe_and_security_headers_are_present(api):
+@pytest.mark.asyncio(loop_scope="module")
+async def test_failed_login_is_safe_and_security_headers_are_present(api):
     client, _, _ = api
-    wrong = client.post(
+    wrong = await client.post(
         "/api/v1/auth/login",
         json={"clinic_slug": "clinic-a", "identifier": "a-doctor", "password": "wrong-pass"},
     )
     assert wrong.status_code == 401
     assert wrong.json()["error"]["code"] == "INVALID_CREDENTIALS"
-    unknown = client.post(
+    unknown = await client.post(
         "/api/v1/auth/login",
         json={"clinic_slug": "missing", "identifier": "a-doctor", "password": PASSWORD},
     )
     assert unknown.status_code == 404
-    health = client.get("/health", headers={"X-Request-ID": "invalid request id with spaces"})
+    health = await client.get("/health", headers={"X-Request-ID": "invalid request id with spaces"})
     assert health.headers["x-content-type-options"] == "nosniff"
     assert health.headers["x-frame-options"] == "DENY"
     assert health.headers["x-request-id"] != "invalid request id with spaces"
 
 
-def test_real_opg_api_quality_path_operates_without_groq_or_fake_findings(api):
+@pytest.mark.asyncio(loop_scope="module")
+async def test_real_opg_api_quality_path_operates_without_groq_or_fake_findings(api):
     client, clinic_a, _ = api
     settings = get_settings()
     original_provider = settings.ai_provider
     settings.ai_provider = "real_opg"
     try:
-        pair = login(client, "clinic-a", "a-doctor")
+        pair = await login(client, "clinic-a", "a-doctor")
         headers = auth(pair["access_token"])
         pixels = np.tile(np.linspace(20, 230, 1024, dtype=np.uint8), (512, 1))
         image = BytesIO()
         Image.fromarray(pixels).save(image, format="PNG")
-        upload = client.post(
+        upload = await client.post(
             f"/api/v1/xrays/patients/{clinic_a['patient']}",
             headers=headers,
             files={"file": ("synthetic-opg.png", image.getvalue(), "image/png")},
         )
         assert upload.status_code == 201, upload.text
-        analysis = client.post(
+        analysis = await client.post(
             "/api/v1/ai-analyses", headers=headers, json={"xray_id": upload.json()["id"]}
         )
         assert analysis.status_code == 202, analysis.text

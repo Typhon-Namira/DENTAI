@@ -1,0 +1,16 @@
+dataset_id: akudental_git_92e2cc3
+name: AKUDENTAL
+version: git-92e2cc3ae5eebc9de509311a3edefb7106fca7dd
+source_url: https://github.com/melihoz/AKUDENTAL
+license: CC-BY-NC-SA-4.0
+tier: RESEARCH_ONLY
+commercial_use_allowed: false
+attribution_required: true
+share_alike_required: true
+modification_allowed: true
+tasks: [tooth_instance_segmentation, fdi_numbering, restoration_detection]
+annotation_format: LabelMe polygons with FDI/restoration labels
+reported_image_count: 333
+patient_group_field: null
+verification_date: 2026-08-14
+notes: Patient identifiers are not published. All derivative checkpoints inherit RESEARCH_ONLY.
