@@ -1,5 +1,0 @@
-# Backup and restore
-
-Backups are an infrastructure responsibility and are not automatically enabled by this repository. Enable scheduled PostgreSQL backups for the control plane and for every clinic database independently. Keep each clinic's recovery material isolated and access-controlled. Object storage needs versioning or an equivalent backup policy because database backups contain only X-ray metadata, not file bytes.
-
-Test restores regularly in an isolated environment: restore the control database, restore the selected clinic database, restore its object prefix/bucket, run schema compatibility checks, and verify an authorized login and X-ray retrieval. A clinic-specific recovery must not overwrite any other clinic database. Before migrations, create provider snapshots/backups, review the migration, test it against staging, migrate the control plane first when required, then each clinic in a controlled sequence. Roll back application code only when its schema compatibility is understood; never run destructive downgrades automatically.
