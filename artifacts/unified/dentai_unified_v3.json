@@ -1,0 +1,766 @@
+{
+  "schema_version": "dentai-unified-v3",
+  "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/111.jpg",
+  "detected_teeth": 32,
+  "detected_restorations": 5,
+  "unmatched_restorations": [],
+  "teeth": [
+    {
+      "instance_id": 23,
+      "bbox_xyxy": [
+        1390.66,
+        521.93,
+        1488.22,
+        825.7
+      ],
+      "segmentation_confidence": 0.9614,
+      "fdi_number": "11",
+      "fdi_confidence": 0.9859,
+      "raw_fdi_number": "11",
+      "resolved_fdi_number": "11",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9884,
+        "review_required": true
+      },
+      "restorations": [
+        {
+          "bbox_xyxy": [
+            1465.41,
+            749.82,
+            1491.52,
+            793.18
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.7638,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.9667,
+          "type_agreement": true,
+          "final_type": "FILLING",
+          "review_required": false,
+          "resolved_fdi_number": "11"
+        }
+      ]
+    },
+    {
+      "instance_id": 16,
+      "bbox_xyxy": [
+        1309.17,
+        517.32,
+        1400.24,
+        809.34
+      ],
+      "segmentation_confidence": 0.9676,
+      "fdi_number": "12",
+      "fdi_confidence": 0.9318,
+      "raw_fdi_number": "12",
+      "resolved_fdi_number": "12",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9597,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 30,
+      "bbox_xyxy": [
+        1210.2,
+        505.01,
+        1320.27,
+        826.3
+      ],
+      "segmentation_confidence": 0.9184,
+      "fdi_number": "13",
+      "fdi_confidence": 0.9707,
+      "raw_fdi_number": "13",
+      "resolved_fdi_number": "13",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9871,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 13,
+      "bbox_xyxy": [
+        1134.91,
+        543.44,
+        1239.4,
+        828.76
+      ],
+      "segmentation_confidence": 0.9776,
+      "fdi_number": "14",
+      "fdi_confidence": 0.9773,
+      "raw_fdi_number": "14",
+      "resolved_fdi_number": "14",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9561,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 10,
+      "bbox_xyxy": [
+        1055.1,
+        542.29,
+        1146.65,
+        831.4
+      ],
+      "segmentation_confidence": 0.9812,
+      "fdi_number": "15",
+      "fdi_confidence": 0.8591,
+      "raw_fdi_number": "15",
+      "resolved_fdi_number": "15",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.895,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 4,
+      "bbox_xyxy": [
+        945.28,
+        551.7,
+        1066.27,
+        834.93
+      ],
+      "segmentation_confidence": 0.9921,
+      "fdi_number": "16",
+      "fdi_confidence": 0.9269,
+      "raw_fdi_number": "16",
+      "resolved_fdi_number": "16",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.8602,
+        "review_required": true
+      },
+      "restorations": [
+        {
+          "bbox_xyxy": [
+            983.16,
+            784.64,
+            1042.68,
+            816.64
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.8166,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.9817,
+          "type_agreement": true,
+          "final_type": "FILLING",
+          "review_required": false,
+          "resolved_fdi_number": "16"
+        }
+      ]
+    },
+    {
+      "instance_id": 6,
+      "bbox_xyxy": [
+        821.1,
+        545.35,
+        962.21,
+        814.59
+      ],
+      "segmentation_confidence": 0.9871,
+      "fdi_number": "17",
+      "fdi_confidence": 0.9151,
+      "raw_fdi_number": "17",
+      "resolved_fdi_number": "17",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.8486,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 2,
+      "bbox_xyxy": [
+        744.69,
+        500.24,
+        878.11,
+        721.2
+      ],
+      "segmentation_confidence": 0.9935,
+      "fdi_number": "18",
+      "fdi_confidence": 0.94,
+      "raw_fdi_number": "18",
+      "resolved_fdi_number": "18",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Impacted",
+        "confidence": 0.9846,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 15,
+      "bbox_xyxy": [
+        1477.99,
+        535.78,
+        1589.28,
+        820.97
+      ],
+      "segmentation_confidence": 0.9699,
+      "fdi_number": "21",
+      "fdi_confidence": 0.993,
+      "raw_fdi_number": "21",
+      "resolved_fdi_number": "21",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9856,
+        "review_required": true
+      },
+      "restorations": [
+        {
+          "bbox_xyxy": [
+            1481.78,
+            746.0,
+            1510.42,
+            793.62
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.9887,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.95,
+          "type_agreement": true,
+          "final_type": "FILLING",
+          "review_required": false,
+          "resolved_fdi_number": "21"
+        }
+      ]
+    },
+    {
+      "instance_id": 22,
+      "bbox_xyxy": [
+        1575.41,
+        550.25,
+        1671.84,
+        821.0
+      ],
+      "segmentation_confidence": 0.9619,
+      "fdi_number": "22",
+      "fdi_confidence": 0.9624,
+      "raw_fdi_number": "22",
+      "resolved_fdi_number": "22",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9732,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 20,
+      "bbox_xyxy": [
+        1648.71,
+        502.57,
+        1786.53,
+        836.15
+      ],
+      "segmentation_confidence": 0.9644,
+      "fdi_number": "23",
+      "fdi_confidence": 0.9692,
+      "raw_fdi_number": "23",
+      "resolved_fdi_number": "23",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9088,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 17,
+      "bbox_xyxy": [
+        1725.28,
+        545.28,
+        1848.06,
+        839.02
+      ],
+      "segmentation_confidence": 0.9663,
+      "fdi_number": "24",
+      "fdi_confidence": 0.9578,
+      "raw_fdi_number": "24",
+      "resolved_fdi_number": "24",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9509,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 12,
+      "bbox_xyxy": [
+        1819.05,
+        556.11,
+        1917.5,
+        841.86
+      ],
+      "segmentation_confidence": 0.9781,
+      "fdi_number": "25",
+      "fdi_confidence": 0.9952,
+      "raw_fdi_number": "25",
+      "resolved_fdi_number": "25",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.8973,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 11,
+      "bbox_xyxy": [
+        1908.26,
+        565.01,
+        2040.42,
+        844.28
+      ],
+      "segmentation_confidence": 0.9804,
+      "fdi_number": "26",
+      "fdi_confidence": 0.998,
+      "raw_fdi_number": "26",
+      "resolved_fdi_number": "26",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.6355,
+        "review_required": true
+      },
+      "restorations": [
+        {
+          "bbox_xyxy": [
+            1947.18,
+            755.68,
+            2033.69,
+            834.99
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.9973,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.9935,
+          "type_agreement": true,
+          "final_type": "FILLING",
+          "review_required": false,
+          "resolved_fdi_number": "26"
+        }
+      ]
+    },
+    {
+      "instance_id": 14,
+      "bbox_xyxy": [
+        1980.77,
+        556.17,
+        2168.28,
+        805.75
+      ],
+      "segmentation_confidence": 0.9711,
+      "fdi_number": "27",
+      "fdi_confidence": 0.9771,
+      "raw_fdi_number": "27",
+      "resolved_fdi_number": "27",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.6656,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 3,
+      "bbox_xyxy": [
+        2075.54,
+        476.41,
+        2250.29,
+        677.25
+      ],
+      "segmentation_confidence": 0.9925,
+      "fdi_number": "28",
+      "fdi_confidence": 0.962,
+      "raw_fdi_number": "28",
+      "resolved_fdi_number": "28",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Impacted",
+        "confidence": 0.9569,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 27,
+      "bbox_xyxy": [
+        1580.09,
+        848.15,
+        1646.06,
+        1154.18
+      ],
+      "segmentation_confidence": 0.9385,
+      "fdi_number": "32",
+      "fdi_confidence": 0.5976,
+      "raw_fdi_number": "32",
+      "resolved_fdi_number": "31",
+      "fdi_was_changed": true,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9913,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 24,
+      "bbox_xyxy": [
+        1396.76,
+        850.73,
+        1464.72,
+        1144.91
+      ],
+      "segmentation_confidence": 0.951,
+      "fdi_number": "32",
+      "fdi_confidence": 0.7327,
+      "raw_fdi_number": "32",
+      "resolved_fdi_number": "32",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9896,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 29,
+      "bbox_xyxy": [
+        1315.55,
+        850.18,
+        1403.85,
+        1161.26
+      ],
+      "segmentation_confidence": 0.9194,
+      "fdi_number": "33",
+      "fdi_confidence": 0.8982,
+      "raw_fdi_number": "33",
+      "resolved_fdi_number": "33",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9897,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 26,
+      "bbox_xyxy": [
+        1236.0,
+        850.21,
+        1326.88,
+        1162.6
+      ],
+      "segmentation_confidence": 0.9396,
+      "fdi_number": "34",
+      "fdi_confidence": 0.8056,
+      "raw_fdi_number": "34",
+      "resolved_fdi_number": "34",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9879,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 21,
+      "bbox_xyxy": [
+        1136.75,
+        866.34,
+        1248.42,
+        1139.65
+      ],
+      "segmentation_confidence": 0.9622,
+      "fdi_number": "35",
+      "fdi_confidence": 0.673,
+      "raw_fdi_number": "35",
+      "resolved_fdi_number": "35",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9874,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 25,
+      "bbox_xyxy": [
+        957.16,
+        858.24,
+        1148.9,
+        1138.43
+      ],
+      "segmentation_confidence": 0.9486,
+      "fdi_number": "36",
+      "fdi_confidence": 0.9265,
+      "raw_fdi_number": "36",
+      "resolved_fdi_number": "36",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9798,
+        "review_required": true
+      },
+      "restorations": [
+        {
+          "bbox_xyxy": [
+            1011.39,
+            867.41,
+            1125.34,
+            916.65
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.9981,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.987,
+          "type_agreement": true,
+          "final_type": "FILLING",
+          "review_required": false,
+          "resolved_fdi_number": "36"
+        }
+      ]
+    },
+    {
+      "instance_id": 7,
+      "bbox_xyxy": [
+        823.98,
+        835.66,
+        993.88,
+        1102.16
+      ],
+      "segmentation_confidence": 0.986,
+      "fdi_number": "37",
+      "fdi_confidence": 0.987,
+      "raw_fdi_number": "37",
+      "resolved_fdi_number": "37",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.8215,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 1,
+      "bbox_xyxy": [
+        674.24,
+        854.3,
+        877.87,
+        1018.37
+      ],
+      "segmentation_confidence": 0.9936,
+      "fdi_number": "38",
+      "fdi_confidence": 0.3686,
+      "raw_fdi_number": "38",
+      "resolved_fdi_number": "38",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Impacted",
+        "confidence": 0.9951,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 28,
+      "bbox_xyxy": [
+        1464.28,
+        848.18,
+        1523.85,
+        1137.93
+      ],
+      "segmentation_confidence": 0.9327,
+      "fdi_number": "41",
+      "fdi_confidence": 0.9916,
+      "raw_fdi_number": "41",
+      "resolved_fdi_number": "41",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9506,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 31,
+      "bbox_xyxy": [
+        1528.32,
+        852.71,
+        1587.35,
+        1140.39
+      ],
+      "segmentation_confidence": 0.9088,
+      "fdi_number": "42",
+      "fdi_confidence": 0.3963,
+      "raw_fdi_number": "42",
+      "resolved_fdi_number": "42",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9638,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 32,
+      "bbox_xyxy": [
+        1645.97,
+        854.08,
+        1727.23,
+        1173.45
+      ],
+      "segmentation_confidence": 0.8847,
+      "fdi_number": "43",
+      "fdi_confidence": 0.9513,
+      "raw_fdi_number": "43",
+      "resolved_fdi_number": "43",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9975,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 19,
+      "bbox_xyxy": [
+        1728.67,
+        866.6,
+        1819.02,
+        1166.03
+      ],
+      "segmentation_confidence": 0.9648,
+      "fdi_number": "44",
+      "fdi_confidence": 0.8765,
+      "raw_fdi_number": "44",
+      "resolved_fdi_number": "44",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.9903,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 18,
+      "bbox_xyxy": [
+        1812.04,
+        865.05,
+        1917.68,
+        1160.3
+      ],
+      "segmentation_confidence": 0.9658,
+      "fdi_number": "45",
+      "fdi_confidence": 0.9758,
+      "raw_fdi_number": "45",
+      "resolved_fdi_number": "45",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.7857,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 8,
+      "bbox_xyxy": [
+        1897.46,
+        871.42,
+        2072.84,
+        1156.85
+      ],
+      "segmentation_confidence": 0.9827,
+      "fdi_number": "46",
+      "fdi_confidence": 0.8736,
+      "raw_fdi_number": "46",
+      "resolved_fdi_number": "46",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Deep Caries",
+        "confidence": 0.3555,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 9,
+      "bbox_xyxy": [
+        2024.46,
+        841.09,
+        2183.68,
+        1122.69
+      ],
+      "segmentation_confidence": 0.9813,
+      "fdi_number": "47",
+      "fdi_confidence": 0.5371,
+      "raw_fdi_number": "47",
+      "resolved_fdi_number": "47",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Caries",
+        "confidence": 0.4531,
+        "review_required": true
+      },
+      "restorations": []
+    },
+    {
+      "instance_id": 5,
+      "bbox_xyxy": [
+        2163.24,
+        861.11,
+        2311.74,
+        1027.56
+      ],
+      "segmentation_confidence": 0.9897,
+      "fdi_number": "48",
+      "fdi_confidence": 0.7887,
+      "raw_fdi_number": "48",
+      "resolved_fdi_number": "48",
+      "fdi_was_changed": false,
+      "disease": {
+        "candidate": "Impacted",
+        "confidence": 0.9788,
+        "review_required": true
+      },
+      "restorations": []
+    }
+  ]
+}

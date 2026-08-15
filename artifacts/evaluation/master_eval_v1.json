@@ -1,0 +1,43 @@
+{
+  "tooth": {
+    "tooth_recall": 0.9653018736988203,
+    "gt_teeth": 2882,
+    "matched_teeth": 2782,
+    "fdi_raw_acc": 0.8989935298346513,
+    "fdi_resolved_acc": 0.9000718907260963,
+    "fdi_total": 2782,
+    "low_conf_fdi": 633,
+    "raw_duplicate_images": 124,
+    "resolved_duplicate_images": 64,
+    "disease_acc": 0.7722772277227723,
+    "disease_total": 202,
+    "disease_recall": {
+      "Caries": 0.8974358974358975,
+      "Deep Caries": 0.2,
+      "Impacted": 0.9,
+      "Periapical Lesion": 0.1
+    }
+  },
+  "restoration": {
+    "macro_f1": 0.9083769633507854,
+    "metrics": {
+      "FILLING": {
+        "precision": 0.8125,
+        "recall": 0.8210526315789474,
+        "f1": 0.8167539267015708,
+        "tp": 78,
+        "fp": 18,
+        "fn": 17
+      },
+      "IMPLANT": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 7,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    "test_images": 35
+  }
+}
