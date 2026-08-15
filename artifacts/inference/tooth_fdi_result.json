@@ -1,0 +1,391 @@
+{
+  "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/111.jpg",
+  "device": "cuda",
+  "detected_teeth": 32,
+  "teeth": [
+    {
+      "instance_id": 23,
+      "bbox_xyxy": [
+        1390.66,
+        521.93,
+        1488.22,
+        825.7
+      ],
+      "segmentation_confidence": 0.9614,
+      "fdi_number": "11",
+      "fdi_confidence": 0.9859
+    },
+    {
+      "instance_id": 16,
+      "bbox_xyxy": [
+        1309.17,
+        517.32,
+        1400.24,
+        809.34
+      ],
+      "segmentation_confidence": 0.9676,
+      "fdi_number": "12",
+      "fdi_confidence": 0.9318
+    },
+    {
+      "instance_id": 30,
+      "bbox_xyxy": [
+        1210.2,
+        505.01,
+        1320.27,
+        826.3
+      ],
+      "segmentation_confidence": 0.9184,
+      "fdi_number": "13",
+      "fdi_confidence": 0.9707
+    },
+    {
+      "instance_id": 13,
+      "bbox_xyxy": [
+        1134.91,
+        543.44,
+        1239.4,
+        828.76
+      ],
+      "segmentation_confidence": 0.9776,
+      "fdi_number": "14",
+      "fdi_confidence": 0.9773
+    },
+    {
+      "instance_id": 10,
+      "bbox_xyxy": [
+        1055.1,
+        542.29,
+        1146.65,
+        831.4
+      ],
+      "segmentation_confidence": 0.9812,
+      "fdi_number": "15",
+      "fdi_confidence": 0.8591
+    },
+    {
+      "instance_id": 4,
+      "bbox_xyxy": [
+        945.28,
+        551.7,
+        1066.27,
+        834.93
+      ],
+      "segmentation_confidence": 0.9921,
+      "fdi_number": "16",
+      "fdi_confidence": 0.9269
+    },
+    {
+      "instance_id": 6,
+      "bbox_xyxy": [
+        821.1,
+        545.35,
+        962.21,
+        814.59
+      ],
+      "segmentation_confidence": 0.9871,
+      "fdi_number": "17",
+      "fdi_confidence": 0.9151
+    },
+    {
+      "instance_id": 2,
+      "bbox_xyxy": [
+        744.69,
+        500.24,
+        878.11,
+        721.2
+      ],
+      "segmentation_confidence": 0.9935,
+      "fdi_number": "18",
+      "fdi_confidence": 0.94
+    },
+    {
+      "instance_id": 15,
+      "bbox_xyxy": [
+        1477.99,
+        535.78,
+        1589.28,
+        820.97
+      ],
+      "segmentation_confidence": 0.9699,
+      "fdi_number": "21",
+      "fdi_confidence": 0.993
+    },
+    {
+      "instance_id": 22,
+      "bbox_xyxy": [
+        1575.41,
+        550.25,
+        1671.84,
+        821.0
+      ],
+      "segmentation_confidence": 0.9619,
+      "fdi_number": "22",
+      "fdi_confidence": 0.9624
+    },
+    {
+      "instance_id": 20,
+      "bbox_xyxy": [
+        1648.71,
+        502.57,
+        1786.53,
+        836.15
+      ],
+      "segmentation_confidence": 0.9644,
+      "fdi_number": "23",
+      "fdi_confidence": 0.9692
+    },
+    {
+      "instance_id": 17,
+      "bbox_xyxy": [
+        1725.28,
+        545.28,
+        1848.06,
+        839.02
+      ],
+      "segmentation_confidence": 0.9663,
+      "fdi_number": "24",
+      "fdi_confidence": 0.9578
+    },
+    {
+      "instance_id": 12,
+      "bbox_xyxy": [
+        1819.05,
+        556.11,
+        1917.5,
+        841.86
+      ],
+      "segmentation_confidence": 0.9781,
+      "fdi_number": "25",
+      "fdi_confidence": 0.9952
+    },
+    {
+      "instance_id": 11,
+      "bbox_xyxy": [
+        1908.26,
+        565.01,
+        2040.42,
+        844.28
+      ],
+      "segmentation_confidence": 0.9804,
+      "fdi_number": "26",
+      "fdi_confidence": 0.998
+    },
+    {
+      "instance_id": 14,
+      "bbox_xyxy": [
+        1980.77,
+        556.17,
+        2168.28,
+        805.75
+      ],
+      "segmentation_confidence": 0.9711,
+      "fdi_number": "27",
+      "fdi_confidence": 0.9771
+    },
+    {
+      "instance_id": 3,
+      "bbox_xyxy": [
+        2075.54,
+        476.41,
+        2250.29,
+        677.25
+      ],
+      "segmentation_confidence": 0.9925,
+      "fdi_number": "28",
+      "fdi_confidence": 0.962
+    },
+    {
+      "instance_id": 24,
+      "bbox_xyxy": [
+        1396.76,
+        850.73,
+        1464.72,
+        1144.91
+      ],
+      "segmentation_confidence": 0.951,
+      "fdi_number": "32",
+      "fdi_confidence": 0.7327
+    },
+    {
+      "instance_id": 27,
+      "bbox_xyxy": [
+        1580.09,
+        848.15,
+        1646.06,
+        1154.18
+      ],
+      "segmentation_confidence": 0.9385,
+      "fdi_number": "32",
+      "fdi_confidence": 0.5976
+    },
+    {
+      "instance_id": 29,
+      "bbox_xyxy": [
+        1315.55,
+        850.18,
+        1403.85,
+        1161.26
+      ],
+      "segmentation_confidence": 0.9194,
+      "fdi_number": "33",
+      "fdi_confidence": 0.8982
+    },
+    {
+      "instance_id": 26,
+      "bbox_xyxy": [
+        1236.0,
+        850.21,
+        1326.88,
+        1162.6
+      ],
+      "segmentation_confidence": 0.9396,
+      "fdi_number": "34",
+      "fdi_confidence": 0.8056
+    },
+    {
+      "instance_id": 21,
+      "bbox_xyxy": [
+        1136.75,
+        866.34,
+        1248.42,
+        1139.65
+      ],
+      "segmentation_confidence": 0.9622,
+      "fdi_number": "35",
+      "fdi_confidence": 0.673
+    },
+    {
+      "instance_id": 25,
+      "bbox_xyxy": [
+        957.16,
+        858.24,
+        1148.9,
+        1138.43
+      ],
+      "segmentation_confidence": 0.9486,
+      "fdi_number": "36",
+      "fdi_confidence": 0.9265
+    },
+    {
+      "instance_id": 7,
+      "bbox_xyxy": [
+        823.98,
+        835.66,
+        993.88,
+        1102.16
+      ],
+      "segmentation_confidence": 0.986,
+      "fdi_number": "37",
+      "fdi_confidence": 0.987
+    },
+    {
+      "instance_id": 1,
+      "bbox_xyxy": [
+        674.24,
+        854.3,
+        877.87,
+        1018.37
+      ],
+      "segmentation_confidence": 0.9936,
+      "fdi_number": "38",
+      "fdi_confidence": 0.3686
+    },
+    {
+      "instance_id": 28,
+      "bbox_xyxy": [
+        1464.28,
+        848.18,
+        1523.85,
+        1137.93
+      ],
+      "segmentation_confidence": 0.9327,
+      "fdi_number": "41",
+      "fdi_confidence": 0.9916
+    },
+    {
+      "instance_id": 31,
+      "bbox_xyxy": [
+        1528.32,
+        852.71,
+        1587.35,
+        1140.39
+      ],
+      "segmentation_confidence": 0.9088,
+      "fdi_number": "42",
+      "fdi_confidence": 0.3963
+    },
+    {
+      "instance_id": 32,
+      "bbox_xyxy": [
+        1645.97,
+        854.08,
+        1727.23,
+        1173.45
+      ],
+      "segmentation_confidence": 0.8847,
+      "fdi_number": "43",
+      "fdi_confidence": 0.9513
+    },
+    {
+      "instance_id": 19,
+      "bbox_xyxy": [
+        1728.67,
+        866.6,
+        1819.02,
+        1166.03
+      ],
+      "segmentation_confidence": 0.9648,
+      "fdi_number": "44",
+      "fdi_confidence": 0.8765
+    },
+    {
+      "instance_id": 18,
+      "bbox_xyxy": [
+        1812.04,
+        865.05,
+        1917.68,
+        1160.3
+      ],
+      "segmentation_confidence": 0.9658,
+      "fdi_number": "45",
+      "fdi_confidence": 0.9758
+    },
+    {
+      "instance_id": 8,
+      "bbox_xyxy": [
+        1897.46,
+        871.42,
+        2072.84,
+        1156.85
+      ],
+      "segmentation_confidence": 0.9827,
+      "fdi_number": "46",
+      "fdi_confidence": 0.8736
+    },
+    {
+      "instance_id": 9,
+      "bbox_xyxy": [
+        2024.46,
+        841.09,
+        2183.68,
+        1122.69
+      ],
+      "segmentation_confidence": 0.9813,
+      "fdi_number": "47",
+      "fdi_confidence": 0.5371
+    },
+    {
+      "instance_id": 5,
+      "bbox_xyxy": [
+        2163.24,
+        861.11,
+        2311.74,
+        1027.56
+      ],
+      "segmentation_confidence": 0.9897,
+      "fdi_number": "48",
+      "fdi_confidence": 0.7887
+    }
+  ]
+}
