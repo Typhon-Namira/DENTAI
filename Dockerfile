@@ -7,6 +7,9 @@ RUN pip install --no-cache-dir uv==0.12.3 \
     && pip install --no-cache-dir --require-hashes -r requirements.txt \
     && pip uninstall -y uv
 COPY app ./app
+COPY ai_engine ./ai_engine
+COPY configs ./configs
+COPY config ./config
 COPY migrations ./migrations
 COPY scripts ./scripts
 COPY alembic.ini README.md ./
