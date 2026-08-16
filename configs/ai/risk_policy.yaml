@@ -1,0 +1,13 @@
+policy_version: placeholder-1
+clinician_approved: false
+notice: No recall intervals are active until a clinic dentist approves this policy.
+rules:
+  PERIAPICAL_LESION:
+    risk_level: UNCONFIGURED
+    recall_priority: CLINICIAN_REVIEW_REQUIRED
+    reason_code: AI_SUSPECTED_PERIAPICAL_FINDING
+  ALVEOLAR_BONE_LOSS:
+    risk_level: UNCONFIGURED
+    recall_priority: CLINICIAN_REVIEW_REQUIRED
+    reason_code: AI_SUSPECTED_RADIOGRAPHIC_BONE_LOSS
+

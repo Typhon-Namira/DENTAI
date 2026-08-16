@@ -1,0 +1,6 @@
+schema_version: opg-1.0
+quality_engine: deterministic-quality-v1
+risk_policy: configs/ai/risk_policy.yaml
+models_registry: configs/ai/models.yaml
+components: [tooth, restoration, endodontic, pathology, periodontal, impaction]
+
