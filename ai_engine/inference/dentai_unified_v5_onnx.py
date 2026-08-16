@@ -1,6 +1,7 @@
-"""CPU-only ONNX Runtime implementation of DENTAI Unified Brain V5."""
-import argparse,json,math,time
+"""CPU-only, manifest-verified implementation of DENTAI Unified V5."""
+import argparse, hashlib, json, math, time
 from collections import Counter,defaultdict
+from io import BytesIO
 from pathlib import Path
 import numpy as np
 import onnxruntime as ort
@@ -12,12 +13,46 @@ GATE=['HEALTHY','NON_HEALTHY']; STATUS=['HEALTHY','FILLING','CARIES','RCT_CROWN'
 PATH={1:'CARIES',2:'APICAL_PERIODONTITIS',3:'IMPACTED',4:'BONE_RESORPTION',5:'ROOT_FRAGMENT',6:'FURCATION_LESION'}
 PTH={'CARIES':.70,'APICAL_PERIODONTITIS':.65,'IMPACTED':.65,'BONE_RESORPTION':.65,'ROOT_FRAGMENT':.30,'FURCATION_LESION':.55}
 REST={1:'FILLING',2:'IMPLANT'}; EXP={'BONE_RESORPTION','FURCATION_LESION'}
-ROOT=Path('models/onnx/dentai_v5'); MEAN=np.array([.485,.456,.406],np.float32)[:,None,None]; STD=np.array([.229,.224,.225],np.float32)[:,None,None]
+MEAN=np.array([.485,.456,.406],np.float32)[:,None,None]; STD=np.array([.229,.224,.225],np.float32)[:,None,None]
 
-def session(name,threads=0):
+
+class FrozenArtifactError(RuntimeError):
+ """The immutable production artifact bundle is missing or has been altered."""
+
+
+def expected_artifacts(manifest_path: Path) -> dict[str, str]:
+ """Read the frozen manifest, retaining the manifest as the only hash authority."""
+ try:
+  manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
+  expected={Path(item['onnx_export']['onnx_path']).name:item['onnx_export']['onnx_sha256'] for item in manifest['models'].values()}
+  pre=manifest['detector_preprocessing']
+  expected[Path(pre['onnx_path']).name]=pre['sha256']
+ except (KeyError, TypeError, ValueError, OSError) as exc:
+  raise FrozenArtifactError(f'Invalid frozen DENTAI V5 manifest: {exc}') from exc
+ if len(expected)!=9:
+  raise FrozenArtifactError(f'Frozen DENTAI V5 manifest must contain exactly nine artifacts, got {len(expected)}')
+ return expected
+
+
+def verify_artifact_bundle(model_root: Path, manifest_path: Path) -> dict[str, Path]:
+ """Fail closed before session creation; only the nine frozen ONNX files are accepted."""
+ expected=expected_artifacts(manifest_path)
+ if not model_root.is_dir(): raise FrozenArtifactError(f'Model artifact root does not exist: {model_root}')
+ actual={path.name for path in model_root.glob('*.onnx')}
+ if actual != set(expected):
+  raise FrozenArtifactError(f'Artifact filenames do not exactly match frozen manifest: expected={sorted(expected)}, actual={sorted(actual)}')
+ paths={}
+ for name,digest in expected.items():
+  path=model_root/name
+  actual_digest=hashlib.sha256(path.read_bytes()).hexdigest()
+  if actual_digest != digest: raise FrozenArtifactError(f'SHA-256 mismatch for {name}')
+  paths[name]=path
+ return paths
+
+def session(path,threads=0):
  o=ort.SessionOptions();o.graph_optimization_level=ort.GraphOptimizationLevel.ORT_ENABLE_ALL
  if threads:o.intra_op_num_threads=threads;o.inter_op_num_threads=1
- return ort.InferenceSession(str(ROOT/name),sess_options=o,providers=['CPUExecutionProvider'])
+ return ort.InferenceSession(str(path),sess_options=o,providers=['CPUExecutionProvider'])
 def tensor(im,size,normalize=True):
  a=np.asarray(im.resize((size,size),Image.Resampling.BILINEAR),dtype=np.float32)/255.;a=a.transpose(2,0,1)
  if normalize:a=(a-MEAN)/STD
@@ -86,10 +121,13 @@ def attach(ds,teeth,key):
  return unmatched
 
 class Engine:
- def __init__(self,threads=0):
-  names={'pre':'detector_preprocess.onnx','tooth':'tooth_v3.onnx','fdi':'fdi_v3.onnx','gate':'status_gate_v1.onnx','status':'status_v2.onnx','path':'pathology_v41.onnx','deep':'deep_caries_v2.onnx','rd':'restoration_detector_v1.onnx','rc':'restoration_classifier_v1.onnx'};self.s={k:session(v,threads)for k,v in names.items()};self.threads=threads
- def analyze(self,image_path):
-  start=time.perf_counter();im=Image.open(image_path).convert('RGB');b,sc,l=detect(self.s['tooth'],self.s['pre'],im,640,1600);rows=[]
+ def __init__(self,model_root=Path('model_artifacts/dentai_v5'),manifest_path=Path('artifacts/production/dentai_v5_model_manifest.json'),threads=0):
+  self.model_root=Path(model_root);self.manifest_path=Path(manifest_path);self.paths=verify_artifact_bundle(self.model_root,self.manifest_path)
+  self.names={'pre':'detector_preprocess.onnx','tooth':'tooth_v3.onnx','fdi':'fdi_v3.onnx','gate':'status_gate_v1.onnx','status':'status_v2.onnx','path':'pathology_v41.onnx','deep':'deep_caries_v2.onnx','rd':'restoration_detector_v1.onnx','rc':'restoration_classifier_v1.onnx'}
+  self.s={k:session(self.paths[v],threads)for k,v in self.names.items()};self.threads=threads
+ def analyze_bytes(self,image_bytes):
+  if not image_bytes: raise ValueError('protected image bytes are required')
+  start=time.perf_counter();im=Image.open(BytesIO(image_bytes)).convert('RGB');b,sc,l=detect(self.s['tooth'],self.s['pre'],im,640,1600);rows=[]
   for i,(box,score,label)in enumerate(zip(b,sc,l)):
    if score<.5 or int(label)!=1:continue
    p=fdi_probs(self.s['fdi'],im,box);rows.append({'id':i,'bbox':box.tolist(),'probs':p,'raw':FDI[int(p.argmax())],'raw_conf':float(p.max()),'score':float(score)})
@@ -117,10 +155,12 @@ class Engine:
    if any(x in EXP for x in find):reasons.append('EXPERIMENTAL_PATHOLOGY_FINDING')
    if t['fdi_review_required']:reasons.append('FDI_LOW_CONFIDENCE_OR_UNRESOLVED')
    t['final_findings']=list(dict.fromkeys(find))or['HEALTHY'];t['review_reasons']=list(dict.fromkeys(reasons));t['review_required']=bool(t['review_reasons'])
-  teeth.sort(key=lambda x:int(x['fdi']));return {'version':'dentai-unified-v5','image':str(image_path),'device':'cpu','models':{k:{'runtime':'ONNX Runtime','path':str(ROOT/v)}for k,v in {'tooth':'tooth_v3.onnx','fdi':'fdi_v3.onnx','status_gate':'status_gate_v1.onnx','status_v2':'status_v2.onnx','pathology':'pathology_v41.onnx','deep_caries':'deep_caries_v2.onnx','restoration_detector':'restoration_detector_v1.onnx','restoration_classifier':'restoration_classifier_v1.onnx'}.items()},'thresholds':{'tooth':.5,'status_gate_non_healthy':.3,'pathology':PTH,'deep_caries':.65,'restoration':.5},'summary':{'teeth':len(teeth),'unique_fdi':len(set(x['fdi']for x in teeth)),'pathology_detections':len(paths),'restorations':len(rests),'review_required':sum(x['review_required']for x in teeth),'runtime_seconds':time.perf_counter()-start},'teeth':teeth,'unmatched_pathologies':up,'unmatched_restorations':ur}
+  teeth.sort(key=lambda x:int(x['fdi']));return {'version':'dentai-unified-v5','device':'cpu','models':{k:{'runtime':'ONNX Runtime','artifact':v}for k,v in {'tooth':'tooth_v3.onnx','fdi':'fdi_v3.onnx','status_gate':'status_gate_v1.onnx','status_v2':'status_v2.onnx','pathology':'pathology_v41.onnx','deep_caries':'deep_caries_v2.onnx','restoration_detector':'restoration_detector_v1.onnx','restoration_classifier':'restoration_classifier_v1.onnx'}.items()},'thresholds':{'tooth':.5,'status_gate_non_healthy':.3,'pathology':PTH,'deep_caries':.65,'restoration':.5},'summary':{'teeth':len(teeth),'unique_fdi':len(set(x['fdi']for x in teeth)),'pathology_detections':len(paths),'restorations':len(rests),'review_required':sum(x['review_required']for x in teeth),'runtime_seconds':time.perf_counter()-start},'teeth':teeth,'unmatched_pathologies':up,'unmatched_restorations':ur}
+ def analyze(self,image_path):
+  return self.analyze_bytes(Path(image_path).read_bytes())
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('--image',required=True);p.add_argument('--threads',type=int,default=0);a=p.parse_args();e=Engine(a.threads);r=e.analyze(a.image);out=Path('artifacts/unified');out.mkdir(parents=True,exist_ok=True);jp=out/'dentai_unified_v5_onnx.json';jp.write_text(json.dumps(r,indent=2,allow_nan=False));im=Image.open(a.image).convert('RGB');d=ImageDraw.Draw(im);font=ImageFont.load_default()
+ p=argparse.ArgumentParser();p.add_argument('--image',required=True);p.add_argument('--threads',type=int,default=0);p.add_argument('--model-root',type=Path,default=Path('model_artifacts/dentai_v5'));p.add_argument('--manifest',type=Path,default=Path('artifacts/production/dentai_v5_model_manifest.json'));a=p.parse_args();e=Engine(model_root=a.model_root,manifest_path=a.manifest,threads=a.threads);r=e.analyze(a.image);out=Path('artifacts/unified');out.mkdir(parents=True,exist_ok=True);jp=out/'dentai_unified_v5_onnx.json';jp.write_text(json.dumps(r,indent=2,allow_nan=False));im=Image.open(a.image).convert('RGB');d=ImageDraw.Draw(im);font=ImageFont.load_default()
  for t in r['teeth']:
   x1,y1,x2,y2=t['tooth_detection']['bbox_xyxy'];d.rectangle((x1,y1,x2,y2),outline='yellow'if t['review_required']else'lime',width=2);d.text((x1,max(0,y1-12)),f"{t['fdi']} {','.join(t['final_findings'])}"+(' !'if t['review_required']else''),fill='yellow'if t['review_required']else'white',font=font,stroke_width=1,stroke_fill='black')
  pp=out/'dentai_unified_v5_onnx_preview.jpg';im.save(pp,quality=95);print('Teeth:',len(r['teeth']),'Unique FDI:',r['summary']['unique_fdi'],'Runtime:',r['summary']['runtime_seconds']);print('JSON:',jp);print('Preview:',pp)

@@ -1,17 +1,24 @@
+import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import httpx
 from pydantic import ValidationError
 
-from ai_engine.data.registry import DatasetRegistry
 from ai_engine.groq.provider import GroqClinicalSummaryProvider
+from ai_engine.inference.dentai_unified_v5_onnx import Engine, FrozenArtifactError
 from ai_engine.longitudinal.engine import LongitudinalDentalEngine
-from ai_engine.models.registry import ModelRegistry
 from ai_engine.quality.engine import OPGQualityEngine
 from ai_engine.risk.engine import RuleBasedRecallRiskProvider
-from ai_engine.schemas import ComponentState, OPGAnalysisResult
+from ai_engine.schemas import (
+    ComponentState,
+    OPGAnalysisResult,
+    ToothObservation,
+    UncertaintyLevel,
+    VisionFinding,
+)
 from app.core.config import get_settings
 
 
@@ -68,14 +75,18 @@ class MockDentalAIProvider(DentalAIProvider):
         )
 
 
+@lru_cache(maxsize=1)
+def _v5_engine(model_root: str, manifest_path: str) -> Engine:
+    """One immutable ONNX engine per worker process, initialized only after verification."""
+    return Engine(model_root=Path(model_root), manifest_path=Path(manifest_path))
+
+
 class DENTAIRealOPGProvider(DentalAIProvider):
-    """Fail-closed orchestrator. It emits findings only from registered local model artifacts."""
+    """Protected-byte DENTAI Unified V5 inference with fail-closed artifact verification."""
 
     def __init__(self) -> None:
         settings = get_settings()
         self.settings = settings
-        datasets = DatasetRegistry(Path("ai_engine/data/manifests"))
-        self.models = ModelRegistry(Path("configs/ai/models.yaml"), datasets)
         self.quality = OPGQualityEngine()
         self.risk = RuleBasedRecallRiskProvider(Path("configs/ai/risk_policy.yaml"))
         self.longitudinal = LongitudinalDentalEngine()
@@ -98,24 +109,84 @@ class DENTAIRealOPGProvider(DentalAIProvider):
         if image_bytes is None:
             raise ValueError("real OPG inference requires protected image bytes")
         quality = self.quality.analyze(image_bytes)
-        enabled_models = [model for model in self.models.load() if model.production_enabled]
-        components = {
-            name: ComponentState.MODEL_REQUIRED
-            for name in (
-                "tooth",
-                "restoration",
-                "endodontic",
-                "pathology",
-                "periodontal",
-                "impaction",
+        if not quality.usable_for_analysis:
+            raise ValueError("radiograph quality gate did not permit DENTAI V5 inference")
+        try:
+            engine = _v5_engine(
+                str(self.settings.ai_model_artifact_path), str(self.settings.ai_model_manifest_path)
             )
-        }
-        # No checkpoint is bundled. This intentionally produces no clinical findings.
-        for model in enabled_models:
-            artifact = self.settings.ai_model_artifact_path / model.artifact_filename
-            if not artifact.is_file():
-                components[model.task] = ComponentState.FAILED
-        result = OPGAnalysisResult(image=quality, component_status=components)
+            raw = await asyncio.to_thread(engine.analyze_bytes, image_bytes)
+        except (FrozenArtifactError, OSError, ValueError) as exc:
+            raise RuntimeError("DENTAI V5 inference failed closed") from exc
+        teeth = []
+        structured_findings: list[dict] = []
+        for tooth in raw["teeth"]:
+            review = bool(tooth["review_required"])
+            confidence = float(tooth["status_v2"]["confidence"])
+            uncertainty = (
+                UncertaintyLevel.LOW_CONFIDENCE
+                if review
+                else UncertaintyLevel.MODERATE_CONFIDENCE
+            )
+            reason = "; ".join(tooth["review_reasons"]) if review else None
+            findings = []
+            for finding_type in tooth["final_findings"]:
+                if finding_type == "HEALTHY":
+                    continue
+                item = VisionFinding(
+                    finding_type=finding_type,
+                    description=(
+                        f"DENTAI Unified V5 candidate finding for tooth {tooth['fdi']}; "
+                        "dentist review required."
+                    ),
+                    tooth_fdi=tooth["fdi"],
+                    raw_score=confidence,
+                    calibrated_confidence=confidence, uncertainty=uncertainty,
+                    uncertainty_reason=reason,
+                    bounding_box=tuple(tooth["tooth_detection"]["bbox_xyxy"]),
+                    source_model="DENTAI Unified V5", model_version="dentai-unified-v5",
+                    source_image_id=xray_reference,
+                )
+                findings.append(item)
+                structured_findings.append({
+                    "tooth_code": item.tooth_fdi,
+                    "finding_type": item.finding_type,
+                    "description": item.description,
+                    "confidence": item.calibrated_confidence,
+                    "provenance": {
+                        "source_model": item.source_model,
+                        "model_version": item.model_version,
+                        "raw_score": item.raw_score,
+                        "uncertainty": item.uncertainty.value,
+                        "uncertainty_reason": item.uncertainty_reason,
+                        "bounding_box": list(item.bounding_box or ()),
+                        "review_required": review,
+                        "review_reasons": tooth["review_reasons"],
+                    },
+                })
+            teeth.append(
+                ToothObservation(
+                    fdi=tooth["fdi"],
+                    presence="PRESENT",
+                    confidence=tooth["tooth_detection"]["confidence"],
+                    findings=findings,
+                )
+            )
+        result = OPGAnalysisResult(
+            image=quality, teeth=teeth,
+            component_status={
+                name: ComponentState.SUCCESS
+                for name in (
+                    "tooth",
+                    "fdi",
+                    "status_gate",
+                    "status",
+                    "pathology",
+                    "deep_caries",
+                    "restoration",
+                )
+            },
+        )
         if prior_analysis:
             try:
                 prior = OPGAnalysisResult.model_validate(prior_analysis)
@@ -134,7 +205,9 @@ class DENTAIRealOPGProvider(DentalAIProvider):
                 summary = await self.groq.summarize(
                     {
                         "patient_context": patient_context,
-                        "current_findings": [],
+                        "current_findings": [
+                            item.model_dump(mode="json") for item in result.findings()
+                        ],
                         "changes": result.longitudinal_changes,
                         "risk_recommendations": result.prevention_recommendations,
                     }
@@ -143,12 +216,15 @@ class DENTAIRealOPGProvider(DentalAIProvider):
             except (httpx.HTTPError, ValidationError, KeyError, TypeError, ValueError):
                 # Narrative generation is optional and may never change vision results.
                 result.clinical_summary = {"status": "UNAVAILABLE"}
+        structured_result = result.model_dump(mode="json")
+        # Preserve model evidence and review flags without making it a clinical conclusion.
+        structured_result["vision_evidence"] = raw
         return AIProviderResult(
-            result.model_dump(mode="json"),
-            [],
+            structured_result,
+            structured_findings,
             "real_opg",
-            "dentai-opg-orchestrator",
-            "0.1.0-untrained",
+            "DENTAI Unified V5",
+            "dentai-unified-v5",
             result.analysis_schema_version,
         )
 

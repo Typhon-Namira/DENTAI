@@ -33,7 +33,10 @@ class Settings(BaseSettings):
     s3_connect_timeout_seconds: int = 5
     s3_read_timeout_seconds: int = 30
     ai_provider: str = "mock"
-    ai_model_artifact_path: Path = Path("model_artifacts")
+    ai_model_artifact_path: Path = Path("model_artifacts/dentai_v5")
+    ai_model_manifest_path: Path = Path("artifacts/production/dentai_v5_model_manifest.json")
+    ai_worker_poll_seconds: float = 2.0
+    ai_worker_heartbeat_seconds: float = 30.0
     ai_config_path: Path = Path("configs/ai/opg_v1.yaml")
     groq_api_key: str | None = None
     groq_model: str = "llama-3.3-70b-versatile"

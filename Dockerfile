@@ -10,6 +10,7 @@ COPY app ./app
 COPY ai_engine ./ai_engine
 COPY configs ./configs
 COPY config ./config
+COPY artifacts/production ./artifacts/production
 COPY migrations ./migrations
 COPY scripts ./scripts
 COPY alembic.ini README.md ./
