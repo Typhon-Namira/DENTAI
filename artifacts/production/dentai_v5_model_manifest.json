@@ -1,0 +1,564 @@
+{
+  "model_version": "dentai-unified-v5",
+  "freeze_status": "PRODUCTION_FROZEN",
+  "reference_engine": "ai_engine/inference/dentai_unified_v5.py",
+  "opset": 18,
+  "thresholds": {
+    "tooth": 0.5,
+    "status_gate_non_healthy": 0.3,
+    "pathology": {
+      "CARIES": 0.7,
+      "APICAL_PERIODONTITIS": 0.65,
+      "IMPACTED": 0.65,
+      "BONE_RESORPTION": 0.65,
+      "ROOT_FRAGMENT": 0.3,
+      "FURCATION_LESION": 0.55
+    },
+    "deep_caries": 0.65,
+    "restoration": 0.5
+  },
+  "models": {
+    "tooth": {
+      "checkpoint": "checkpoints/tooth_v3/maskrcnn_fpn_v1/best.pt",
+      "checkpoint_sha256": "b4586689ad9f7fe84b5421f9e0014583f3101ecdb77bd03dee2ce48f7c204830",
+      "architecture": "Mask R-CNN ResNet-50 FPN; 2 classes; min_size=640 max_size=1600",
+      "input_shape": "variable RGB panorama",
+      "preprocessing": "PIL RGB -> float32 CHW [0,1]; torchvision detector transform resizes min=640 max=1600 and normalizes ImageNet",
+      "output_meaning": "boxes, labels, scores (masks unused downstream)",
+      "class_mapping": [
+        "BACKGROUND",
+        "TOOTH"
+      ],
+      "checkpoint_epoch": 4,
+      "checkpoint_metric_metadata": {
+        "epoch": 4,
+        "metrics": {
+          "recall": 0.9702085402184707,
+          "precision": 0.7503840245775729,
+          "f1": 0.8462537895192724,
+          "matched": 3908,
+          "gt": 4028,
+          "predictions": 5208
+        },
+        "score": 0.9330221150087111,
+        "source_checkpoint": "checkpoints/tooth_v2/maskrcnn_fpn_v1/best.pt",
+        "dataset": "dentai_v3_super"
+      },
+      "onnx_export": {
+        "onnx_path": "models/onnx/dentai_v5/tooth_v3.onnx",
+        "onnx_sha256": "fd16b90495811dcb74a470a2ff9e64091bbd80d97f9fe9c2e5e5474dc0285a04",
+        "fixed_input_shape": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "outputs": [
+          "boxes",
+          "scores",
+          "labels"
+        ],
+        "preprocessing_contract": "aspect-preserving resize then zero letterbox; coordinates mapped back by subtracting padding and dividing scale",
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "opset": 18
+      }
+    },
+    "fdi": {
+      "checkpoint": "checkpoints/fdi_v3_fixed/best.pt",
+      "checkpoint_sha256": "307e6217ee6c157a9c7701150aa50643e11c641210589b3468a7d5fcf9cdbd07",
+      "architecture": "FDINetV2: ResNet-18 visual backbone + 4D spatial MLP",
+      "input_shape": "N x 3 x 224 x 224 plus N x 4",
+      "preprocessing": "bbox padding max(12,35% width/height), Resize 224x224, ToTensor, ImageNet normalize; spatial=(cx/W,cy/H,bw/W,bh/H)",
+      "output_meaning": "32-class FDI logits",
+      "class_mapping": [
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48"
+      ],
+      "checkpoint_epoch": 5,
+      "checkpoint_metric_metadata": {
+        "epoch": 5,
+        "classes": [
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25",
+          "26",
+          "27",
+          "28",
+          "31",
+          "32",
+          "33",
+          "34",
+          "35",
+          "36",
+          "37",
+          "38",
+          "41",
+          "42",
+          "43",
+          "44",
+          "45",
+          "46",
+          "47",
+          "48"
+        ],
+        "val_acc": 0.9021847070506455,
+        "macro_recall": 0.9021749642725853,
+        "score": 0.9021817842172273,
+        "source": "checkpoints/fdi_v2_final/fdi_v2_best_90_38.pt"
+      },
+      "onnx_export": {
+        "onnx_path": "models/onnx/dentai_v5/fdi_v3.onnx",
+        "onnx_sha256": "aa5a08eabefbeb694a0e8fc82fbe7d504bfc6e839aeef1dd631fbcf4e3730ac4",
+        "max_abs_logit_difference": 8.58306884765625e-06,
+        "mean_abs_logit_difference": 2.7669593691825867e-06,
+        "prediction_agreement": true,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "opset": 18
+      }
+    },
+    "status_gate": {
+      "checkpoint": "checkpoints/tooth_status_gate_v1/best.pt",
+      "checkpoint_sha256": "ecbcc795e9232029ed49c52f81b46ca8255e5da1a5d914e86546404576a7378b",
+      "architecture": "ResNet-18; Dropout(0.30)+Linear(2)",
+      "input_shape": "N x 3 x 224 x 224",
+      "preprocessing": "bbox padding max(16,35%), Resize 224x224, ToTensor, ImageNet normalize",
+      "output_meaning": "HEALTHY/NON_HEALTHY logits",
+      "class_mapping": [
+        "HEALTHY",
+        "NON_HEALTHY"
+      ],
+      "checkpoint_epoch": 9,
+      "checkpoint_metric_metadata": {
+        "epoch": 9,
+        "classes": [
+          "HEALTHY",
+          "NON_HEALTHY"
+        ],
+        "val_acc": 0.9065637065637066,
+        "macro_recall": 0.8546591551467188,
+        "per_class": {
+          "HEALTHY": 0.9569672131147541,
+          "NON_HEALTHY": 0.7523510971786834
+        },
+        "score": 0.8754209757135138
+      },
+      "onnx_export": {
+        "onnx_path": "models/onnx/dentai_v5/status_gate_v1.onnx",
+        "onnx_sha256": "6a6b04db9b7d31f01f7fa5ac5abe0a6139309ad32ca1c0ab840ada7462907c59",
+        "max_abs_logit_difference": 1.0728836059570312e-05,
+        "mean_abs_logit_difference": 7.987022399902344e-06,
+        "prediction_agreement": true,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "opset": 18
+      }
+    },
+    "status_v2": {
+      "checkpoint": "checkpoints/tooth_status_v2/best.pt",
+      "checkpoint_sha256": "0cc68af1134fa3983f3c57594f930743f382ce51b9c2117fea96c12ec031a5dc",
+      "architecture": "ResNet-34; Dropout(0.35)+Linear(7)",
+      "input_shape": "N x 3 x 256 x 256",
+      "preprocessing": "bbox padding max(18,45%), Resize 256x256, ToTensor, ImageNet normalize",
+      "output_meaning": "7-class status logits",
+      "class_mapping": [
+        "HEALTHY",
+        "FILLING",
+        "CARIES",
+        "RCT_CROWN",
+        "CROWN",
+        "ROOT_CANAL_TREATMENT",
+        "RESIDUAL_ROOT"
+      ],
+      "checkpoint_epoch": 5,
+      "checkpoint_metric_metadata": {
+        "epoch": 5,
+        "classes": [
+          "HEALTHY",
+          "FILLING",
+          "CARIES",
+          "RCT_CROWN",
+          "CROWN",
+          "ROOT_CANAL_TREATMENT",
+          "RESIDUAL_ROOT"
+        ],
+        "val_acc": 0.8247104247104247,
+        "macro_recall": 0.7714714130990211,
+        "per_class_recall": {
+          "HEALTHY": 0.8370901639344263,
+          "FILLING": 0.6714285714285714,
+          "CARIES": 0.5671641791044776,
+          "RCT_CROWN": 0.9466666666666667,
+          "CROWN": 0.9565217391304348,
+          "ROOT_CANAL_TREATMENT": 0.8214285714285714,
+          "RESIDUAL_ROOT": 0.6
+        },
+        "confusion": [
+          [
+            817,
+            37,
+            116,
+            0,
+            4,
+            0,
+            2
+          ],
+          [
+            12,
+            47,
+            8,
+            0,
+            1,
+            1,
+            1
+          ],
+          [
+            25,
+            4,
+            38,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            71,
+            2,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            2,
+            66,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            4,
+            0,
+            23,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            0,
+            0,
+            2,
+            6
+          ]
+        ],
+        "score": 0.7874431165824421
+      },
+      "onnx_export": {
+        "onnx_path": "models/onnx/dentai_v5/status_v2.onnx",
+        "onnx_sha256": "df3f9f2204a33214fec3580a9071dfb5dda5372ef21a119d4326213664c57079",
+        "max_abs_logit_difference": 2.4437904357910156e-06,
+        "mean_abs_logit_difference": 1.111733013203775e-06,
+        "prediction_agreement": true,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "opset": 18
+      }
+    },
+    "pathology": {
+      "checkpoint": "checkpoints/pathology_detector_v41/best.pt",
+      "checkpoint_sha256": "8798f2a6dffb23e82b31d41b54a96443c6709d348bf5f2ee09dc0cbc7191e453",
+      "architecture": "Faster R-CNN ResNet-50 FPN; 7 classes; min_size=640 max_size=1600",
+      "input_shape": "variable RGB panorama",
+      "preprocessing": "PIL RGB -> float32 CHW [0,1]; torchvision detector transform resizes min=640 max=1600 and normalizes ImageNet",
+      "output_meaning": "boxes, labels, scores",
+      "class_mapping": [
+        "BACKGROUND",
+        "CARIES",
+        "APICAL_PERIODONTITIS",
+        "IMPACTED",
+        "BONE_RESORPTION",
+        "ROOT_FRAGMENT",
+        "FURCATION_LESION"
+      ],
+      "checkpoint_epoch": 5,
+      "checkpoint_metric_metadata": {
+        "epoch": 5,
+        "classes": {
+          "CARIES": 1,
+          "APICAL_PERIODONTITIS": 2,
+          "IMPACTED": 3,
+          "BONE_RESORPTION": 4,
+          "ROOT_FRAGMENT": 5,
+          "FURCATION_LESION": 6
+        },
+        "score": 0.5264145075224484,
+        "macro_f1": 0.502343857600933,
+        "macro_recall": 0.5558341907598561,
+        "metrics": {
+          "CARIES": {
+            "precision": 0.6215344938749194,
+            "recall": 0.7093451066961001,
+            "f1": 0.6625429553264605,
+            "tp": 964,
+            "fp": 587,
+            "fn": 395
+          },
+          "APICAL_PERIODONTITIS": {
+            "precision": 0.5122282608695652,
+            "recall": 0.7046728971962617,
+            "f1": 0.5932336742722265,
+            "tp": 377,
+            "fp": 359,
+            "fn": 158
+          },
+          "IMPACTED": {
+            "precision": 0.5797101449275363,
+            "recall": 0.7272727272727273,
+            "f1": 0.6451612903225806,
+            "tp": 80,
+            "fp": 58,
+            "fn": 30
+          },
+          "BONE_RESORPTION": {
+            "precision": 0.15123456790123457,
+            "recall": 0.16498316498316498,
+            "f1": 0.15780998389694043,
+            "tp": 49,
+            "fp": 275,
+            "fn": 248
+          },
+          "ROOT_FRAGMENT": {
+            "precision": 0.6526946107784432,
+            "recall": 0.6374269005847953,
+            "f1": 0.6449704142011835,
+            "tp": 109,
+            "fp": 58,
+            "fn": 62
+          },
+          "FURCATION_LESION": {
+            "precision": 0.2571428571428571,
+            "recall": 0.391304347826087,
+            "f1": 0.3103448275862069,
+            "tp": 9,
+            "fp": 26,
+            "fn": 14
+          }
+        }
+      },
+      "onnx_export": {
+        "onnx_path": "models/onnx/dentai_v5/pathology_v41.onnx",
+        "onnx_sha256": "b7bd7c1b212f90475351e3c3550bed390345cbc1dbb231bee83693d71623af72",
+        "fixed_input_shape": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "outputs": [
+          "boxes",
+          "scores",
+          "labels"
+        ],
+        "preprocessing_contract": "aspect-preserving resize then zero letterbox; coordinates mapped back by subtracting padding and dividing scale",
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "opset": 18
+      }
+    },
+    "deep_caries": {
+      "checkpoint": "checkpoints/deep_caries_v2/best.pt",
+      "checkpoint_sha256": "a5108cafcef816d1a5728168627e7069de3a7bad5cf7fad92c69b9e11c5aedc4",
+      "architecture": "ResNet-34; Dropout(0.40)+Linear(2)",
+      "input_shape": "N x 3 x 256 x 256",
+      "preprocessing": "bbox padding max(24,55%), Resize 256x256, ToTensor, ImageNet normalize",
+      "output_meaning": "CARIES/DEEP_CARIES logits",
+      "class_mapping": [
+        "CARIES",
+        "DEEP_CARIES"
+      ],
+      "checkpoint_epoch": 2,
+      "checkpoint_metric_metadata": {
+        "epoch": 2,
+        "classes": [
+          "CARIES",
+          "DEEP_CARIES"
+        ],
+        "metrics": {
+          "accuracy": 0.41148325358851673,
+          "balanced_acc": 0.5734649122807017,
+          "deep_recall": 0.9298245614035088,
+          "deep_precision": 0.3081395348837209,
+          "deep_f1": 0.462882096069869,
+          "caries_recall": 0.21710526315789475,
+          "tp": 53,
+          "tn": 33,
+          "fp": 119,
+          "fn": 4
+        },
+        "score": 0.577156592354248
+      },
+      "onnx_export": {
+        "onnx_path": "models/onnx/dentai_v5/deep_caries_v2.onnx",
+        "onnx_sha256": "390a516079dbfb129e3b1bae071c13f29a71f098a90cc2a056ceea707f7fcc63",
+        "max_abs_logit_difference": 4.4405460357666016e-06,
+        "mean_abs_logit_difference": 3.2261013984680176e-06,
+        "prediction_agreement": true,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "opset": 18
+      }
+    },
+    "restoration_detector": {
+      "checkpoint": "checkpoints/restoration_detector_v1/best.pt",
+      "checkpoint_sha256": "91870bae386d09d4da9dff900bb975ca8697e6bf6f5d73b42478da5fb23dd4bf",
+      "architecture": "Faster R-CNN ResNet-50 FPN; 3 classes",
+      "input_shape": "variable RGB panorama",
+      "preprocessing": "PIL RGB -> float32 CHW [0,1]; torchvision detector transform and ImageNet normalization",
+      "output_meaning": "boxes, labels, scores",
+      "class_mapping": [
+        "BACKGROUND",
+        "FILLING",
+        "IMPLANT"
+      ],
+      "checkpoint_epoch": 8,
+      "checkpoint_metric_metadata": {
+        "epoch": 8,
+        "macro_f1": 0.8999999999999999,
+        "metrics": {
+          "FILLING": {
+            "precision": 0.7368421052631579,
+            "recall": 0.875,
+            "f1": 0.7999999999999999,
+            "tp": 70,
+            "fp": 25,
+            "fn": 10
+          },
+          "IMPLANT": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "tp": 11,
+            "fp": 0,
+            "fn": 0
+          }
+        },
+        "classes": {
+          "1": "FILLING",
+          "2": "IMPLANT"
+        }
+      },
+      "onnx_export": {
+        "onnx_path": "models/onnx/dentai_v5/restoration_detector_v1.onnx",
+        "onnx_sha256": "af0760a1afab175f9f5f3ea4044ade5f088d5b51dd3d4e78a03ece7380bcac54",
+        "fixed_input_shape": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "outputs": [
+          "boxes",
+          "scores",
+          "labels"
+        ],
+        "preprocessing_contract": "aspect-preserving resize then zero letterbox; coordinates mapped back by subtracting padding and dividing scale",
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "opset": 18
+      }
+    },
+    "restoration_classifier": {
+      "checkpoint": "checkpoints/restoration_v1/best.pt",
+      "checkpoint_sha256": "bb9d9a460c0f18a2aa48cc247e4b7154e984158918aa9d0c8dd2d41be9f74de2",
+      "architecture": "ResNet-18; Dropout(0.30)+Linear(2)",
+      "input_shape": "N x 3 x 224 x 224",
+      "preprocessing": "bbox padding max(15,45%), Resize 224x224, ToTensor, ImageNet normalize",
+      "output_meaning": "FILLING/IMPLANT logits",
+      "class_mapping": [
+        "FILLING",
+        "IMPLANT"
+      ],
+      "checkpoint_epoch": 1,
+      "checkpoint_metric_metadata": {
+        "epoch": 1,
+        "classes": [
+          "FILLING",
+          "IMPLANT"
+        ],
+        "val_acc": 1.0,
+        "macro_recall": 1.0,
+        "per_class": {
+          "FILLING": 1.0,
+          "IMPLANT": 1.0
+        },
+        "score": 1.0
+      },
+      "onnx_export": {
+        "onnx_path": "models/onnx/dentai_v5/restoration_classifier_v1.onnx",
+        "onnx_sha256": "d7b83d318845db86fa20ed4e362e73d54317dc52d3736a1ba050ee57e7aee5dc",
+        "max_abs_logit_difference": 9.5367431640625e-07,
+        "mean_abs_logit_difference": 5.960464477539062e-07,
+        "prediction_agreement": true,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "opset": 18
+      }
+    }
+  }
+}

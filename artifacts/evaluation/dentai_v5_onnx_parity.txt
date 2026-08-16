@@ -1,0 +1,12 @@
+DENTAI V5 ONNX PARITY
+
+fdi: n=500 agreement=1.000000 max_abs=2.0503998e-05
+status_gate: n=500 agreement=1.000000 max_abs=1.7642975e-05
+status_v2: n=500 agreement=1.000000 max_abs=2.7582049e-05
+deep_caries: n=150 agreement=1.000000 max_abs=1.2755394e-05
+restoration_classifier: n=102 agreement=1.000000 max_abs=5.9604645e-06
+
+BLOCKER: Fixed-shape torchvision detector export changes box geometry enough to alter downstream FDI crop/assignment; ORT also emits internal Mask R-CNN shape warnings.
+PARITY VERDICT: FAIL
+CPU DEPLOYMENT VERDICT: NOT_READY
+RAILWAY READINESS: NO

@@ -1,0 +1,88 @@
+{
+  "provider": "CPUExecutionProvider",
+  "classifiers": {
+    "fdi": {
+      "samples": 500,
+      "max_absolute_logit_difference": 2.0503997802734375e-05,
+      "mean_absolute_logit_difference": 1.3898625620640814e-06,
+      "prediction_agreement": 1.0,
+      "mean_absolute_probability_difference": 2.3002327679932933e-08
+    },
+    "status_gate": {
+      "samples": 500,
+      "max_absolute_logit_difference": 1.7642974853515625e-05,
+      "mean_absolute_logit_difference": 3.596007823944092e-06,
+      "prediction_agreement": 1.0,
+      "mean_absolute_probability_difference": 3.484020344330929e-07
+    },
+    "status_v2": {
+      "samples": 500,
+      "max_absolute_logit_difference": 2.7582049369812012e-05,
+      "mean_absolute_logit_difference": 2.3154991545847486e-06,
+      "prediction_agreement": 1.0,
+      "mean_absolute_probability_difference": 2.403971967786284e-07
+    },
+    "deep_caries": {
+      "samples": 150,
+      "max_absolute_logit_difference": 1.2755393981933594e-05,
+      "mean_absolute_logit_difference": 2.5582065184911093e-06,
+      "prediction_agreement": 1.0,
+      "mean_absolute_probability_difference": 7.283563415209453e-07
+    },
+    "restoration_classifier": {
+      "samples": 102,
+      "max_absolute_logit_difference": 5.9604644775390625e-06,
+      "mean_absolute_logit_difference": 1.4737540600346585e-06,
+      "prediction_agreement": 1.0,
+      "mean_absolute_probability_difference": 7.471295676248915e-08
+    }
+  },
+  "detectors": {
+    "image_111_smoke": {
+      "tooth": {
+        "pytorch_count": 32,
+        "onnx_count": 32,
+        "matched_iou_050": 32
+      },
+      "pathology": {
+        "pytorch_count": 5,
+        "onnx_count": 5,
+        "matched_iou_050": 5
+      },
+      "restoration": {
+        "pytorch_count": 5,
+        "onnx_count": 5,
+        "matched_iou_050": 5
+      }
+    },
+    "broad_held_out_parity_completed": false,
+    "blocker": "Fixed-shape torchvision detector export changes box geometry enough to alter downstream FDI crop/assignment; ORT also emits internal Mask R-CNN shape warnings."
+  },
+  "acceptance_image_111": {
+    "pytorch_teeth": 32,
+    "onnx_teeth": 32,
+    "pytorch_unique_fdi": 32,
+    "onnx_unique_fdi": 31,
+    "duplicate_onnx_fdi": [
+      "48"
+    ],
+    "missing_onnx_fdi": [
+      "38"
+    ]
+  },
+  "parity_verdict": "FAIL",
+  "cpu_deployment_verdict": "NOT_READY",
+  "railway_readiness": false,
+  "models_successfully_migrated": [
+    "FDI V3 FIXED",
+    "Status Gate V1",
+    "Status V2",
+    "Deep Caries V2",
+    "Restoration Classifier V1"
+  ],
+  "models_not_accepted": [
+    "Tooth V3",
+    "Pathology V4.1",
+    "Restoration Detector V1"
+  ]
+}
