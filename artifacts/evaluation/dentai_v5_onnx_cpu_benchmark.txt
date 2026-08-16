@@ -1,0 +1,3 @@
+1 threads: mean=19.2771s median=20.3858s p95=20.4475s load=3.1789s RSSdelta=1003167744
+2 threads: mean=11.2365s median=11.9175s p95=11.9536s load=2.5470s RSSdelta=149729280
+4 threads: mean=8.4982s median=8.9893s p95=9.4515s load=2.4603s RSSdelta=84774912

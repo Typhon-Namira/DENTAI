@@ -6,7 +6,13 @@ status_v2: n=500 agreement=1.000000 max_abs=2.7582049e-05
 deep_caries: n=150 agreement=1.000000 max_abs=1.2755394e-05
 restoration_classifier: n=102 agreement=1.000000 max_abs=5.9604645e-06
 
-BLOCKER: Fixed-shape torchvision detector export changes box geometry enough to alter downstream FDI crop/assignment; ORT also emits internal Mask R-CNN shape warnings.
-PARITY VERDICT: FAIL
-CPU DEPLOYMENT VERDICT: NOT_READY
-RAILWAY READINESS: NO
+Tooth detector: mean IoU=0.99999160 P5=0.99997889
+Pathology detector: mean IoU=0.99998660
+Restoration detector: mean IoU=0.99999474
+FDI stability: raw=1.000000 resolved=1.000000
+Image 111 disagreements: 0
+Held-out Unified perfect: 20/20
+
+PARITY VERDICT: PASS
+CPU DEPLOYMENT VERDICT: READY_BUT_SLOW
+RAILWAY READINESS: NOT ASSESSED/PACKAGED IN THIS PHASE

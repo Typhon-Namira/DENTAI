@@ -1,0 +1,176 @@
+{
+  "images": 20,
+  "perfect_end_to_end": 20,
+  "minor_differences": 0,
+  "material_differences": 0,
+  "matched_teeth": 523,
+  "fdi_agreement": 1.0,
+  "status_gate_agreement": 1.0,
+  "status_v2_agreement": 1.0,
+  "final_finding_agreement": 1.0,
+  "review_flag_agreement": 1.0,
+  "pytorch_mean_seconds": 11.119020937950154,
+  "onnx_mean_seconds": 11.738764584249475,
+  "per_image": [
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1017.png",
+      "pytorch_teeth": 7,
+      "onnx_teeth": 7,
+      "matched": 7,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2179.png",
+      "pytorch_teeth": 27,
+      "onnx_teeth": 27,
+      "matched": 27,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2061.png",
+      "pytorch_teeth": 31,
+      "onnx_teeth": 31,
+      "matched": 31,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2041.png",
+      "pytorch_teeth": 27,
+      "onnx_teeth": 27,
+      "matched": 27,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1010.png",
+      "pytorch_teeth": 17,
+      "onnx_teeth": 17,
+      "matched": 17,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1073.png",
+      "pytorch_teeth": 21,
+      "onnx_teeth": 21,
+      "matched": 21,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1056.png",
+      "pytorch_teeth": 26,
+      "onnx_teeth": 26,
+      "matched": 26,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2114.png",
+      "pytorch_teeth": 25,
+      "onnx_teeth": 25,
+      "matched": 25,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4430.png",
+      "pytorch_teeth": 31,
+      "onnx_teeth": 31,
+      "matched": 31,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2047.png",
+      "pytorch_teeth": 21,
+      "onnx_teeth": 21,
+      "matched": 21,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2078.png",
+      "pytorch_teeth": 29,
+      "onnx_teeth": 29,
+      "matched": 29,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4231.png",
+      "pytorch_teeth": 24,
+      "onnx_teeth": 24,
+      "matched": 24,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4292.png",
+      "pytorch_teeth": 33,
+      "onnx_teeth": 33,
+      "matched": 33,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4343.png",
+      "pytorch_teeth": 34,
+      "onnx_teeth": 34,
+      "matched": 34,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4249.png",
+      "pytorch_teeth": 29,
+      "onnx_teeth": 29,
+      "matched": 29,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4386.png",
+      "pytorch_teeth": 32,
+      "onnx_teeth": 32,
+      "matched": 32,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4345.png",
+      "pytorch_teeth": 32,
+      "onnx_teeth": 32,
+      "matched": 32,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1091.png",
+      "pytorch_teeth": 23,
+      "onnx_teeth": 23,
+      "matched": 23,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2097.png",
+      "pytorch_teeth": 25,
+      "onnx_teeth": 25,
+      "matched": 25,
+      "classification": "perfect",
+      "disagreements": []
+    },
+    {
+      "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1066.png",
+      "pytorch_teeth": 29,
+      "onnx_teeth": 29,
+      "matched": 29,
+      "classification": "perfect",
+      "disagreements": []
+    }
+  ]
+}

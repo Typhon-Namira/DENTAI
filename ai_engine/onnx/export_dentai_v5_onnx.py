@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import onnx
+from onnx import TensorProto, helper
 import onnxruntime as ort
 import torch
 from PIL import Image
@@ -139,8 +140,15 @@ def detector_models():
     restoration = fasterrcnn_resnet50_fpn(weights=None, weights_backbone=None)
     features = restoration.roi_heads.box_predictor.cls_score.in_features
     restoration.roi_heads.box_predictor = FastRCNNPredictor(features, 3)
+    tooth = load_strict(tooth, v5.CHECKPOINTS["tooth"])[0]
+    # Unified V5 consumes only boxes/scores. Strict-load the complete checkpoint
+    # first, then disable only the unused mask inference branch. Box weights and
+    # outputs remain bit-identical to the original Mask R-CNN.
+    tooth.roi_heads.mask_roi_pool = None
+    tooth.roi_heads.mask_head = None
+    tooth.roi_heads.mask_predictor = None
     return {
-        "tooth": (load_strict(tooth, v5.CHECKPOINTS["tooth"])[0], "tooth_v3.onnx", (640, 1312)),
+        "tooth": (tooth, "tooth_v3.onnx", (640, 1312)),
         "pathology": (load_strict(pathology, v5.CHECKPOINTS["pathology"])[0], "pathology_v41.onnx", (640, 1312)),
         "restoration_detector": (load_strict(restoration, v5.CHECKPOINTS["restoration_detector"])[0], "restoration_detector_v1.onnx", (650, 1333)),
     }
@@ -149,13 +157,17 @@ def detector_models():
 def export_detectors():
     """Export fixed-shape detector graphs. Runtime must use aspect-preserving letterbox."""
     results = {}
+    selected = next((sys.argv[i+1] for i,x in enumerate(sys.argv[:-1]) if x == "--detector"), None)
     for key, (model, filename, shape) in detector_models().items():
+        if selected and key != selected: continue
         wrapper = DetectionOutputWrapper(model).eval(); target = ONNX_DIR / filename
         example = torch.zeros((1, 3, shape[0], shape[1]), dtype=torch.float32)
         print(f"Exporting {key} at fixed input {tuple(example.shape)} ...")
         torch.onnx.export(wrapper, (example,), target, export_params=True, opset_version=OPSET,
                           do_constant_folding=True, input_names=["image"],
-                          output_names=["boxes", "scores", "labels"], dynamo=False)
+                          output_names=["boxes", "scores", "labels"],
+                          dynamic_axes={"image": {2: "height", 3: "width"}, "boxes": {0: "detections"},
+                                        "scores": {0: "detections"}, "labels": {0: "detections"}}, dynamo=False)
         graph = onnx.load(target); onnx.checker.check_model(graph)
         session = ort.InferenceSession(str(target), providers=["CPUExecutionProvider"])
         outputs = session.run(None, {"image": example.numpy()})
@@ -168,6 +180,22 @@ def export_detectors():
         print(f"PASS {key}: ORT shapes {[x.shape for x in outputs]}")
         del session, wrapper, model; gc.collect()
     return results
+
+
+def export_resize_preprocessor():
+    """Dynamic ONNX bilinear resize matching F.interpolate align_corners=False."""
+    image = helper.make_tensor_value_info("image", TensorProto.FLOAT, [1, 3, "height", "width"])
+    sizes = helper.make_tensor_value_info("sizes", TensorProto.INT64, [4])
+    output = helper.make_tensor_value_info("resized", TensorProto.FLOAT, [1, 3, "new_height", "new_width"])
+    roi = helper.make_tensor("roi", TensorProto.FLOAT, [0], [])
+    scales = helper.make_tensor("scales", TensorProto.FLOAT, [0], [])
+    node = helper.make_node("Resize", ["image", "roi", "scales", "sizes"], ["resized"],
+                            mode="linear", coordinate_transformation_mode="half_pixel")
+    graph = helper.make_graph([node], "dentai_detector_resize", [image, sizes], [output], [roi, scales])
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", OPSET)])
+    model.ir_version = 10
+    target = ONNX_DIR / "detector_preprocess.onnx"; onnx.save(model, target); onnx.checker.check_model(model)
+    print("PASS detector_preprocess:", target)
 
 
 def create_manifest(exports=None):
@@ -211,6 +239,7 @@ def create_manifest(exports=None):
 
 def main():
     if "--detectors" in sys.argv:
+        export_resize_preprocessor()
         exports = export_detectors()
         existing = json.loads(MANIFEST_PATH.read_text()) if MANIFEST_PATH.exists() else None
         if existing:

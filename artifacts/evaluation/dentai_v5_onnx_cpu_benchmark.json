@@ -1,0 +1,43 @@
+{
+  "provider": "CPUExecutionProvider",
+  "models": "FP32",
+  "configurations": {
+    "1": {
+      "threads": 1,
+      "images": 3,
+      "model_load_seconds": 3.1789083369985747,
+      "mean_seconds_per_image": 19.2771423209997,
+      "median_seconds_per_image": 20.38583254200057,
+      "p95_seconds_per_image": 20.447462328000256,
+      "rss_before_bytes": 52592640,
+      "rss_after_load_bytes": 1055760384,
+      "rss_after_inference_bytes": 2152308736,
+      "model_rss_delta_bytes": 1003167744
+    },
+    "2": {
+      "threads": 2,
+      "images": 3,
+      "model_load_seconds": 2.5470029509997403,
+      "mean_seconds_per_image": 11.236546822332457,
+      "median_seconds_per_image": 11.9175317549998,
+      "p95_seconds_per_image": 11.953608064999571,
+      "rss_before_bytes": 948920320,
+      "rss_after_load_bytes": 1098649600,
+      "rss_after_inference_bytes": 2169257984,
+      "model_rss_delta_bytes": 149729280
+    },
+    "4": {
+      "threads": 4,
+      "images": 3,
+      "model_load_seconds": 2.4603390919983212,
+      "mean_seconds_per_image": 8.498228247333222,
+      "median_seconds_per_image": 8.989328147999913,
+      "p95_seconds_per_image": 9.45151112199892,
+      "rss_before_bytes": 1022750720,
+      "rss_after_load_bytes": 1107525632,
+      "rss_after_inference_bytes": 2165866496,
+      "model_rss_delta_bytes": 84774912
+    }
+  },
+  "note": "Three identical held-out images per thread setting; PyTorch 20-image reference mean was 11.1190 s/image."
+}

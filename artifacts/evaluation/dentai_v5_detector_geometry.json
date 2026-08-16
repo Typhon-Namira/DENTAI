@@ -1,0 +1,2369 @@
+{
+  "tooth": {
+    "images": 20,
+    "per_image": [
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/1.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.013848839327692986,
+        "pixel_max_absolute_difference": 1.5841660499572754,
+        "pytorch_detections": 31,
+        "onnx_detections": 32,
+        "matched": 31,
+        "mean_iou": 0.9307924774490196,
+        "mean_center_delta": 3.6317593366631225,
+        "mean_width_delta": 5.36180432737576,
+        "mean_height_delta": 7.164458266587655,
+        "mean_score_delta": 0.0022401848146992344
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/10.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.01228285115212202,
+        "pixel_max_absolute_difference": 1.02666437625885,
+        "pytorch_detections": 32,
+        "onnx_detections": 32,
+        "matched": 32,
+        "mean_iou": 0.9418567225243292,
+        "mean_center_delta": 2.9303245744327415,
+        "mean_width_delta": 3.4448051125538157,
+        "mean_height_delta": 4.680453832556562,
+        "mean_score_delta": 0.0013674795627593994
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/107.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.01841948926448822,
+        "pixel_max_absolute_difference": 1.4146997928619385,
+        "pytorch_detections": 30,
+        "onnx_detections": 30,
+        "matched": 30,
+        "mean_iou": 0.9557870112440673,
+        "mean_center_delta": 1.9280174098520075,
+        "mean_width_delta": 2.0631735894738275,
+        "mean_height_delta": 4.002176374730057,
+        "mean_score_delta": 0.0009876569112141928
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/117.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.011177433654665947,
+        "pixel_max_absolute_difference": 1.6002172231674194,
+        "pytorch_detections": 30,
+        "onnx_detections": 30,
+        "matched": 30,
+        "mean_iou": 0.9578621527496866,
+        "mean_center_delta": 2.0462658689224877,
+        "mean_width_delta": 1.8489243538399251,
+        "mean_height_delta": 4.433654707234079,
+        "mean_score_delta": 0.0006305893262227376
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/140.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.0163863692432642,
+        "pixel_max_absolute_difference": 1.5822468996047974,
+        "pytorch_detections": 32,
+        "onnx_detections": 32,
+        "matched": 32,
+        "mean_iou": 0.9491512758686252,
+        "mean_center_delta": 2.7377341853446056,
+        "mean_width_delta": 3.02982780555401,
+        "mean_height_delta": 4.341006652247602,
+        "mean_score_delta": 0.001393791288137436
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/15.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.010017073713243008,
+        "pixel_max_absolute_difference": 1.349521517753601,
+        "pytorch_detections": 32,
+        "onnx_detections": 32,
+        "matched": 32,
+        "mean_iou": 0.954697563357019,
+        "mean_center_delta": 2.0414767205924935,
+        "mean_width_delta": 2.8211045999352393,
+        "mean_height_delta": 3.732902517042495,
+        "mean_score_delta": 0.0006978977471590042
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/16.jpg",
+        "original_size": [
+          1480,
+          2776
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1200
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1216
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.43243243243243246,
+        "padding": [
+          0,
+          56
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 32,
+        "onnx_detections": 33,
+        "matched": 32,
+        "mean_iou": 0.936251124636175,
+        "mean_center_delta": 3.3473736247889114,
+        "mean_width_delta": 3.4718635082244873,
+        "mean_height_delta": 6.9388203620910645,
+        "mean_score_delta": 0.012579139322042465
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/160.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.020132439211010933,
+        "pixel_max_absolute_difference": 1.2141262292861938,
+        "pytorch_detections": 32,
+        "onnx_detections": 32,
+        "matched": 32,
+        "mean_iou": 0.9268125121223371,
+        "mean_center_delta": 3.57127907799381,
+        "mean_width_delta": 4.390718418650497,
+        "mean_height_delta": 7.094097077483072,
+        "mean_score_delta": 0.003560895100235939
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/184.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.014466756954789162,
+        "pixel_max_absolute_difference": 1.5801793336868286,
+        "pytorch_detections": 18,
+        "onnx_detections": 18,
+        "matched": 18,
+        "mean_iou": 0.8898253710090822,
+        "mean_center_delta": 5.080921146405142,
+        "mean_width_delta": 6.560280056826786,
+        "mean_height_delta": 10.093569123001917,
+        "mean_score_delta": 0.03319886326789856
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/185.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.010427762754261494,
+        "pixel_max_absolute_difference": 1.406662940979004,
+        "pytorch_detections": 32,
+        "onnx_detections": 32,
+        "matched": 32,
+        "mean_iou": 0.9452992914830243,
+        "mean_center_delta": 2.8406579620493475,
+        "mean_width_delta": 3.7596182568771397,
+        "mean_height_delta": 4.642296967709962,
+        "mean_score_delta": 0.0018840637058019638
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/191.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.012466765940189362,
+        "pixel_max_absolute_difference": 1.0255297422409058,
+        "pytorch_detections": 29,
+        "onnx_detections": 28,
+        "matched": 28,
+        "mean_iou": 0.9366102892538334,
+        "mean_center_delta": 3.264028242870844,
+        "mean_width_delta": 3.3647039443358033,
+        "mean_height_delta": 6.122511602029562,
+        "mean_score_delta": 0.0022563189268112183
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/210.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.014066286385059357,
+        "pixel_max_absolute_difference": 1.542257308959961,
+        "pytorch_detections": 29,
+        "onnx_detections": 27,
+        "matched": 27,
+        "mean_iou": 0.9498379854961323,
+        "mean_center_delta": 2.46143676209576,
+        "mean_width_delta": 3.2249820462841106,
+        "mean_height_delta": 4.183283348824367,
+        "mean_score_delta": 0.0009755845423097964
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/213.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.012511275708675385,
+        "pixel_max_absolute_difference": 1.4609944820404053,
+        "pytorch_detections": 30,
+        "onnx_detections": 29,
+        "matched": 29,
+        "mean_iou": 0.9478559008042258,
+        "mean_center_delta": 2.653085156062902,
+        "mean_width_delta": 2.6625132308074546,
+        "mean_height_delta": 4.684539790510412,
+        "mean_score_delta": 0.0007023400273816339
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/222.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.012215850874781609,
+        "pixel_max_absolute_difference": 1.0255297422409058,
+        "pytorch_detections": 27,
+        "onnx_detections": 27,
+        "matched": 27,
+        "mean_iou": 0.9407022540486969,
+        "mean_center_delta": 2.8969663144227473,
+        "mean_width_delta": 3.8704550208115305,
+        "mean_height_delta": 5.176798751576036,
+        "mean_score_delta": 0.0004890494876437717
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/225.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.02087852545082569,
+        "pixel_max_absolute_difference": 1.4643055200576782,
+        "pytorch_detections": 32,
+        "onnx_detections": 32,
+        "matched": 32,
+        "mean_iou": 0.9386471756958402,
+        "mean_center_delta": 3.5814377566482425,
+        "mean_width_delta": 3.3234615275045876,
+        "mean_height_delta": 6.814855801259606,
+        "mean_score_delta": 0.002951318398118019
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/246.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.01788279414176941,
+        "pixel_max_absolute_difference": 1.2703301906585693,
+        "pytorch_detections": 31,
+        "onnx_detections": 31,
+        "matched": 31,
+        "mean_iou": 0.9439552517734544,
+        "mean_center_delta": 2.690313222020679,
+        "mean_width_delta": 2.656814705753431,
+        "mean_height_delta": 5.587602629987941,
+        "mean_score_delta": 0.001323499987202306
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/248.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.017247449606657028,
+        "pixel_max_absolute_difference": 1.5063214302062988,
+        "pytorch_detections": 27,
+        "onnx_detections": 27,
+        "matched": 27,
+        "mean_iou": 0.94319008281181,
+        "mean_center_delta": 3.6125634558488775,
+        "mean_width_delta": 2.9841744682222244,
+        "mean_height_delta": 6.4669967679796665,
+        "mean_score_delta": 0.00408499108420478
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/251.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.015361867845058441,
+        "pixel_max_absolute_difference": 1.5184723138809204,
+        "pytorch_detections": 30,
+        "onnx_detections": 30,
+        "matched": 30,
+        "mean_iou": 0.9571350363999588,
+        "mean_center_delta": 2.1123109870128016,
+        "mean_width_delta": 2.792374100336239,
+        "mean_height_delta": 3.6089453561519083,
+        "mean_score_delta": 0.0009380459785461425
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/262.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.013349274173378944,
+        "pixel_max_absolute_difference": 1.6180996894836426,
+        "pytorch_detections": 17,
+        "onnx_detections": 17,
+        "matched": 17,
+        "mean_iou": 0.8705885605982289,
+        "mean_center_delta": 9.251852149371327,
+        "mean_width_delta": 4.573609421892864,
+        "mean_height_delta": 19.008825441001964,
+        "mean_score_delta": 0.004452642272500431
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/268.jpg",
+        "original_size": [
+          1480,
+          2776
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1200
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1216
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.43243243243243246,
+        "padding": [
+          0,
+          56
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 21,
+        "onnx_detections": 21,
+        "matched": 21,
+        "mean_iou": 0.896486145080049,
+        "mean_center_delta": 6.358504474296924,
+        "mean_width_delta": 5.072803043183827,
+        "mean_height_delta": 13.98859673454648,
+        "mean_score_delta": 0.011949184395018079
+      }
+    ],
+    "same_shape_images": 18,
+    "mean_box_iou": 0.9356672092202798,
+    "mean_center_delta": 3.451915421384789,
+    "diagnosis": "B/C: fixed ONNX input geometry differs from per-image GeneralizedRCNNTransform; residual traced graph box drift remains even when geometry matches. Mapping is measured separately and is not the primary source."
+  },
+  "pathology": {
+    "images": 20,
+    "per_image": [
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/1.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.013848839327692986,
+        "pixel_max_absolute_difference": 1.5841660499572754,
+        "pytorch_detections": 7,
+        "onnx_detections": 8,
+        "matched": 7,
+        "mean_iou": 0.9516632324047481,
+        "mean_center_delta": 0.9185723112194994,
+        "mean_width_delta": 2.9243937635254724,
+        "mean_height_delta": 2.870065012875346,
+        "mean_score_delta": 0.02444638524736677
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/10.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.01228285115212202,
+        "pixel_max_absolute_difference": 1.02666437625885,
+        "pytorch_detections": 2,
+        "onnx_detections": 4,
+        "matched": 2,
+        "mean_iou": 0.9534829612564578,
+        "mean_center_delta": 2.940979653019524,
+        "mean_width_delta": 2.682569201399758,
+        "mean_height_delta": 4.6109951531014985,
+        "mean_score_delta": 0.027996182441711426
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/107.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.01841948926448822,
+        "pixel_max_absolute_difference": 1.4146997928619385,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.9641289871543932,
+        "mean_center_delta": 3.1692101190403505,
+        "mean_width_delta": 2.1121658232154914,
+        "mean_height_delta": 4.558972195881097,
+        "mean_score_delta": 0.4396984577178955
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/117.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.011177433654665947,
+        "pixel_max_absolute_difference": 1.6002172231674194,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/140.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.0163863692432642,
+        "pixel_max_absolute_difference": 1.5822468996047974,
+        "pytorch_detections": 3,
+        "onnx_detections": 3,
+        "matched": 3,
+        "mean_iou": 0.9412308087826252,
+        "mean_center_delta": 3.0659872802093457,
+        "mean_width_delta": 3.379890503921994,
+        "mean_height_delta": 1.1171790642467083,
+        "mean_score_delta": 0.0015798211097717285
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/15.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.010017073713243008,
+        "pixel_max_absolute_difference": 1.349521517753601,
+        "pytorch_detections": 2,
+        "onnx_detections": 4,
+        "matched": 2,
+        "mean_iou": 0.9258874810561095,
+        "mean_center_delta": 0.9478227538154459,
+        "mean_width_delta": 5.458324688236871,
+        "mean_height_delta": 10.303480189021059,
+        "mean_score_delta": 0.039385467767715454
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/16.jpg",
+        "original_size": [
+          1480,
+          2776
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1200
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1216
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.43243243243243246,
+        "padding": [
+          0,
+          56
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 3,
+        "onnx_detections": 4,
+        "matched": 3,
+        "mean_iou": 0.9054006228162713,
+        "mean_center_delta": 3.2894544222549795,
+        "mean_width_delta": 6.702627817789714,
+        "mean_height_delta": 5.682088216145833,
+        "mean_score_delta": 0.011355837186177572
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/160.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.020132439211010933,
+        "pixel_max_absolute_difference": 1.2141262292861938,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.9233469228802634,
+        "mean_center_delta": 9.128694517606565,
+        "mean_width_delta": 0.48570778311750473,
+        "mean_height_delta": 2.9717335584687135,
+        "mean_score_delta": 0.42022353410720825
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/184.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.014466756954789162,
+        "pixel_max_absolute_difference": 1.5801793336868286,
+        "pytorch_detections": 6,
+        "onnx_detections": 7,
+        "matched": 6,
+        "mean_iou": 0.9191720411756914,
+        "mean_center_delta": 1.4943183125925577,
+        "mean_width_delta": 2.466505143700639,
+        "mean_height_delta": 1.357886919161179,
+        "mean_score_delta": 0.03601563970247904
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/185.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.010427762754261494,
+        "pixel_max_absolute_difference": 1.406662940979004,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/191.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.012466765940189362,
+        "pixel_max_absolute_difference": 1.0255297422409058,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.8842137542525235,
+        "mean_center_delta": 2.6722531770633253,
+        "mean_width_delta": 3.278985465445089,
+        "mean_height_delta": 3.7419474066756493,
+        "mean_score_delta": 0.03132075071334839
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/210.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.014066286385059357,
+        "pixel_max_absolute_difference": 1.542257308959961,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.9598151230519597,
+        "mean_center_delta": 1.3645637991487094,
+        "mean_width_delta": 2.4086474907107913,
+        "mean_height_delta": 2.9088032420089007,
+        "mean_score_delta": 0.006326138973236084
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/213.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.012511275708675385,
+        "pixel_max_absolute_difference": 1.4609944820404053,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/222.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.012215850874781609,
+        "pixel_max_absolute_difference": 1.0255297422409058,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.9700205027165302,
+        "mean_center_delta": 0.4100112915231153,
+        "mean_width_delta": 0.06590796679984123,
+        "mean_height_delta": 2.4533210382229527,
+        "mean_score_delta": 0.0007142424583435059
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/225.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.02087852545082569,
+        "pixel_max_absolute_difference": 1.4643055200576782,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/246.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.01788279414176941,
+        "pixel_max_absolute_difference": 1.2703301906585693,
+        "pytorch_detections": 2,
+        "onnx_detections": 4,
+        "matched": 2,
+        "mean_iou": 0.9142309216877493,
+        "mean_center_delta": 1.6002740982867314,
+        "mean_width_delta": 2.091175591073352,
+        "mean_height_delta": 3.62872467971431,
+        "mean_score_delta": 0.039030224084854126
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/248.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.017247449606657028,
+        "pixel_max_absolute_difference": 1.5063214302062988,
+        "pytorch_detections": 4,
+        "onnx_detections": 6,
+        "matched": 4,
+        "mean_iou": 0.9161941105750688,
+        "mean_center_delta": 1.9298747705834698,
+        "mean_width_delta": 0.9528710900283954,
+        "mean_height_delta": 3.856241987972737,
+        "mean_score_delta": 0.08688129484653473
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/251.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.015361867845058441,
+        "pixel_max_absolute_difference": 1.5184723138809204,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/262.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1312
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.44580360176690453,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": true,
+        "pixel_mean_absolute_difference": 0.013349274173378944,
+        "pixel_max_absolute_difference": 1.6180996894836426,
+        "pytorch_detections": 1,
+        "onnx_detections": 2,
+        "matched": 1,
+        "mean_iou": 0.9225273551819828,
+        "mean_center_delta": 2.7699208721502817,
+        "mean_width_delta": 1.6251107192620111,
+        "mean_height_delta": 5.433249775956256,
+        "mean_score_delta": 0.386857271194458
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/268.jpg",
+        "original_size": [
+          1480,
+          2776
+        ],
+        "pytorch_transformed_size": [
+          640,
+          1200
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          640,
+          1216
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          640,
+          1312
+        ],
+        "resize_scale": 0.43243243243243246,
+        "padding": [
+          0,
+          56
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 6,
+        "onnx_detections": 3,
+        "matched": 2,
+        "mean_iou": 0.7747294497370366,
+        "mean_center_delta": 1.1262534190301223,
+        "mean_width_delta": 11.462109565734863,
+        "mean_height_delta": 19.862049102783203,
+        "mean_score_delta": 0.143515944480896
+      }
+    ],
+    "same_shape_images": 18,
+    "mean_box_iou": 0.6913022137364706,
+    "mean_center_delta": 2.4552127198362683,
+    "diagnosis": "B/C: fixed ONNX input geometry differs from per-image GeneralizedRCNNTransform; residual traced graph box drift remains even when geometry matches. Mapping is measured separately and is not the primary source."
+  },
+  "restoration_detector": {
+    "images": 20,
+    "per_image": [
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/1.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 10,
+        "onnx_detections": 10,
+        "matched": 10,
+        "mean_iou": 0.9599302804087375,
+        "mean_center_delta": 0.7916387019583508,
+        "mean_width_delta": 1.8464129482992917,
+        "mean_height_delta": 1.7010618926704297,
+        "mean_score_delta": 0.01816231608390808
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/10.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/107.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/117.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/140.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.995027498455291,
+        "mean_center_delta": 0.1460006467521949,
+        "mean_width_delta": 0.27615770825025265,
+        "mean_height_delta": 0.1460427515326046,
+        "mean_score_delta": 0.0003197193145751953
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/15.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 5,
+        "onnx_detections": 6,
+        "matched": 5,
+        "mean_iou": 0.9542672436527364,
+        "mean_center_delta": 0.5278341197893206,
+        "mean_width_delta": 2.067437867767694,
+        "mean_height_delta": 1.1044650719564744,
+        "mean_score_delta": 0.0073130130767822266
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/16.jpg",
+        "original_size": [
+          1480,
+          2776
+        ],
+        "pytorch_transformed_size": [
+          710,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          736,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4391891891891892,
+        "padding": [
+          0,
+          57
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/160.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 3,
+        "onnx_detections": 3,
+        "matched": 3,
+        "mean_iou": 0.9789683042337353,
+        "mean_center_delta": 0.8315037480331458,
+        "mean_width_delta": 0.349572454759065,
+        "mean_height_delta": 1.4990105863867786,
+        "mean_score_delta": 0.0005656282107035319
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/184.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.9759208653652278,
+        "mean_center_delta": 0.7235508602175326,
+        "mean_width_delta": 1.7878974748570045,
+        "mean_height_delta": 1.2815985826290444,
+        "mean_score_delta": 0.0006389617919921875
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/185.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 5,
+        "onnx_detections": 5,
+        "matched": 5,
+        "mean_iou": 0.9445210982635182,
+        "mean_center_delta": 1.2572269629134774,
+        "mean_width_delta": 1.1648024173402518,
+        "mean_height_delta": 1.0179893362012309,
+        "mean_score_delta": 0.0024320602416992186
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/191.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 6,
+        "onnx_detections": 6,
+        "matched": 6,
+        "mean_iou": 0.9667957255643114,
+        "mean_center_delta": 0.5314245188404799,
+        "mean_width_delta": 1.060960529744212,
+        "mean_height_delta": 1.3514038910118036,
+        "mean_score_delta": 0.0005412598450978597
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/210.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 5,
+        "onnx_detections": 6,
+        "matched": 5,
+        "mean_iou": 0.9680324348526685,
+        "mean_center_delta": 0.43980398046295865,
+        "mean_width_delta": 1.5997683686058282,
+        "mean_height_delta": 0.9366748486437928,
+        "mean_score_delta": 0.0007252693176269531
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/213.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.9343165743323462,
+        "mean_center_delta": 1.154640376229201,
+        "mean_width_delta": 1.6383014515836294,
+        "mean_height_delta": 4.6023779351819485,
+        "mean_score_delta": 0.00045555830001831055
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/222.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 3,
+        "onnx_detections": 3,
+        "matched": 3,
+        "mean_iou": 0.9680833599558831,
+        "mean_center_delta": 0.6715028417390558,
+        "mean_width_delta": 0.5889319619943763,
+        "mean_height_delta": 0.6750088706258642,
+        "mean_score_delta": 0.0005703965822855631
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/225.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 1,
+        "onnx_detections": 1,
+        "matched": 1,
+        "mean_iou": 0.979067368906221,
+        "mean_center_delta": 0.8136061005854676,
+        "mean_width_delta": 0.5634817823108733,
+        "mean_height_delta": 0.1750056960040638,
+        "mean_score_delta": 0.005602896213531494
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/246.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 2,
+        "onnx_detections": 2,
+        "matched": 2,
+        "mean_iou": 0.9796852204587876,
+        "mean_center_delta": 0.5283504922380499,
+        "mean_width_delta": 0.2987211646662331,
+        "mean_height_delta": 0.929564811551927,
+        "mean_score_delta": 0.010150104761123657
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/248.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/251.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/262.jpg",
+        "original_size": [
+          1435,
+          2943
+        ],
+        "pytorch_transformed_size": [
+          649,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          672,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4529391777098199,
+        "padding": [
+          0,
+          0
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 0,
+        "onnx_detections": 0,
+        "matched": 0,
+        "mean_iou": 0,
+        "mean_center_delta": null,
+        "mean_width_delta": null,
+        "mean_height_delta": null,
+        "mean_score_delta": null
+      },
+      {
+        "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/268.jpg",
+        "original_size": [
+          1480,
+          2776
+        ],
+        "pytorch_transformed_size": [
+          710,
+          1333
+        ],
+        "pytorch_padded_size": [
+          1,
+          3,
+          736,
+          1344
+        ],
+        "onnx_input_size": [
+          1,
+          3,
+          650,
+          1333
+        ],
+        "resize_scale": 0.4391891891891892,
+        "padding": [
+          0,
+          57
+        ],
+        "same_tensor_shape": false,
+        "pixel_mean_absolute_difference": null,
+        "pixel_max_absolute_difference": null,
+        "pytorch_detections": 8,
+        "onnx_detections": 7,
+        "matched": 6,
+        "mean_iou": 0.8668457311706186,
+        "mean_center_delta": 4.707383390540865,
+        "mean_width_delta": 10.170595765725201,
+        "mean_height_delta": 3.9286638308793917,
+        "mean_score_delta": 0.015155086914698282
+      }
+    ],
+    "same_shape_images": 0,
+    "mean_box_iou": 0.6235730852810041,
+    "mean_center_delta": 1.0095743646384692,
+    "diagnosis": "B/C: fixed ONNX input geometry differs from per-image GeneralizedRCNNTransform; residual traced graph box drift remains even when geometry matches. Mapping is measured separately and is not the primary source."
+  }
+}

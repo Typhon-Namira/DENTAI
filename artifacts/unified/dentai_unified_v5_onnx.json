@@ -52,26 +52,26 @@
   },
   "summary": {
     "teeth": 32,
-    "unique_fdi": 31,
-    "pathology_detections": 6,
+    "unique_fdi": 32,
+    "pathology_detections": 5,
     "restorations": 5,
     "review_required": 4,
-    "runtime_seconds": 13.945001564003178
+    "runtime_seconds": 10.303772387000208
   },
   "teeth": [
     {
       "tooth_detection": {
         "instance_id": 12,
         "bbox_xyxy": [
-          1393.15,
-          556.39,
-          1480.62,
-          832.07
+          1394.22,
+          557.81,
+          1480.71,
+          832.31
         ],
-        "confidence": 0.997853696346283
+        "confidence": 0.9979342222213745
       },
       "fdi": "11",
-      "fdi_confidence": 0.9984002709388733,
+      "fdi_confidence": 0.998212456703186,
       "raw_fdi": "11",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -79,29 +79,51 @@
       "status_gate": {
         "prediction": "NON_HEALTHY",
         "effective_prediction": "NON_HEALTHY",
-        "confidence": 0.7854117751121521,
+        "confidence": 0.8315860033035278,
         "probabilities": {
-          "HEALTHY": 0.21458815038204193,
-          "NON_HEALTHY": 0.7854117751121521
+          "HEALTHY": 0.16841396689414978,
+          "NON_HEALTHY": 0.8315860033035278
         },
-        "non_healthy_probability": 0.7854117751121521,
+        "non_healthy_probability": 0.8315860033035278,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "FILLING",
-        "confidence": 0.9502401351928711,
+        "confidence": 0.9423531293869019,
         "probabilities": {
-          "HEALTHY": 0.0026949464809149504,
-          "FILLING": 0.9502401351928711,
-          "CARIES": 0.008089227601885796,
-          "RCT_CROWN": 0.005936608184129,
-          "CROWN": 0.006197871640324593,
-          "ROOT_CANAL_TREATMENT": 0.010871856473386288,
-          "RESIDUAL_ROOT": 0.015969261527061462
+          "HEALTHY": 0.0034010065719485283,
+          "FILLING": 0.9423531293869019,
+          "CARIES": 0.009483687579631805,
+          "RCT_CROWN": 0.00672175781801343,
+          "CROWN": 0.0071138679049909115,
+          "ROOT_CANAL_TREATMENT": 0.012623620219528675,
+          "RESIDUAL_ROOT": 0.01830277591943741
         }
       },
       "pathology_evidence": [],
-      "restorations": [],
+      "restorations": [
+        {
+          "type": "FILLING",
+          "bbox_xyxy": [
+            1465.42,
+            749.82,
+            1491.52,
+            793.18
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.7637832164764404,
+          "detector_threshold": 0.5,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.9649694561958313,
+          "classifier_probabilities": {
+            "FILLING": 0.9649694561958313,
+            "IMPLANT": 0.03503050655126572
+          },
+          "type_agreement": true,
+          "associated_fdi": "11",
+          "association_score": 2.7369
+        }
+      ],
       "deep_caries": {
         "ran": false,
         "probability": null,
@@ -117,17 +139,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 24,
+        "instance_id": 26,
         "bbox_xyxy": [
-          1315.54,
-          548.21,
-          1392.57,
-          817.02
+          1315.58,
+          550.84,
+          1388.22,
+          815.65
         ],
-        "confidence": 0.9943019151687622
+        "confidence": 0.9946377873420715
       },
       "fdi": "12",
-      "fdi_confidence": 0.9142876267433167,
+      "fdi_confidence": 0.942405641078949,
       "raw_fdi": "12",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -135,25 +157,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9369982481002808,
+        "confidence": 0.9545648694038391,
         "probabilities": {
-          "HEALTHY": 0.9369982481002808,
-          "NON_HEALTHY": 0.06300173699855804
+          "HEALTHY": 0.9545648694038391,
+          "NON_HEALTHY": 0.04543514922261238
         },
-        "non_healthy_probability": 0.06300173699855804,
+        "non_healthy_probability": 0.04543514922261238,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.8932351469993591,
+        "confidence": 0.8686114549636841,
         "probabilities": {
-          "HEALTHY": 0.8932351469993591,
-          "FILLING": 0.020668286830186844,
-          "CARIES": 0.008495278656482697,
-          "RCT_CROWN": 0.010841628536581993,
-          "CROWN": 0.019927427172660828,
-          "ROOT_CANAL_TREATMENT": 0.017398027703166008,
-          "RESIDUAL_ROOT": 0.029434243217110634
+          "HEALTHY": 0.8686114549636841,
+          "FILLING": 0.017617778852581978,
+          "CARIES": 0.00594382593408227,
+          "RCT_CROWN": 0.008774441666901112,
+          "CROWN": 0.03513836860656738,
+          "ROOT_CANAL_TREATMENT": 0.01800038106739521,
+          "RESIDUAL_ROOT": 0.045913733541965485
         }
       },
       "pathology_evidence": [],
@@ -175,15 +197,15 @@
       "tooth_detection": {
         "instance_id": 29,
         "bbox_xyxy": [
-          1221.19,
-          496.6,
-          1317.76,
-          830.38
+          1222.33,
+          501.18,
+          1316.21,
+          828.26
         ],
-        "confidence": 0.9902865886688232
+        "confidence": 0.9887322187423706
       },
       "fdi": "13",
-      "fdi_confidence": 0.9868098497390747,
+      "fdi_confidence": 0.9856569766998291,
       "raw_fdi": "13",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -191,25 +213,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.98969966173172,
+        "confidence": 0.9847582578659058,
         "probabilities": {
-          "HEALTHY": 0.98969966173172,
-          "NON_HEALTHY": 0.010300394147634506
+          "HEALTHY": 0.9847582578659058,
+          "NON_HEALTHY": 0.015241733752191067
         },
-        "non_healthy_probability": 0.010300394147634506,
+        "non_healthy_probability": 0.015241733752191067,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.8393352031707764,
+        "confidence": 0.8503414392471313,
         "probabilities": {
-          "HEALTHY": 0.8393352031707764,
-          "FILLING": 0.025440214201807976,
-          "CARIES": 0.044550541788339615,
-          "RCT_CROWN": 0.018233858048915863,
-          "CROWN": 0.01740357093513012,
-          "ROOT_CANAL_TREATMENT": 0.020769314840435982,
-          "RESIDUAL_ROOT": 0.03426724299788475
+          "HEALTHY": 0.8503414392471313,
+          "FILLING": 0.028275009244680405,
+          "CARIES": 0.03464943543076515,
+          "RCT_CROWN": 0.01601681299507618,
+          "CROWN": 0.017883330583572388,
+          "ROOT_CANAL_TREATMENT": 0.01838088035583496,
+          "RESIDUAL_ROOT": 0.03445303067564964
         }
       },
       "pathology_evidence": [],
@@ -231,15 +253,15 @@
       "tooth_detection": {
         "instance_id": 25,
         "bbox_xyxy": [
-          1135.02,
-          541.54,
-          1241.77,
-          833.19
+          1138.01,
+          547.5,
+          1238.96,
+          829.49
         ],
-        "confidence": 0.9940405488014221
+        "confidence": 0.9949117302894592
       },
       "fdi": "14",
-      "fdi_confidence": 0.997287392616272,
+      "fdi_confidence": 0.9992708563804626,
       "raw_fdi": "14",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -247,25 +269,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9483345746994019,
+        "confidence": 0.9771122336387634,
         "probabilities": {
-          "HEALTHY": 0.9483345746994019,
-          "NON_HEALTHY": 0.05166541412472725
+          "HEALTHY": 0.9771122336387634,
+          "NON_HEALTHY": 0.022887755185365677
         },
-        "non_healthy_probability": 0.05166541412472725,
+        "non_healthy_probability": 0.022887755185365677,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.5686899423599243,
+        "confidence": 0.5804381966590881,
         "probabilities": {
-          "HEALTHY": 0.5686899423599243,
-          "FILLING": 0.011716078035533428,
-          "CARIES": 0.2769024670124054,
-          "RCT_CROWN": 0.021800363436341286,
-          "CROWN": 0.03192717954516411,
-          "ROOT_CANAL_TREATMENT": 0.03699084743857384,
-          "RESIDUAL_ROOT": 0.0519731231033802
+          "HEALTHY": 0.5804381966590881,
+          "FILLING": 0.008820013143122196,
+          "CARIES": 0.26833590865135193,
+          "RCT_CROWN": 0.018298253417015076,
+          "CROWN": 0.028226302936673164,
+          "ROOT_CANAL_TREATMENT": 0.03561631217598915,
+          "RESIDUAL_ROOT": 0.06026497110724449
         }
       },
       "pathology_evidence": [],
@@ -285,17 +307,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 18,
+        "instance_id": 16,
         "bbox_xyxy": [
-          1051.94,
-          544.95,
-          1148.84,
-          836.22
+          1053.65,
+          548.28,
+          1146.56,
+          833.35
         ],
-        "confidence": 0.9968721270561218
+        "confidence": 0.9975026249885559
       },
       "fdi": "15",
-      "fdi_confidence": 0.9733603000640869,
+      "fdi_confidence": 0.9242286682128906,
       "raw_fdi": "15",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -303,48 +325,48 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9833003282546997,
+        "confidence": 0.9827930927276611,
         "probabilities": {
-          "HEALTHY": 0.9833003282546997,
-          "NON_HEALTHY": 0.016699692234396935
+          "HEALTHY": 0.9827930927276611,
+          "NON_HEALTHY": 0.017206883057951927
         },
-        "non_healthy_probability": 0.016699692234396935,
+        "non_healthy_probability": 0.017206883057951927,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.8076701164245605,
+        "confidence": 0.701720118522644,
         "probabilities": {
-          "HEALTHY": 0.11098746210336685,
-          "FILLING": 0.02282942458987236,
-          "CARIES": 0.8076701164245605,
-          "RCT_CROWN": 0.007617264520376921,
-          "CROWN": 0.011026820167899132,
-          "ROOT_CANAL_TREATMENT": 0.019657354801893234,
-          "RESIDUAL_ROOT": 0.020211562514305115
+          "HEALTHY": 0.21613182127475739,
+          "FILLING": 0.01378441322594881,
+          "CARIES": 0.701720118522644,
+          "RCT_CROWN": 0.009644213132560253,
+          "CROWN": 0.013983192853629589,
+          "ROOT_CANAL_TREATMENT": 0.021060427650809288,
+          "RESIDUAL_ROOT": 0.023675821721553802
         }
       },
       "pathology_evidence": [
         {
           "type": "CARIES",
-          "confidence": 0.9959113597869873,
+          "confidence": 0.9958913326263428,
           "threshold": 0.7,
           "bbox_xyxy": [
-            1050.69,
-            733.94,
-            1113.76,
-            817.18
+            1050.67,
+            730.58,
+            1113.59,
+            818.47
           ],
           "associated_fdi": "15",
-          "association_score": 4.2331
+          "association_score": 4.1804
         }
       ],
       "restorations": [],
       "deep_caries": {
         "ran": true,
         "prediction": "DEEP_CARIES",
-        "confidence": 0.5626848340034485,
-        "probability": 0.5626848340034485,
+        "confidence": 0.5850963592529297,
+        "probability": 0.5850963592529297,
         "threshold": 0.65,
         "upgraded": false
       },
@@ -356,17 +378,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 3,
+        "instance_id": 0,
         "bbox_xyxy": [
-          943.95,
-          549.66,
-          1059.32,
-          836.97
+          946.56,
+          547.09,
+          1057.65,
+          832.84
         ],
-        "confidence": 0.9987103939056396
+        "confidence": 0.9991227984428406
       },
       "fdi": "16",
-      "fdi_confidence": 0.9902378916740417,
+      "fdi_confidence": 0.9895665645599365,
       "raw_fdi": "16",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -374,83 +396,83 @@
       "status_gate": {
         "prediction": "NON_HEALTHY",
         "effective_prediction": "NON_HEALTHY",
-        "confidence": 0.639786958694458,
+        "confidence": 0.5903282761573792,
         "probabilities": {
-          "HEALTHY": 0.360213041305542,
-          "NON_HEALTHY": 0.639786958694458
+          "HEALTHY": 0.40967172384262085,
+          "NON_HEALTHY": 0.5903282761573792
         },
-        "non_healthy_probability": 0.639786958694458,
+        "non_healthy_probability": 0.5903282761573792,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.8912614583969116,
+        "confidence": 0.8568145036697388,
         "probabilities": {
-          "HEALTHY": 0.0023202993907034397,
-          "FILLING": 0.0602186918258667,
-          "CARIES": 0.8912614583969116,
-          "RCT_CROWN": 0.007925093173980713,
-          "CROWN": 0.007810452487319708,
-          "ROOT_CANAL_TREATMENT": 0.014385060407221317,
-          "RESIDUAL_ROOT": 0.016079006716609
+          "HEALTHY": 0.002437918446958065,
+          "FILLING": 0.08160514384508133,
+          "CARIES": 0.8568145036697388,
+          "RCT_CROWN": 0.010692646726965904,
+          "CROWN": 0.011231807991862297,
+          "ROOT_CANAL_TREATMENT": 0.017484407871961594,
+          "RESIDUAL_ROOT": 0.019733591005206108
         }
       },
       "pathology_evidence": [
         {
           "type": "CARIES",
-          "confidence": 0.9987277388572693,
+          "confidence": 0.99797123670578,
           "threshold": 0.7,
           "bbox_xyxy": [
-            942.07,
-            726.14,
-            1004.02,
-            815.26
+            942.97,
+            725.79,
+            1004.12,
+            814.85
           ],
           "associated_fdi": "16",
-          "association_score": 4.1637
+          "association_score": 4.0741
         },
         {
           "type": "CARIES",
-          "confidence": 0.9801552891731262,
+          "confidence": 0.9794774055480957,
           "threshold": 0.7,
           "bbox_xyxy": [
-            1005.94,
-            736.74,
-            1064.21,
-            812.46
+            1008.87,
+            738.27,
+            1068.61,
+            810.28
           ],
           "associated_fdi": "16",
-          "association_score": 3.9185
+          "association_score": 3.5906
         }
       ],
       "restorations": [
         {
           "type": "FILLING",
           "bbox_xyxy": [
-            983.09,
-            782.59,
-            1042.0,
-            816.83
+            983.16,
+            784.63,
+            1042.67,
+            816.64
           ],
           "detector_type": "FILLING",
-          "detector_confidence": 0.9446700811386108,
+          "detector_confidence": 0.81772381067276,
           "detector_threshold": 0.5,
           "classifier_type": "FILLING",
-          "classifier_confidence": 0.9859791398048401,
+          "classifier_confidence": 0.981278657913208,
           "classifier_probabilities": {
-            "FILLING": 0.9859791398048401,
-            "IMPLANT": 0.014020867645740509
+            "FILLING": 0.981278657913208,
+            "IMPLANT": 0.018721362575888634
           },
           "type_agreement": true,
           "associated_fdi": "16",
-          "association_score": 4.0353
+          "association_score": 4.0293
         }
       ],
       "deep_caries": {
         "ran": true,
         "prediction": "DEEP_CARIES",
-        "confidence": 0.8762026429176331,
-        "probability": 0.8762026429176331,
+        "confidence": 0.8271058201789856,
+        "probability": 0.8271058201789856,
         "threshold": 0.65,
         "upgraded": true
       },
@@ -463,17 +485,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 13,
+        "instance_id": 17,
         "bbox_xyxy": [
-          821.27,
-          554.63,
-          952.41,
-          818.32
+          822.13,
+          543.11,
+          951.13,
+          814.38
         ],
-        "confidence": 0.9976475834846497
+        "confidence": 0.9974084496498108
       },
       "fdi": "17",
-      "fdi_confidence": 0.9929330348968506,
+      "fdi_confidence": 0.9904062151908875,
       "raw_fdi": "17",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -481,25 +503,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9951770305633545,
+        "confidence": 0.9966927766799927,
         "probabilities": {
-          "HEALTHY": 0.9951770305633545,
-          "NON_HEALTHY": 0.004822928458452225
+          "HEALTHY": 0.9966927766799927,
+          "NON_HEALTHY": 0.0033071907237172127
         },
-        "non_healthy_probability": 0.004822928458452225,
+        "non_healthy_probability": 0.0033071907237172127,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.8805218935012817,
+        "confidence": 0.8988420367240906,
         "probabilities": {
-          "HEALTHY": 0.8805218935012817,
-          "FILLING": 0.009706195443868637,
-          "CARIES": 0.033183012157678604,
-          "RCT_CROWN": 0.0090674152597785,
-          "CROWN": 0.013341614976525307,
-          "ROOT_CANAL_TREATMENT": 0.01973767578601837,
-          "RESIDUAL_ROOT": 0.034442055970430374
+          "HEALTHY": 0.8988420367240906,
+          "FILLING": 0.007439576089382172,
+          "CARIES": 0.023806938901543617,
+          "RCT_CROWN": 0.007473011966794729,
+          "CROWN": 0.011928612366318703,
+          "ROOT_CANAL_TREATMENT": 0.01788104511797428,
+          "RESIDUAL_ROOT": 0.03262874111533165
         }
       },
       "pathology_evidence": [],
@@ -519,17 +541,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 8,
+        "instance_id": 9,
         "bbox_xyxy": [
-          751.88,
-          484.26,
-          869.23,
-          719.46
+          750.71,
+          488.0,
+          866.68,
+          718.55
         ],
-        "confidence": 0.9981118440628052
+        "confidence": 0.9984291195869446
       },
       "fdi": "18",
-      "fdi_confidence": 0.9849724173545837,
+      "fdi_confidence": 0.9750757813453674,
       "raw_fdi": "18",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -537,25 +559,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9970965385437012,
+        "confidence": 0.9964615702629089,
         "probabilities": {
-          "HEALTHY": 0.9970965385437012,
-          "NON_HEALTHY": 0.0029035015031695366
+          "HEALTHY": 0.9964615702629089,
+          "NON_HEALTHY": 0.003538484452292323
         },
-        "non_healthy_probability": 0.0029035015031695366,
+        "non_healthy_probability": 0.003538484452292323,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.8651683330535889,
+        "confidence": 0.8647093176841736,
         "probabilities": {
-          "HEALTHY": 0.8651683330535889,
-          "FILLING": 0.009082082659006119,
-          "CARIES": 0.032094549387693405,
-          "RCT_CROWN": 0.01160517055541277,
-          "CROWN": 0.013518841937184334,
-          "ROOT_CANAL_TREATMENT": 0.020257646217942238,
-          "RESIDUAL_ROOT": 0.04827336594462395
+          "HEALTHY": 0.8647093176841736,
+          "FILLING": 0.00752560980618,
+          "CARIES": 0.029464391991496086,
+          "RCT_CROWN": 0.012051700614392757,
+          "CROWN": 0.013021355494856834,
+          "ROOT_CANAL_TREATMENT": 0.019690630957484245,
+          "RESIDUAL_ROOT": 0.053537216037511826
         }
       },
       "pathology_evidence": [],
@@ -575,17 +597,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 17,
+        "instance_id": 14,
         "bbox_xyxy": [
-          1482.99,
-          552.61,
-          1582.82,
-          824.78
+          1482.47,
+          557.97,
+          1577.98,
+          821.37
         ],
-        "confidence": 0.9969121217727661
+        "confidence": 0.9977999329566956
       },
       "fdi": "21",
-      "fdi_confidence": 0.9997979998588562,
+      "fdi_confidence": 0.9998631477355957,
       "raw_fdi": "21",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -593,25 +615,25 @@
       "status_gate": {
         "prediction": "NON_HEALTHY",
         "effective_prediction": "NON_HEALTHY",
-        "confidence": 0.9971879124641418,
+        "confidence": 0.9972531199455261,
         "probabilities": {
-          "HEALTHY": 0.002812072401866317,
-          "NON_HEALTHY": 0.9971879124641418
+          "HEALTHY": 0.002746884012594819,
+          "NON_HEALTHY": 0.9972531199455261
         },
-        "non_healthy_probability": 0.9971879124641418,
+        "non_healthy_probability": 0.9972531199455261,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "FILLING",
-        "confidence": 0.9643597602844238,
+        "confidence": 0.9730306267738342,
         "probabilities": {
-          "HEALTHY": 0.00034514861181378365,
-          "FILLING": 0.9643597602844238,
-          "CARIES": 0.007113984785974026,
-          "RCT_CROWN": 0.004924093838781118,
-          "CROWN": 0.00447166757658124,
-          "ROOT_CANAL_TREATMENT": 0.0065285395830869675,
-          "RESIDUAL_ROOT": 0.012256886810064316
+          "HEALTHY": 0.00017477473011240363,
+          "FILLING": 0.9730306267738342,
+          "CARIES": 0.0052024442702531815,
+          "RCT_CROWN": 0.003441185923293233,
+          "CROWN": 0.0027686997782438993,
+          "ROOT_CANAL_TREATMENT": 0.004498175345361233,
+          "RESIDUAL_ROOT": 0.010884115472435951
         }
       },
       "pathology_evidence": [],
@@ -619,44 +641,23 @@
         {
           "type": "FILLING",
           "bbox_xyxy": [
-            1481.44,
-            746.04,
-            1510.96,
-            792.94
+            1481.77,
+            746.0,
+            1510.42,
+            793.62
           ],
           "detector_type": "FILLING",
-          "detector_confidence": 0.9868022799491882,
+          "detector_confidence": 0.9886653423309326,
           "detector_threshold": 0.5,
           "classifier_type": "FILLING",
-          "classifier_confidence": 0.922477662563324,
+          "classifier_confidence": 0.9344037771224976,
           "classifier_probabilities": {
-            "FILLING": 0.922477662563324,
-            "IMPLANT": 0.07752236723899841
+            "FILLING": 0.9344037771224976,
+            "IMPLANT": 0.06559618562459946
           },
           "type_agreement": true,
           "associated_fdi": "21",
-          "association_score": 3.8623
-        },
-        {
-          "type": "FILLING",
-          "bbox_xyxy": [
-            1467.79,
-            747.15,
-            1500.06,
-            793.14
-          ],
-          "detector_type": "FILLING",
-          "detector_confidence": 0.5677388906478882,
-          "detector_threshold": 0.5,
-          "classifier_type": "FILLING",
-          "classifier_confidence": 0.95695561170578,
-          "classifier_probabilities": {
-            "FILLING": 0.95695561170578,
-            "IMPLANT": 0.04304433986544609
-          },
-          "type_agreement": true,
-          "associated_fdi": "21",
-          "association_score": 2.5613
+          "association_score": 3.9547
         }
       ],
       "deep_caries": {
@@ -676,15 +677,15 @@
       "tooth_detection": {
         "instance_id": 31,
         "bbox_xyxy": [
-          1581.0,
-          566.1,
-          1659.84,
-          823.52
+          1581.38,
+          562.43,
+          1659.62,
+          822.84
         ],
-        "confidence": 0.9867973327636719
+        "confidence": 0.9879875183105469
       },
       "fdi": "22",
-      "fdi_confidence": 0.9959442019462585,
+      "fdi_confidence": 0.9941478967666626,
       "raw_fdi": "22",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -692,48 +693,48 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.961488664150238,
+        "confidence": 0.9619864225387573,
         "probabilities": {
-          "HEALTHY": 0.961488664150238,
-          "NON_HEALTHY": 0.03851135075092316
+          "HEALTHY": 0.9619864225387573,
+          "NON_HEALTHY": 0.03801355138421059
         },
-        "non_healthy_probability": 0.03851135075092316,
+        "non_healthy_probability": 0.03801355138421059,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.7179028391838074,
+        "confidence": 0.7101925611495972,
         "probabilities": {
-          "HEALTHY": 0.7179028391838074,
-          "FILLING": 0.03951061889529228,
-          "CARIES": 0.1089487075805664,
-          "RCT_CROWN": 0.018767789006233215,
-          "CROWN": 0.03786928206682205,
-          "ROOT_CANAL_TREATMENT": 0.030623404309153557,
-          "RESIDUAL_ROOT": 0.04637729376554489
+          "HEALTHY": 0.7101925611495972,
+          "FILLING": 0.05035408213734627,
+          "CARIES": 0.10219281166791916,
+          "RCT_CROWN": 0.019193492829799652,
+          "CROWN": 0.03686895966529846,
+          "ROOT_CANAL_TREATMENT": 0.033715832978487015,
+          "RESIDUAL_ROOT": 0.047482289373874664
         }
       },
       "pathology_evidence": [
         {
           "type": "CARIES",
-          "confidence": 0.9245651960372925,
+          "confidence": 0.7849448323249817,
           "threshold": 0.7,
           "bbox_xyxy": [
-            1628.29,
-            737.99,
-            1662.17,
-            795.31
+            1628.34,
+            739.8,
+            1661.36,
+            795.62
           ],
           "associated_fdi": "22",
-          "association_score": 3.9002
+          "association_score": 3.9399
         }
       ],
       "restorations": [],
       "deep_caries": {
         "ran": true,
         "prediction": "CARIES",
-        "confidence": 0.5408307909965515,
-        "probability": 0.4591692388057709,
+        "confidence": 0.6455276012420654,
+        "probability": 0.35447239875793457,
         "threshold": 0.65,
         "upgraded": false
       },
@@ -749,15 +750,15 @@
       "tooth_detection": {
         "instance_id": 30,
         "bbox_xyxy": [
-          1655.1,
-          518.87,
-          1763.36,
-          828.72
+          1656.0,
+          520.38,
+          1761.49,
+          829.03
         ],
-        "confidence": 0.989608108997345
+        "confidence": 0.9886932969093323
       },
       "fdi": "23",
-      "fdi_confidence": 0.9972081780433655,
+      "fdi_confidence": 0.9975515007972717,
       "raw_fdi": "23",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -765,25 +766,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9902259707450867,
+        "confidence": 0.9919090867042542,
         "probabilities": {
-          "HEALTHY": 0.9902259707450867,
-          "NON_HEALTHY": 0.009774069301784039
+          "HEALTHY": 0.9919090867042542,
+          "NON_HEALTHY": 0.008090931922197342
         },
-        "non_healthy_probability": 0.009774069301784039,
+        "non_healthy_probability": 0.008090931922197342,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.45974597334861755,
+        "confidence": 0.4567784368991852,
         "probabilities": {
-          "HEALTHY": 0.45974597334861755,
-          "FILLING": 0.01192533504217863,
-          "CARIES": 0.38729456067085266,
-          "RCT_CROWN": 0.026413261890411377,
-          "CROWN": 0.026086971163749695,
-          "ROOT_CANAL_TREATMENT": 0.04284382238984108,
-          "RESIDUAL_ROOT": 0.045690037310123444
+          "HEALTHY": 0.4567784368991852,
+          "FILLING": 0.012466304004192352,
+          "CARIES": 0.40056106448173523,
+          "RCT_CROWN": 0.02280247211456299,
+          "CROWN": 0.02240796573460102,
+          "ROOT_CANAL_TREATMENT": 0.04248948395252228,
+          "RESIDUAL_ROOT": 0.04249434545636177
         }
       },
       "pathology_evidence": [],
@@ -803,17 +804,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 21,
+        "instance_id": 22,
         "bbox_xyxy": [
-          1727.94,
-          554.85,
-          1834.07,
-          839.87
+          1730.72,
+          556.68,
+          1832.17,
+          840.73
         ],
-        "confidence": 0.995686411857605
+        "confidence": 0.9960987567901611
       },
       "fdi": "24",
-      "fdi_confidence": 0.9957602620124817,
+      "fdi_confidence": 0.9977675676345825,
       "raw_fdi": "24",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -821,48 +822,34 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9714338183403015,
+        "confidence": 0.9584016799926758,
         "probabilities": {
-          "HEALTHY": 0.9714338183403015,
-          "NON_HEALTHY": 0.028566161170601845
+          "HEALTHY": 0.9584016799926758,
+          "NON_HEALTHY": 0.04159833490848541
         },
-        "non_healthy_probability": 0.028566161170601845,
+        "non_healthy_probability": 0.04159833490848541,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.9443919658660889,
+        "confidence": 0.9413681626319885,
         "probabilities": {
-          "HEALTHY": 0.010165386833250523,
-          "FILLING": 0.007254278752952814,
-          "CARIES": 0.9443919658660889,
-          "RCT_CROWN": 0.005305222701281309,
-          "CROWN": 0.00694240303710103,
-          "ROOT_CANAL_TREATMENT": 0.014348412863910198,
-          "RESIDUAL_ROOT": 0.01159236952662468
+          "HEALTHY": 0.01058686152100563,
+          "FILLING": 0.00752221280708909,
+          "CARIES": 0.9413681626319885,
+          "RCT_CROWN": 0.005724248476326466,
+          "CROWN": 0.007789522875100374,
+          "ROOT_CANAL_TREATMENT": 0.01407797820866108,
+          "RESIDUAL_ROOT": 0.012931042350828648
         }
       },
-      "pathology_evidence": [
-        {
-          "type": "CARIES",
-          "confidence": 0.8032559156417847,
-          "threshold": 0.7,
-          "bbox_xyxy": [
-            1793.3,
-            768.66,
-            1831.03,
-            816.34
-          ],
-          "associated_fdi": "24",
-          "association_score": 4.0367
-        }
-      ],
+      "pathology_evidence": [],
       "restorations": [],
       "deep_caries": {
         "ran": true,
         "prediction": "CARIES",
-        "confidence": 0.7264247536659241,
-        "probability": 0.2735752463340759,
+        "confidence": 0.7565644383430481,
+        "probability": 0.24343551695346832,
         "threshold": 0.65,
         "upgraded": false
       },
@@ -874,17 +861,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 14,
+        "instance_id": 10,
         "bbox_xyxy": [
-          1820.07,
-          576.4,
-          1912.93,
-          842.46
+          1820.67,
+          576.05,
+          1911.39,
+          841.15
         ],
-        "confidence": 0.9974804520606995
+        "confidence": 0.9983830451965332
       },
       "fdi": "25",
-      "fdi_confidence": 0.9787315130233765,
+      "fdi_confidence": 0.9889681935310364,
       "raw_fdi": "25",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -892,25 +879,25 @@
       "status_gate": {
         "prediction": "NON_HEALTHY",
         "effective_prediction": "NON_HEALTHY",
-        "confidence": 0.9948793649673462,
+        "confidence": 0.9925547242164612,
         "probabilities": {
-          "HEALTHY": 0.005120642948895693,
-          "NON_HEALTHY": 0.9948793649673462
+          "HEALTHY": 0.007445271126925945,
+          "NON_HEALTHY": 0.9925547242164612
         },
-        "non_healthy_probability": 0.9948793649673462,
+        "non_healthy_probability": 0.9925547242164612,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.9616211652755737,
+        "confidence": 0.9620988368988037,
         "probabilities": {
-          "HEALTHY": 0.0015308570582419634,
-          "FILLING": 0.012457155622541904,
-          "CARIES": 0.9616211652755737,
-          "RCT_CROWN": 0.004220125265419483,
-          "CROWN": 0.002918785670772195,
-          "ROOT_CANAL_TREATMENT": 0.008637838065624237,
-          "RESIDUAL_ROOT": 0.008614055812358856
+          "HEALTHY": 0.0012806591112166643,
+          "FILLING": 0.011837662197649479,
+          "CARIES": 0.9620988368988037,
+          "RCT_CROWN": 0.004106348380446434,
+          "CROWN": 0.0031446320936083794,
+          "ROOT_CANAL_TREATMENT": 0.008232583291828632,
+          "RESIDUAL_ROOT": 0.009299270808696747
         }
       },
       "pathology_evidence": [],
@@ -918,8 +905,8 @@
       "deep_caries": {
         "ran": true,
         "prediction": "CARIES",
-        "confidence": 0.6929073929786682,
-        "probability": 0.3070926070213318,
+        "confidence": 0.658654510974884,
+        "probability": 0.34134551882743835,
         "threshold": 0.65,
         "upgraded": false
       },
@@ -931,17 +918,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 16,
+        "instance_id": 18,
         "bbox_xyxy": [
-          1905.49,
-          566.5,
-          2046.66,
-          847.53
+          1910.71,
+          574.02,
+          2040.12,
+          839.24
         ],
-        "confidence": 0.9971254467964172
+        "confidence": 0.9973554611206055
       },
       "fdi": "26",
-      "fdi_confidence": 0.9990405440330505,
+      "fdi_confidence": 0.9994939565658569,
       "raw_fdi": "26",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -949,25 +936,25 @@
       "status_gate": {
         "prediction": "NON_HEALTHY",
         "effective_prediction": "NON_HEALTHY",
-        "confidence": 0.9991374015808105,
+        "confidence": 0.9990921020507812,
         "probabilities": {
-          "HEALTHY": 0.0008625546470284462,
-          "NON_HEALTHY": 0.9991374015808105
+          "HEALTHY": 0.000907949754036963,
+          "NON_HEALTHY": 0.9990921020507812
         },
-        "non_healthy_probability": 0.9991374015808105,
+        "non_healthy_probability": 0.9990921020507812,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CROWN",
-        "confidence": 0.7146666646003723,
+        "confidence": 0.6017196774482727,
         "probabilities": {
-          "HEALTHY": 0.013563914224505424,
-          "FILLING": 0.05446266382932663,
-          "CARIES": 0.16250115633010864,
-          "RCT_CROWN": 0.005591637920588255,
-          "CROWN": 0.7146666646003723,
-          "ROOT_CANAL_TREATMENT": 0.022922934964299202,
-          "RESIDUAL_ROOT": 0.026290958747267723
+          "HEALTHY": 0.029331332072615623,
+          "FILLING": 0.07207072526216507,
+          "CARIES": 0.21916736662387848,
+          "RCT_CROWN": 0.010057230480015278,
+          "CROWN": 0.6017196774482727,
+          "ROOT_CANAL_TREATMENT": 0.03711637109518051,
+          "RESIDUAL_ROOT": 0.03053734079003334
         }
       },
       "pathology_evidence": [],
@@ -975,23 +962,23 @@
         {
           "type": "FILLING",
           "bbox_xyxy": [
-            1946.94,
-            755.88,
-            2034.61,
-            834.41
+            1947.18,
+            755.68,
+            2033.69,
+            834.99
           ],
           "detector_type": "FILLING",
-          "detector_confidence": 0.9974135756492615,
+          "detector_confidence": 0.9973005652427673,
           "detector_threshold": 0.5,
           "classifier_type": "FILLING",
-          "classifier_confidence": 0.9901562929153442,
+          "classifier_confidence": 0.9930642247200012,
           "classifier_probabilities": {
-            "FILLING": 0.9901562929153442,
-            "IMPLANT": 0.00984368659555912
+            "FILLING": 0.9930642247200012,
+            "IMPLANT": 0.006935773883014917
           },
           "type_agreement": true,
           "associated_fdi": "26",
-          "association_score": 4.276
+          "association_score": 4.3236
         }
       ],
       "deep_caries": {
@@ -1010,17 +997,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 26,
+        "instance_id": 24,
         "bbox_xyxy": [
-          1981.79,
-          560.34,
-          2159.51,
-          797.09
+          1989.05,
+          566.2,
+          2156.77,
+          795.94
         ],
-        "confidence": 0.9937965869903564
+        "confidence": 0.9950809478759766
       },
       "fdi": "27",
-      "fdi_confidence": 0.998157799243927,
+      "fdi_confidence": 0.9994237422943115,
       "raw_fdi": "27",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1028,25 +1015,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9670065641403198,
+        "confidence": 0.9404404163360596,
         "probabilities": {
-          "HEALTHY": 0.9670065641403198,
-          "NON_HEALTHY": 0.03299348056316376
+          "HEALTHY": 0.9404404163360596,
+          "NON_HEALTHY": 0.05955957621335983
         },
-        "non_healthy_probability": 0.03299348056316376,
+        "non_healthy_probability": 0.05955957621335983,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.5207734107971191,
+        "confidence": 0.42314308881759644,
         "probabilities": {
-          "HEALTHY": 0.09163282811641693,
-          "FILLING": 0.2613736689090729,
-          "CARIES": 0.5207734107971191,
-          "RCT_CROWN": 0.01542570348829031,
-          "CROWN": 0.05612151324748993,
-          "ROOT_CANAL_TREATMENT": 0.019442111253738403,
-          "RESIDUAL_ROOT": 0.035230740904808044
+          "HEALTHY": 0.1533106565475464,
+          "FILLING": 0.2692141532897949,
+          "CARIES": 0.42314308881759644,
+          "RCT_CROWN": 0.018741901963949203,
+          "CROWN": 0.08094294369220734,
+          "ROOT_CANAL_TREATMENT": 0.019714821130037308,
+          "RESIDUAL_ROOT": 0.03493248671293259
         }
       },
       "pathology_evidence": [],
@@ -1054,8 +1041,8 @@
       "deep_caries": {
         "ran": true,
         "prediction": "DEEP_CARIES",
-        "confidence": 0.7749484181404114,
-        "probability": 0.7749484181404114,
+        "confidence": 0.7907395362854004,
+        "probability": 0.7907395362854004,
         "threshold": 0.65,
         "upgraded": true
       },
@@ -1067,17 +1054,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 6,
+        "instance_id": 3,
         "bbox_xyxy": [
-          2080.14,
-          470.49,
-          2252.06,
-          679.83
+          2087.89,
+          473.9,
+          2243.18,
+          679.46
         ],
-        "confidence": 0.9986086487770081
+        "confidence": 0.9988747239112854
       },
       "fdi": "28",
-      "fdi_confidence": 0.9967194199562073,
+      "fdi_confidence": 0.9978260397911072,
       "raw_fdi": "28",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1085,25 +1072,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9974150657653809,
+        "confidence": 0.9968934059143066,
         "probabilities": {
-          "HEALTHY": 0.9974150657653809,
-          "NON_HEALTHY": 0.0025848867371678352
+          "HEALTHY": 0.9968934059143066,
+          "NON_HEALTHY": 0.0031065396033227444
         },
-        "non_healthy_probability": 0.0025848867371678352,
+        "non_healthy_probability": 0.0031065396033227444,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.7938905358314514,
+        "confidence": 0.8165632486343384,
         "probabilities": {
-          "HEALTHY": 0.7938905358314514,
-          "FILLING": 0.009855363517999649,
-          "CARIES": 0.08560880273580551,
-          "RCT_CROWN": 0.015147455036640167,
-          "CROWN": 0.01819654554128647,
-          "ROOT_CANAL_TREATMENT": 0.021192381158471107,
-          "RESIDUAL_ROOT": 0.05610894784331322
+          "HEALTHY": 0.8165632486343384,
+          "FILLING": 0.006567131727933884,
+          "CARIES": 0.05432770028710365,
+          "RCT_CROWN": 0.01400192640721798,
+          "CROWN": 0.016168661415576935,
+          "ROOT_CANAL_TREATMENT": 0.01883591152727604,
+          "RESIDUAL_ROOT": 0.07353529334068298
         }
       },
       "pathology_evidence": [],
@@ -1123,17 +1110,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 5,
+        "instance_id": 7,
         "bbox_xyxy": [
-          1529.06,
-          855.97,
-          1581.9,
-          1097.67
+          1528.38,
+          855.59,
+          1581.59,
+          1098.17
         ],
-        "confidence": 0.9986423850059509
+        "confidence": 0.9985020160675049
       },
       "fdi": "31",
-      "fdi_confidence": 0.6252468824386597,
+      "fdi_confidence": 0.5236932039260864,
       "raw_fdi": "31",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1141,25 +1128,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9914645552635193,
+        "confidence": 0.9894475936889648,
         "probabilities": {
-          "HEALTHY": 0.9914645552635193,
-          "NON_HEALTHY": 0.008535416796803474
+          "HEALTHY": 0.9894475936889648,
+          "NON_HEALTHY": 0.01055242121219635
         },
-        "non_healthy_probability": 0.008535416796803474,
+        "non_healthy_probability": 0.01055242121219635,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.8825363516807556,
+        "confidence": 0.8895001411437988,
         "probabilities": {
-          "HEALTHY": 0.8825363516807556,
-          "FILLING": 0.0074515617452561855,
-          "CARIES": 0.012695204466581345,
-          "RCT_CROWN": 0.011778704822063446,
-          "CROWN": 0.015250591561198235,
-          "ROOT_CANAL_TREATMENT": 0.017276646569371223,
-          "RESIDUAL_ROOT": 0.053010981529951096
+          "HEALTHY": 0.8895001411437988,
+          "FILLING": 0.007590548601001501,
+          "CARIES": 0.011513401754200459,
+          "RCT_CROWN": 0.010425658896565437,
+          "CROWN": 0.014623269438743591,
+          "ROOT_CANAL_TREATMENT": 0.01614134944975376,
+          "RESIDUAL_ROOT": 0.050205688923597336
         }
       },
       "pathology_evidence": [],
@@ -1181,17 +1168,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 11,
+        "instance_id": 5,
         "bbox_xyxy": [
-          1397.29,
-          852.61,
-          1463.88,
-          1118.69
+          1397.6,
+          850.95,
+          1462.73,
+          1116.4
         ],
-        "confidence": 0.9978861212730408
+        "confidence": 0.998616099357605
       },
       "fdi": "32",
-      "fdi_confidence": 0.9820026159286499,
+      "fdi_confidence": 0.9699119925498962,
       "raw_fdi": "32",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1199,25 +1186,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9933652281761169,
+        "confidence": 0.9938994646072388,
         "probabilities": {
-          "HEALTHY": 0.9933652281761169,
-          "NON_HEALTHY": 0.006634780205786228
+          "HEALTHY": 0.9938994646072388,
+          "NON_HEALTHY": 0.006100536789745092
         },
-        "non_healthy_probability": 0.006634780205786228,
+        "non_healthy_probability": 0.006100536789745092,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.8384972214698792,
+        "confidence": 0.8513720631599426,
         "probabilities": {
-          "HEALTHY": 0.8384972214698792,
-          "FILLING": 0.00595572404563427,
-          "CARIES": 0.016692543402314186,
-          "RCT_CROWN": 0.014613613486289978,
-          "CROWN": 0.028913209214806557,
-          "ROOT_CANAL_TREATMENT": 0.04289950057864189,
-          "RESIDUAL_ROOT": 0.052428215742111206
+          "HEALTHY": 0.8513720631599426,
+          "FILLING": 0.004540113732218742,
+          "CARIES": 0.012317045591771603,
+          "RCT_CROWN": 0.014615021646022797,
+          "CROWN": 0.02621440216898918,
+          "ROOT_CANAL_TREATMENT": 0.0409403033554554,
+          "RESIDUAL_ROOT": 0.050001099705696106
         }
       },
       "pathology_evidence": [],
@@ -1239,15 +1226,15 @@
       "tooth_detection": {
         "instance_id": 28,
         "bbox_xyxy": [
-          1321.46,
-          852.9,
-          1400.28,
-          1165.59
+          1321.91,
+          852.91,
+          1399.63,
+          1165.24
         ],
-        "confidence": 0.9907200336456299
+        "confidence": 0.9918420314788818
       },
       "fdi": "33",
-      "fdi_confidence": 0.7449725270271301,
+      "fdi_confidence": 0.8493641018867493,
       "raw_fdi": "33",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1255,25 +1242,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9788293838500977,
+        "confidence": 0.9758917093276978,
         "probabilities": {
-          "HEALTHY": 0.9788293838500977,
-          "NON_HEALTHY": 0.02117059752345085
+          "HEALTHY": 0.9758917093276978,
+          "NON_HEALTHY": 0.02410830743610859
         },
-        "non_healthy_probability": 0.02117059752345085,
+        "non_healthy_probability": 0.02410830743610859,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.8262048363685608,
+        "confidence": 0.8519865274429321,
         "probabilities": {
-          "HEALTHY": 0.0643567219376564,
-          "FILLING": 0.017554257065057755,
-          "CARIES": 0.8262048363685608,
-          "RCT_CROWN": 0.0179404579102993,
-          "CROWN": 0.020869312807917595,
-          "ROOT_CANAL_TREATMENT": 0.027522679418325424,
-          "RESIDUAL_ROOT": 0.025551732629537582
+          "HEALTHY": 0.04885587468743324,
+          "FILLING": 0.015517543070018291,
+          "CARIES": 0.8519865274429321,
+          "RCT_CROWN": 0.01751226931810379,
+          "CROWN": 0.018084410578012466,
+          "ROOT_CANAL_TREATMENT": 0.024638330563902855,
+          "RESIDUAL_ROOT": 0.023404933512210846
         }
       },
       "pathology_evidence": [],
@@ -1281,8 +1268,8 @@
       "deep_caries": {
         "ran": true,
         "prediction": "CARIES",
-        "confidence": 0.731907308101654,
-        "probability": 0.26809263229370117,
+        "confidence": 0.7050573825836182,
+        "probability": 0.2949426472187042,
         "threshold": 0.65,
         "upgraded": false
       },
@@ -1294,17 +1281,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 23,
+        "instance_id": 21,
         "bbox_xyxy": [
-          1233.45,
-          856.85,
-          1320.21,
-          1147.33
+          1235.69,
+          860.28,
+          1319.88,
+          1145.74
         ],
-        "confidence": 0.9950821399688721
+        "confidence": 0.9968775510787964
       },
       "fdi": "34",
-      "fdi_confidence": 0.9276319146156311,
+      "fdi_confidence": 0.969257116317749,
       "raw_fdi": "34",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1312,56 +1299,55 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9712290167808533,
+        "confidence": 0.9685071110725403,
         "probabilities": {
-          "HEALTHY": 0.9712290167808533,
-          "NON_HEALTHY": 0.02877095341682434
+          "HEALTHY": 0.9685071110725403,
+          "NON_HEALTHY": 0.03149294853210449
         },
-        "non_healthy_probability": 0.02877095341682434,
+        "non_healthy_probability": 0.03149294853210449,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
-        "prediction": "CARIES",
-        "confidence": 0.478489488363266,
+        "prediction": "HEALTHY",
+        "confidence": 0.5430748462677002,
         "probabilities": {
-          "HEALTHY": 0.37056785821914673,
-          "FILLING": 0.015082272700965405,
-          "CARIES": 0.478489488363266,
-          "RCT_CROWN": 0.023017138242721558,
-          "CROWN": 0.026097238063812256,
-          "ROOT_CANAL_TREATMENT": 0.03779333457350731,
-          "RESIDUAL_ROOT": 0.04895265772938728
+          "HEALTHY": 0.5430748462677002,
+          "FILLING": 0.016936512663960457,
+          "CARIES": 0.28580212593078613,
+          "RCT_CROWN": 0.02739548683166504,
+          "CROWN": 0.025737851858139038,
+          "ROOT_CANAL_TREATMENT": 0.04077219218015671,
+          "RESIDUAL_ROOT": 0.06028098240494728
         }
       },
       "pathology_evidence": [],
       "restorations": [],
       "deep_caries": {
-        "ran": true,
-        "prediction": "CARIES",
-        "confidence": 0.5576481819152832,
-        "probability": 0.4423518180847168,
+        "ran": false,
+        "probability": null,
         "threshold": 0.65,
-        "upgraded": false
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
       },
       "final_findings": [
-        "CARIES"
+        "HEALTHY"
       ],
       "review_reasons": [],
       "review_required": false
     },
     {
       "tooth_detection": {
-        "instance_id": 9,
+        "instance_id": 11,
         "bbox_xyxy": [
-          1142.98,
-          862.91,
-          1247.97,
-          1132.27
+          1145.1,
+          862.2,
+          1245.73,
+          1130.49
         ],
-        "confidence": 0.9980100989341736
+        "confidence": 0.9982426166534424
       },
       "fdi": "35",
-      "fdi_confidence": 0.9818443655967712,
+      "fdi_confidence": 0.9748937487602234,
       "raw_fdi": "35",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1369,34 +1355,34 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9731916189193726,
+        "confidence": 0.9762236475944519,
         "probabilities": {
-          "HEALTHY": 0.9731916189193726,
-          "NON_HEALTHY": 0.026808377355337143
+          "HEALTHY": 0.9762236475944519,
+          "NON_HEALTHY": 0.023776302114129066
         },
-        "non_healthy_probability": 0.026808377355337143,
+        "non_healthy_probability": 0.023776302114129066,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.7545853853225708,
+        "confidence": 0.7410474419593811,
         "probabilities": {
-          "HEALTHY": 0.13850566744804382,
-          "FILLING": 0.015307139605283737,
-          "CARIES": 0.7545853853225708,
-          "RCT_CROWN": 0.01861726865172386,
-          "CROWN": 0.01726667582988739,
-          "ROOT_CANAL_TREATMENT": 0.03483656793832779,
-          "RESIDUAL_ROOT": 0.02088124305009842
+          "HEALTHY": 0.14313164353370667,
+          "FILLING": 0.017607925459742546,
+          "CARIES": 0.7410474419593811,
+          "RCT_CROWN": 0.019696444272994995,
+          "CROWN": 0.020511116832494736,
+          "ROOT_CANAL_TREATMENT": 0.03524389490485191,
+          "RESIDUAL_ROOT": 0.022761600092053413
         }
       },
       "pathology_evidence": [],
       "restorations": [],
       "deep_caries": {
         "ran": true,
-        "prediction": "DEEP_CARIES",
-        "confidence": 0.606256902217865,
-        "probability": 0.606256902217865,
+        "prediction": "CARIES",
+        "confidence": 0.6860563158988953,
+        "probability": 0.31394368410110474,
         "threshold": 0.65,
         "upgraded": false
       },
@@ -1408,17 +1394,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 1,
+        "instance_id": 2,
         "bbox_xyxy": [
-          957.41,
-          859.48,
-          1144.86,
-          1126.87
+          957.07,
+          858.92,
+          1143.0,
+          1119.59
         ],
-        "confidence": 0.998863697052002
+        "confidence": 0.9988992214202881
       },
       "fdi": "36",
-      "fdi_confidence": 0.995728075504303,
+      "fdi_confidence": 0.9887844324111938,
       "raw_fdi": "36",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1426,25 +1412,25 @@
       "status_gate": {
         "prediction": "NON_HEALTHY",
         "effective_prediction": "NON_HEALTHY",
-        "confidence": 0.9990561604499817,
+        "confidence": 0.9990373849868774,
         "probabilities": {
-          "HEALTHY": 0.0009438201668672264,
-          "NON_HEALTHY": 0.9990561604499817
+          "HEALTHY": 0.0009626600658521056,
+          "NON_HEALTHY": 0.9990373849868774
         },
-        "non_healthy_probability": 0.9990561604499817,
+        "non_healthy_probability": 0.9990373849868774,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "FILLING",
-        "confidence": 0.9547409415245056,
+        "confidence": 0.9522209167480469,
         "probabilities": {
-          "HEALTHY": 0.000643568520899862,
-          "FILLING": 0.9547409415245056,
-          "CARIES": 0.0031037696171551943,
-          "RCT_CROWN": 0.007875771261751652,
-          "CROWN": 0.007722073700278997,
-          "ROOT_CANAL_TREATMENT": 0.010806052014231682,
-          "RESIDUAL_ROOT": 0.015107642859220505
+          "HEALTHY": 0.00048322949442081153,
+          "FILLING": 0.9522209167480469,
+          "CARIES": 0.0031581795774400234,
+          "RCT_CROWN": 0.00762983551248908,
+          "CROWN": 0.007924759760499,
+          "ROOT_CANAL_TREATMENT": 0.01142412144690752,
+          "RESIDUAL_ROOT": 0.017159029841423035
         }
       },
       "pathology_evidence": [],
@@ -1452,23 +1438,23 @@
         {
           "type": "FILLING",
           "bbox_xyxy": [
-            1010.62,
-            867.55,
-            1124.86,
-            917.23
+            1011.4,
+            867.41,
+            1125.34,
+            916.65
           ],
           "detector_type": "FILLING",
-          "detector_confidence": 0.998137354850769,
+          "detector_confidence": 0.9981404542922974,
           "detector_threshold": 0.5,
           "classifier_type": "FILLING",
-          "classifier_confidence": 0.9920499920845032,
+          "classifier_confidence": 0.9876813888549805,
           "classifier_probabilities": {
-            "FILLING": 0.9920499920845032,
-            "IMPLANT": 0.00795002281665802
+            "FILLING": 0.9876813888549805,
+            "IMPLANT": 0.012318613938987255
           },
           "type_agreement": true,
           "associated_fdi": "36",
-          "association_score": 4.1483
+          "association_score": 4.1543
         }
       ],
       "deep_caries": {
@@ -1486,17 +1472,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 0,
+        "instance_id": 1,
         "bbox_xyxy": [
-          832.23,
-          845.15,
-          987.86,
-          1099.01
+          831.78,
+          841.92,
+          983.55,
+          1095.92
         ],
-        "confidence": 0.9991857409477234
+        "confidence": 0.9991090893745422
       },
       "fdi": "37",
-      "fdi_confidence": 0.9916155934333801,
+      "fdi_confidence": 0.8729084134101868,
       "raw_fdi": "37",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1504,25 +1490,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9781426191329956,
+        "confidence": 0.8913661241531372,
         "probabilities": {
-          "HEALTHY": 0.9781426191329956,
-          "NON_HEALTHY": 0.021857306361198425
+          "HEALTHY": 0.8913661241531372,
+          "NON_HEALTHY": 0.1086338609457016
         },
-        "non_healthy_probability": 0.021857306361198425,
+        "non_healthy_probability": 0.1086338609457016,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.9373661875724792,
+        "confidence": 0.9496550559997559,
         "probabilities": {
-          "HEALTHY": 0.013294381089508533,
-          "FILLING": 0.010142935439944267,
-          "CARIES": 0.9373661875724792,
-          "RCT_CROWN": 0.004192608408629894,
-          "CROWN": 0.014613071456551552,
-          "ROOT_CANAL_TREATMENT": 0.011592458002269268,
-          "RESIDUAL_ROOT": 0.008798398077487946
+          "HEALTHY": 0.00980188138782978,
+          "FILLING": 0.011183888651430607,
+          "CARIES": 0.9496550559997559,
+          "RCT_CROWN": 0.003346480894833803,
+          "CROWN": 0.010651293210685253,
+          "ROOT_CANAL_TREATMENT": 0.008220397867262363,
+          "RESIDUAL_ROOT": 0.007140976842492819
         }
       },
       "pathology_evidence": [],
@@ -1530,8 +1516,8 @@
       "deep_caries": {
         "ran": true,
         "prediction": "DEEP_CARIES",
-        "confidence": 0.9523653984069824,
-        "probability": 0.9523653984069824,
+        "confidence": 0.9225708246231079,
+        "probability": 0.9225708246231079,
         "threshold": 0.65,
         "upgraded": true
       },
@@ -1543,17 +1529,75 @@
     },
     {
       "tooth_detection": {
+        "instance_id": 8,
+        "bbox_xyxy": [
+          665.84,
+          850.21,
+          880.99,
+          1026.19
+        ],
+        "confidence": 0.998498797416687
+      },
+      "fdi": "38",
+      "fdi_confidence": 0.5376096963882446,
+      "raw_fdi": "38",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": true,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.9704241156578064,
+        "probabilities": {
+          "HEALTHY": 0.9704241156578064,
+          "NON_HEALTHY": 0.029575934633612633
+        },
+        "non_healthy_probability": 0.029575934633612633,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.6788027882575989,
+        "probabilities": {
+          "HEALTHY": 0.6788027882575989,
+          "FILLING": 0.009208941832184792,
+          "CARIES": 0.19447390735149384,
+          "RCT_CROWN": 0.012456136755645275,
+          "CROWN": 0.034124329686164856,
+          "ROOT_CANAL_TREATMENT": 0.03128746151924133,
+          "RESIDUAL_ROOT": 0.03964643180370331
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [
+        "FDI_LOW_CONFIDENCE_OR_UNRESOLVED"
+      ],
+      "review_required": true
+    },
+    {
+      "tooth_detection": {
         "instance_id": 19,
         "bbox_xyxy": [
-          1467.13,
-          849.1,
-          1522.11,
-          1113.41
+          1467.44,
+          850.81,
+          1522.37,
+          1111.82
         ],
-        "confidence": 0.9965627789497375
+        "confidence": 0.9969670176506042
       },
       "fdi": "41",
-      "fdi_confidence": 0.9985970854759216,
+      "fdi_confidence": 0.9977843165397644,
       "raw_fdi": "41",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1561,25 +1605,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9017547965049744,
+        "confidence": 0.9050767421722412,
         "probabilities": {
-          "HEALTHY": 0.9017547965049744,
-          "NON_HEALTHY": 0.09824518859386444
+          "HEALTHY": 0.9050767421722412,
+          "NON_HEALTHY": 0.09492319077253342
         },
-        "non_healthy_probability": 0.09824518859386444,
+        "non_healthy_probability": 0.09492319077253342,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.67425537109375,
+        "confidence": 0.6843137741088867,
         "probabilities": {
-          "HEALTHY": 0.67425537109375,
-          "FILLING": 0.018744919449090958,
-          "CARIES": 0.14152923226356506,
-          "RCT_CROWN": 0.014438441954553127,
-          "CROWN": 0.024282023310661316,
-          "ROOT_CANAL_TREATMENT": 0.0892750546336174,
-          "RESIDUAL_ROOT": 0.0374748669564724
+          "HEALTHY": 0.6843137741088867,
+          "FILLING": 0.019363516941666603,
+          "CARIES": 0.1359255015850067,
+          "RCT_CROWN": 0.013714408501982689,
+          "CROWN": 0.024459706619381905,
+          "ROOT_CANAL_TREATMENT": 0.08667729794979095,
+          "RESIDUAL_ROOT": 0.03554583340883255
         }
       },
       "pathology_evidence": [],
@@ -1601,41 +1645,41 @@
       "tooth_detection": {
         "instance_id": 15,
         "bbox_xyxy": [
-          1584.83,
-          852.85,
-          1645.26,
-          1118.41
+          1585.8,
+          852.06,
+          1644.86,
+          1120.23
         ],
-        "confidence": 0.9973738193511963
+        "confidence": 0.9975134134292603
       },
       "fdi": "42",
-      "fdi_confidence": 0.6525253653526306,
+      "fdi_confidence": 0.8693767786026001,
       "raw_fdi": "42",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
-      "fdi_review_required": true,
+      "fdi_review_required": false,
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9923964142799377,
+        "confidence": 0.9931318163871765,
         "probabilities": {
-          "HEALTHY": 0.9923964142799377,
-          "NON_HEALTHY": 0.007603588048368692
+          "HEALTHY": 0.9931318163871765,
+          "NON_HEALTHY": 0.006868176627904177
         },
-        "non_healthy_probability": 0.007603588048368692,
+        "non_healthy_probability": 0.006868176627904177,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.8389677405357361,
+        "confidence": 0.8364529013633728,
         "probabilities": {
-          "HEALTHY": 0.8389677405357361,
-          "FILLING": 0.006382504943758249,
-          "CARIES": 0.020597711205482483,
-          "RCT_CROWN": 0.01668705977499485,
-          "CROWN": 0.020152393728494644,
-          "ROOT_CANAL_TREATMENT": 0.02242666855454445,
-          "RESIDUAL_ROOT": 0.07478589564561844
+          "HEALTHY": 0.8364529013633728,
+          "FILLING": 0.006923960987478495,
+          "CARIES": 0.024677066132426262,
+          "RCT_CROWN": 0.01912907510995865,
+          "CROWN": 0.02038000151515007,
+          "ROOT_CANAL_TREATMENT": 0.029875660315155983,
+          "RESIDUAL_ROOT": 0.0625612735748291
         }
       },
       "pathology_evidence": [],
@@ -1650,24 +1694,22 @@
       "final_findings": [
         "HEALTHY"
       ],
-      "review_reasons": [
-        "FDI_LOW_CONFIDENCE_OR_UNRESOLVED"
-      ],
-      "review_required": true
+      "review_reasons": [],
+      "review_required": false
     },
     {
       "tooth_detection": {
         "instance_id": 27,
         "bbox_xyxy": [
-          1647.74,
-          848.91,
-          1723.23,
-          1169.48
+          1649.41,
+          852.05,
+          1720.9,
+          1161.26
         ],
-        "confidence": 0.9937900900840759
+        "confidence": 0.9942541718482971
       },
       "fdi": "43",
-      "fdi_confidence": 0.9699324369430542,
+      "fdi_confidence": 0.9938361048698425,
       "raw_fdi": "43",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1675,25 +1717,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9557874202728271,
+        "confidence": 0.979326605796814,
         "probabilities": {
-          "HEALTHY": 0.9557874202728271,
-          "NON_HEALTHY": 0.04421250522136688
+          "HEALTHY": 0.979326605796814,
+          "NON_HEALTHY": 0.020673448219895363
         },
-        "non_healthy_probability": 0.04421250522136688,
+        "non_healthy_probability": 0.020673448219895363,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.8945066928863525,
+        "confidence": 0.7276803255081177,
         "probabilities": {
-          "HEALTHY": 0.05925402790307999,
-          "FILLING": 0.001770782982930541,
-          "CARIES": 0.8945066928863525,
-          "RCT_CROWN": 0.0071100411005318165,
-          "CROWN": 0.006875977851450443,
-          "ROOT_CANAL_TREATMENT": 0.012313957326114178,
-          "RESIDUAL_ROOT": 0.01816849783062935
+          "HEALTHY": 0.18685926496982574,
+          "FILLING": 0.0031073461286723614,
+          "CARIES": 0.7276803255081177,
+          "RCT_CROWN": 0.011624063365161419,
+          "CROWN": 0.01332646794617176,
+          "ROOT_CANAL_TREATMENT": 0.024072740226984024,
+          "RESIDUAL_ROOT": 0.033329740166664124
         }
       },
       "pathology_evidence": [],
@@ -1701,8 +1743,8 @@
       "deep_caries": {
         "ran": true,
         "prediction": "DEEP_CARIES",
-        "confidence": 0.5313370227813721,
-        "probability": 0.5313370227813721,
+        "confidence": 0.5907523036003113,
+        "probability": 0.5907523036003113,
         "threshold": 0.65,
         "upgraded": false
       },
@@ -1716,15 +1758,15 @@
       "tooth_detection": {
         "instance_id": 20,
         "bbox_xyxy": [
-          1725.04,
-          869.44,
-          1814.11,
-          1151.58
+          1726.88,
+          870.34,
+          1812.2,
+          1151.02
         ],
-        "confidence": 0.9965000152587891
+        "confidence": 0.996941864490509
       },
       "fdi": "44",
-      "fdi_confidence": 0.9769245386123657,
+      "fdi_confidence": 0.9810267686843872,
       "raw_fdi": "44",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1732,25 +1774,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9480089545249939,
+        "confidence": 0.9008688926696777,
         "probabilities": {
-          "HEALTHY": 0.9480089545249939,
-          "NON_HEALTHY": 0.05199100822210312
+          "HEALTHY": 0.9008688926696777,
+          "NON_HEALTHY": 0.09913114458322525
         },
-        "non_healthy_probability": 0.05199100822210312,
+        "non_healthy_probability": 0.09913114458322525,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "CARIES",
-        "confidence": 0.9134852290153503,
+        "confidence": 0.8539365530014038,
         "probabilities": {
-          "HEALTHY": 0.02517816796898842,
-          "FILLING": 0.0031217944342643023,
-          "CARIES": 0.9134852290153503,
-          "RCT_CROWN": 0.011507040821015835,
-          "CROWN": 0.009968572296202183,
-          "ROOT_CANAL_TREATMENT": 0.019252490252256393,
-          "RESIDUAL_ROOT": 0.017486684024333954
+          "HEALTHY": 0.07016788423061371,
+          "FILLING": 0.003215080127120018,
+          "CARIES": 0.8539365530014038,
+          "RCT_CROWN": 0.0156784076243639,
+          "CROWN": 0.013563885353505611,
+          "ROOT_CANAL_TREATMENT": 0.023804787546396255,
+          "RESIDUAL_ROOT": 0.01963352970778942
         }
       },
       "pathology_evidence": [],
@@ -1758,8 +1800,8 @@
       "deep_caries": {
         "ran": true,
         "prediction": "DEEP_CARIES",
-        "confidence": 0.7011788487434387,
-        "probability": 0.7011788487434387,
+        "confidence": 0.7801697254180908,
+        "probability": 0.7801697254180908,
         "threshold": 0.65,
         "upgraded": true
       },
@@ -1771,17 +1813,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 22,
+        "instance_id": 23,
         "bbox_xyxy": [
-          1810.12,
-          878.08,
-          1912.46,
-          1148.9
+          1811.45,
+          873.69,
+          1912.49,
+          1149.41
         ],
-        "confidence": 0.9952203631401062
+        "confidence": 0.9960440397262573
       },
       "fdi": "45",
-      "fdi_confidence": 0.9954091906547546,
+      "fdi_confidence": 0.9952681660652161,
       "raw_fdi": "45",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -1789,25 +1831,25 @@
       "status_gate": {
         "prediction": "NON_HEALTHY",
         "effective_prediction": "NON_HEALTHY",
-        "confidence": 0.9211595058441162,
+        "confidence": 0.8900948166847229,
         "probabilities": {
-          "HEALTHY": 0.07884055376052856,
-          "NON_HEALTHY": 0.9211595058441162
+          "HEALTHY": 0.1099051758646965,
+          "NON_HEALTHY": 0.8900948166847229
         },
-        "non_healthy_probability": 0.9211595058441162,
+        "non_healthy_probability": 0.8900948166847229,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "ROOT_CANAL_TREATMENT",
-        "confidence": 0.947728157043457,
+        "confidence": 0.9514567852020264,
         "probabilities": {
-          "HEALTHY": 0.001969940261915326,
-          "FILLING": 0.005118258763104677,
-          "CARIES": 0.005373478401452303,
-          "RCT_CROWN": 0.022559432312846184,
-          "CROWN": 0.003188797738403082,
-          "ROOT_CANAL_TREATMENT": 0.947728157043457,
-          "RESIDUAL_ROOT": 0.014061936177313328
+          "HEALTHY": 0.002978081349283457,
+          "FILLING": 0.004724533297121525,
+          "CARIES": 0.006002991460263729,
+          "RCT_CROWN": 0.01797434687614441,
+          "CROWN": 0.0031278168316930532,
+          "ROOT_CANAL_TREATMENT": 0.9514567852020264,
+          "RESIDUAL_ROOT": 0.013735441491007805
         }
       },
       "pathology_evidence": [],
@@ -1827,43 +1869,43 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 7,
+        "instance_id": 13,
         "bbox_xyxy": [
-          1893.84,
-          862.08,
-          2073.38,
-          1135.25
+          1892.59,
+          863.75,
+          2072.87,
+          1137.79
         ],
-        "confidence": 0.998134434223175
+        "confidence": 0.9978772401809692
       },
       "fdi": "46",
-      "fdi_confidence": 0.9927901029586792,
+      "fdi_confidence": 0.9924457669258118,
       "raw_fdi": "46",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
       "fdi_review_required": false,
       "status_gate": {
-        "prediction": "NON_HEALTHY",
+        "prediction": "HEALTHY",
         "effective_prediction": "NON_HEALTHY",
-        "confidence": 0.6096821427345276,
+        "confidence": 0.5293890833854675,
         "probabilities": {
-          "HEALTHY": 0.39031782746315,
-          "NON_HEALTHY": 0.6096821427345276
+          "HEALTHY": 0.5293890833854675,
+          "NON_HEALTHY": 0.47061091661453247
         },
-        "non_healthy_probability": 0.6096821427345276,
+        "non_healthy_probability": 0.47061091661453247,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.5408901572227478,
+        "confidence": 0.47785550355911255,
         "probabilities": {
-          "HEALTHY": 0.5408901572227478,
-          "FILLING": 0.08311554044485092,
-          "CARIES": 0.042845096439123154,
-          "RCT_CROWN": 0.1707199066877365,
-          "CROWN": 0.010981922969222069,
-          "ROOT_CANAL_TREATMENT": 0.07849127799272537,
-          "RESIDUAL_ROOT": 0.07295608520507812
+          "HEALTHY": 0.47785550355911255,
+          "FILLING": 0.06861872225999832,
+          "CARIES": 0.05923822149634361,
+          "RCT_CROWN": 0.21428686380386353,
+          "CROWN": 0.015148831531405449,
+          "ROOT_CANAL_TREATMENT": 0.09215324372053146,
+          "RESIDUAL_ROOT": 0.07269857078790665
         }
       },
       "pathology_evidence": [],
@@ -1883,128 +1925,72 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 4,
+        "instance_id": 6,
         "bbox_xyxy": [
-          2031.33,
-          845.55,
-          2175.23,
-          1119.09
+          2032.75,
+          848.59,
+          2173.88,
+          1122.35
         ],
-        "confidence": 0.9986577033996582
+        "confidence": 0.9986116886138916
       },
       "fdi": "47",
-      "fdi_confidence": 0.7342597246170044,
+      "fdi_confidence": 0.6838932037353516,
       "raw_fdi": "47",
-      "fdi_was_changed": false,
-      "duplicate_cleanup_applied": false,
-      "fdi_review_required": false,
-      "status_gate": {
-        "prediction": "HEALTHY",
-        "effective_prediction": "HEALTHY",
-        "confidence": 0.810155987739563,
-        "probabilities": {
-          "HEALTHY": 0.810155987739563,
-          "NON_HEALTHY": 0.189844012260437
-        },
-        "non_healthy_probability": 0.189844012260437,
-        "abnormal_threshold": 0.3
-      },
-      "status_v2": {
-        "prediction": "FILLING",
-        "confidence": 0.8983935713768005,
-        "probabilities": {
-          "HEALTHY": 0.01791089028120041,
-          "FILLING": 0.8983935713768005,
-          "CARIES": 0.03970365598797798,
-          "RCT_CROWN": 0.007493287790566683,
-          "CROWN": 0.011892363429069519,
-          "ROOT_CANAL_TREATMENT": 0.009954205714166164,
-          "RESIDUAL_ROOT": 0.014652037993073463
-        }
-      },
-      "pathology_evidence": [
-        {
-          "type": "CARIES",
-          "confidence": 0.994318425655365,
-          "threshold": 0.7,
-          "bbox_xyxy": [
-            2040.26,
-            857.99,
-            2146.08,
-            950.56
-          ],
-          "associated_fdi": "47",
-          "association_score": 4.4341
-        }
-      ],
-      "restorations": [],
-      "deep_caries": {
-        "ran": true,
-        "prediction": "DEEP_CARIES",
-        "confidence": 0.9385249018669128,
-        "probability": 0.9385249018669128,
-        "threshold": 0.65,
-        "upgraded": true
-      },
-      "final_findings": [
-        "FILLING",
-        "DEEP_CARIES"
-      ],
-      "review_reasons": [],
-      "review_required": false
-    },
-    {
-      "tooth_detection": {
-        "instance_id": 10,
-        "bbox_xyxy": [
-          658.87,
-          846.94,
-          885.56,
-          1028.12
-        ],
-        "confidence": 0.9979689717292786
-      },
-      "fdi": "48",
-      "fdi_confidence": 0.5262472033500671,
-      "raw_fdi": "48",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
       "fdi_review_required": true,
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9734882712364197,
+        "confidence": 0.8895244002342224,
         "probabilities": {
-          "HEALTHY": 0.9734882712364197,
-          "NON_HEALTHY": 0.02651173621416092
+          "HEALTHY": 0.8895244002342224,
+          "NON_HEALTHY": 0.11047563701868057
         },
-        "non_healthy_probability": 0.02651173621416092,
+        "non_healthy_probability": 0.11047563701868057,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
-        "prediction": "HEALTHY",
-        "confidence": 0.8577505350112915,
+        "prediction": "FILLING",
+        "confidence": 0.8509889841079712,
         "probabilities": {
-          "HEALTHY": 0.8577505350112915,
-          "FILLING": 0.009629564359784126,
-          "CARIES": 0.05614175647497177,
-          "RCT_CROWN": 0.007387201767414808,
-          "CROWN": 0.021736757829785347,
-          "ROOT_CANAL_TREATMENT": 0.02180730737745762,
-          "RESIDUAL_ROOT": 0.025546839460730553
+          "HEALTHY": 0.024565940722823143,
+          "FILLING": 0.8509889841079712,
+          "CARIES": 0.07283766567707062,
+          "RCT_CROWN": 0.009852463379502296,
+          "CROWN": 0.016262132674455643,
+          "ROOT_CANAL_TREATMENT": 0.00985750462859869,
+          "RESIDUAL_ROOT": 0.015635328367352486
         }
       },
-      "pathology_evidence": [],
+      "pathology_evidence": [
+        {
+          "type": "CARIES",
+          "confidence": 0.9940007328987122,
+          "threshold": 0.7,
+          "bbox_xyxy": [
+            2040.93,
+            855.2,
+            2146.32,
+            953.27
+          ],
+          "associated_fdi": "47",
+          "association_score": 4.4686
+        }
+      ],
       "restorations": [],
       "deep_caries": {
-        "ran": false,
-        "probability": null,
+        "ran": true,
+        "prediction": "DEEP_CARIES",
+        "confidence": 0.9239944219589233,
+        "probability": 0.9239944219589233,
         "threshold": 0.65,
-        "upgraded": false,
-        "reason": "NO_CARIES_EVIDENCE"
+        "upgraded": true
       },
       "final_findings": [
-        "HEALTHY"
+        "FILLING",
+        "DEEP_CARIES"
       ],
       "review_reasons": [
         "FDI_LOW_CONFIDENCE_OR_UNRESOLVED"
@@ -2013,17 +1999,17 @@
     },
     {
       "tooth_detection": {
-        "instance_id": 2,
+        "instance_id": 4,
         "bbox_xyxy": [
-          2152.46,
-          858.3,
-          2366.24,
-          1029.76
+          2153.73,
+          860.72,
+          2362.99,
+          1029.49
         ],
-        "confidence": 0.9987747073173523
+        "confidence": 0.9986857771873474
       },
       "fdi": "48",
-      "fdi_confidence": 0.9390804767608643,
+      "fdi_confidence": 0.9091691970825195,
       "raw_fdi": "48",
       "fdi_was_changed": false,
       "duplicate_cleanup_applied": false,
@@ -2031,25 +2017,25 @@
       "status_gate": {
         "prediction": "HEALTHY",
         "effective_prediction": "HEALTHY",
-        "confidence": 0.9956499934196472,
+        "confidence": 0.9930659532546997,
         "probabilities": {
-          "HEALTHY": 0.9956499934196472,
-          "NON_HEALTHY": 0.004349985625594854
+          "HEALTHY": 0.9930659532546997,
+          "NON_HEALTHY": 0.006934013683348894
         },
-        "non_healthy_probability": 0.004349985625594854,
+        "non_healthy_probability": 0.006934013683348894,
         "abnormal_threshold": 0.3
       },
       "status_v2": {
         "prediction": "HEALTHY",
-        "confidence": 0.634824812412262,
+        "confidence": 0.4603423476219177,
         "probabilities": {
-          "HEALTHY": 0.634824812412262,
-          "FILLING": 0.09710529446601868,
-          "CARIES": 0.1753929853439331,
-          "RCT_CROWN": 0.011559060774743557,
-          "CROWN": 0.019879933446645737,
-          "ROOT_CANAL_TREATMENT": 0.02526230365037918,
-          "RESIDUAL_ROOT": 0.03597570210695267
+          "HEALTHY": 0.4603423476219177,
+          "FILLING": 0.13385944068431854,
+          "CARIES": 0.30416181683540344,
+          "RCT_CROWN": 0.01391322910785675,
+          "CROWN": 0.02108955942094326,
+          "ROOT_CANAL_TREATMENT": 0.02756744809448719,
+          "RESIDUAL_ROOT": 0.03906626999378204
         }
       },
       "pathology_evidence": [],

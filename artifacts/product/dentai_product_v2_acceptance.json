@@ -1,0 +1,289 @@
+{
+  "version": "dentai-product-intelligence-v2",
+  "checks": {
+    "ai_parity": true,
+    "identity_extraction": true,
+    "identity_matching": true,
+    "patient_profile": true,
+    "longitudinal_timeline": true,
+    "tooth_history": true,
+    "doctor_review": true,
+    "follow_up_engine": true,
+    "learning_vault": true,
+    "tenant_isolation": true,
+    "audit": true,
+    "dashboard_contract": true,
+    "end_to_end": true
+  },
+  "ui": {
+    "dashboard_backend_contract": "PASS",
+    "rendered_dashboard": "NOT_IMPLEMENTED_NO_FRONTEND_CODEBASE",
+    "production_visual_acceptance": "NOT_RUN"
+  },
+  "performance": {
+    "standalone_image_decode_preprocessing_seconds": 0.08444079000037163,
+    "ocr_noop_seconds": 1.119099761126563e-05,
+    "onnx_model_load_seconds": 3.127597370003059,
+    "onnx_inference_opg_1_seconds": 10.090318590002425,
+    "onnx_inference_opg_2_seconds": 10.199203096002748,
+    "product_intelligence_and_reference_persistence_seconds": 0.09064070000022184,
+    "onnx_inference_mean_seconds": 10.144760843002587,
+    "database_persistence_seconds": null,
+    "database_persistence_note": "No live PostgreSQL was configured; the measured reference-store persistence time is included in product intelligence timing.",
+    "total_measured_workflow_seconds": 20.380173577003006
+  },
+  "workflow": {
+    "clinic_a": {
+      "patient_id": "PATIENT-001",
+      "display_name": "Synthetic Patient One",
+      "opg_1": {
+        "study_id": "OPG-001",
+        "analysis_id": "ANL-01M05TGFFP703R23H6NRB8JV7A",
+        "identity_state": "IDENTITY_MATCHED_EXISTING",
+        "teeth": 32,
+        "unique_fdi": 32
+      },
+      "opg_2": {
+        "study_id": "OPG-002",
+        "analysis_id": "ANL-01M05TGFGSX51Z2YVZSPZYWP0S",
+        "identity_state_before_confirmation": "IDENTITY_REVIEW_REQUIRED",
+        "association": "EXPLICITLY_CONFIRMED",
+        "teeth": 32,
+        "unique_fdi": 32
+      },
+      "timeline": [
+        "OPG-001",
+        "OPG-002"
+      ],
+      "tooth_36_history": [
+        {
+          "study_id": "OPG-001",
+          "study_date": "2026-08-01",
+          "analysis_id": "ANL-01M05TGFFP703R23H6NRB8JV7A",
+          "fdi": "36",
+          "findings": [
+            "FILLING"
+          ],
+          "status": {
+            "prediction": "FILLING",
+            "confidence": 0.9522209167480469,
+            "probabilities": {
+              "HEALTHY": 0.00048322949442081153,
+              "FILLING": 0.9522209167480469,
+              "CARIES": 0.0031581795774400234,
+              "RCT_CROWN": 0.00762983551248908,
+              "CROWN": 0.007924759760499,
+              "ROOT_CANAL_TREATMENT": 0.01142412144690752,
+              "RESIDUAL_ROOT": 0.017159029841423035
+            }
+          },
+          "restorations": [
+            {
+              "type": "FILLING",
+              "bbox_xyxy": [
+                1011.4,
+                867.41,
+                1125.34,
+                916.65
+              ],
+              "detector_type": "FILLING",
+              "detector_confidence": 0.9981404542922974,
+              "detector_threshold": 0.5,
+              "classifier_type": "FILLING",
+              "classifier_confidence": 0.9876813888549805,
+              "classifier_probabilities": {
+                "FILLING": 0.9876813888549805,
+                "IMPLANT": 0.012318613938987255
+              },
+              "type_agreement": true,
+              "associated_fdi": "36",
+              "association_score": 4.1543
+            }
+          ]
+        },
+        {
+          "study_id": "OPG-002",
+          "study_date": "2026-11-01",
+          "analysis_id": "ANL-01M05TGFGSX51Z2YVZSPZYWP0S",
+          "fdi": "36",
+          "findings": [
+            "FILLING"
+          ],
+          "status": {
+            "prediction": "FILLING",
+            "confidence": 0.9522209167480469,
+            "probabilities": {
+              "HEALTHY": 0.00048322949442081153,
+              "FILLING": 0.9522209167480469,
+              "CARIES": 0.0031581795774400234,
+              "RCT_CROWN": 0.00762983551248908,
+              "CROWN": 0.007924759760499,
+              "ROOT_CANAL_TREATMENT": 0.01142412144690752,
+              "RESIDUAL_ROOT": 0.017159029841423035
+            }
+          },
+          "restorations": [
+            {
+              "type": "FILLING",
+              "bbox_xyxy": [
+                1011.4,
+                867.41,
+                1125.34,
+                916.65
+              ],
+              "detector_type": "FILLING",
+              "detector_confidence": 0.9981404542922974,
+              "detector_threshold": 0.5,
+              "classifier_type": "FILLING",
+              "classifier_confidence": 0.9876813888549805,
+              "classifier_probabilities": {
+                "FILLING": 0.9876813888549805,
+                "IMPLANT": 0.012318613938987255
+              },
+              "type_agreement": true,
+              "associated_fdi": "36",
+              "association_score": 4.1543
+            }
+          ]
+        }
+      ],
+      "doctor_correction": {
+        "review_id": "REV-01M05TGFHD399E010GXFJ24GRS",
+        "clinic_id": "CLINIC-A",
+        "analysis_id": "ANL-01M05TGFGSX51Z2YVZSPZYWP0S",
+        "tooth_fdi": "36",
+        "finding_type": null,
+        "doctor_id": "DOCTOR-A",
+        "timestamp": "2026-08-16T17:39:30.477649Z",
+        "original_ai_output": {
+          "tooth_detection": {
+            "instance_id": 2,
+            "bbox_xyxy": [
+              957.07,
+              858.92,
+              1143.0,
+              1119.59
+            ],
+            "confidence": 0.9988992214202881
+          },
+          "fdi": "36",
+          "fdi_confidence": 0.9887844324111938,
+          "raw_fdi": "36",
+          "fdi_was_changed": false,
+          "duplicate_cleanup_applied": false,
+          "fdi_review_required": false,
+          "status_gate": {
+            "prediction": "NON_HEALTHY",
+            "effective_prediction": "NON_HEALTHY",
+            "confidence": 0.9990373849868774,
+            "probabilities": {
+              "HEALTHY": 0.0009626600658521056,
+              "NON_HEALTHY": 0.9990373849868774
+            },
+            "non_healthy_probability": 0.9990373849868774,
+            "abnormal_threshold": 0.3
+          },
+          "status_v2": {
+            "prediction": "FILLING",
+            "confidence": 0.9522209167480469,
+            "probabilities": {
+              "HEALTHY": 0.00048322949442081153,
+              "FILLING": 0.9522209167480469,
+              "CARIES": 0.0031581795774400234,
+              "RCT_CROWN": 0.00762983551248908,
+              "CROWN": 0.007924759760499,
+              "ROOT_CANAL_TREATMENT": 0.01142412144690752,
+              "RESIDUAL_ROOT": 0.017159029841423035
+            }
+          },
+          "pathology_evidence": [],
+          "restorations": [
+            {
+              "type": "FILLING",
+              "bbox_xyxy": [
+                1011.4,
+                867.41,
+                1125.34,
+                916.65
+              ],
+              "detector_type": "FILLING",
+              "detector_confidence": 0.9981404542922974,
+              "detector_threshold": 0.5,
+              "classifier_type": "FILLING",
+              "classifier_confidence": 0.9876813888549805,
+              "classifier_probabilities": {
+                "FILLING": 0.9876813888549805,
+                "IMPLANT": 0.012318613938987255
+              },
+              "type_agreement": true,
+              "associated_fdi": "36",
+              "association_score": 4.1543
+            }
+          ],
+          "deep_caries": {
+            "ran": false,
+            "probability": null,
+            "threshold": 0.65,
+            "upgraded": false,
+            "reason": "NO_CARIES_EVIDENCE"
+          },
+          "final_findings": [
+            "FILLING"
+          ],
+          "review_reasons": [],
+          "review_required": false
+        },
+        "doctor_action": "MODIFY_STATUS",
+        "corrected_value": "HEALTHY",
+        "notes": "Synthetic acceptance correction"
+      },
+      "follow_up_completed": {
+        "follow_up_id": "FUP-01M05TGFHAYNPGZG8F864QD9AA",
+        "clinic_id": "CLINIC-A",
+        "patient_id": "PATIENT-001",
+        "study_id": "OPG-002",
+        "analysis_id": "ANL-01M05TGFGSX51Z2YVZSPZYWP0S",
+        "tooth_fdi": "11",
+        "priority": "LOW",
+        "target_date": "2027-11-01",
+        "reason": [
+          "RESTORATION_MONITORING"
+        ],
+        "source_finding": [
+          "FILLING"
+        ],
+        "rule_ids": [
+          "RULE_FILLING_MONITOR"
+        ],
+        "rule_version": "2.0",
+        "status": "COMPLETED",
+        "created_at": "2026-08-16T17:39:30.474243Z",
+        "completed_at": "2026-08-16T17:39:30.478048Z",
+        "completed_by": "DOCTOR-A"
+      }
+    },
+    "clinic_b": {
+      "patient_id": "PATIENT-B-001",
+      "same_display_name": true,
+      "visible_from_clinic_a": false
+    }
+  },
+  "immutability": {
+    "raw_ai_output_preserved": true,
+    "production_model_modified": false,
+    "production_model_sha_check": "covered by frozen parity manifest"
+  },
+  "dashboard_summary": {
+    "teeth_analyzed": 32,
+    "urgent_findings": 15,
+    "findings_requiring_review": 4,
+    "followup_candidates": 19,
+    "restoration_findings": 5,
+    "pathology_findings": 4
+  },
+  "limitations": [
+    "No rendered frontend exists in this repository; dashboard acceptance covers its backend presentation contract.",
+    "Live PostgreSQL latency was not measured because no acceptance database was configured.",
+    "No-op OCR was measured; a production OCR provider is not configured."
+  ]
+}

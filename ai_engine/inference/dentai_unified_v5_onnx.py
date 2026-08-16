@@ -30,8 +30,11 @@ def classify(s,x,classes):
  p=softmax(s.run(None,{'image':x.astype(np.float32)})[0])[0];i=int(p.argmax());return classes[i],float(p[i]),{c:float(v) for c,v in zip(classes,p)}
 def letterbox(im,shape):
  th,tw=shape;W,H=im.size;scale=min(tw/W,th/H);nw,nh=round(W*scale),round(H*scale);px,py=(tw-nw)//2,(th-nh)//2;c=Image.new('RGB',(tw,th));c.paste(im.resize((nw,nh),Image.Resampling.BILINEAR),(px,py));a=np.asarray(c,dtype=np.float32).transpose(2,0,1)[None]/255.;return a,scale,px,py
-def detect(s,im,shape):
- x,z,px,py=letterbox(im,shape);b,sc,l=s.run(None,{'image':x.astype(np.float32)});b=b.astype(float);b[:,[0,2]]=(b[:,[0,2]]-px)/z;b[:,[1,3]]=(b[:,[1,3]]-py)/z;W,H=im.size;b[:,[0,2]]=b[:,[0,2]].clip(0,W);b[:,[1,3]]=b[:,[1,3]].clip(0,H);return b,sc,l
+def detect(s,pre,im,min_size,max_size):
+ W,H=im.size;scale=min(min_size/min(H,W),max_size/max(H,W));nh,nw=int(H*scale),int(W*scale)
+ raw=np.asarray(im,dtype=np.float32).transpose(2,0,1)[None]/255.
+ x=pre.run(None,{'image':raw,'sizes':np.array([1,3,nh,nw],np.int64)})[0]
+ b,sc,l=s.run(None,{'image':x});b=b.astype(float);b[:,[0,2]]*=W/nw;b[:,[1,3]]*=H/nh;b[:,[0,2]]=b[:,[0,2]].clip(0,W);b[:,[1,3]]=b[:,[1,3]].clip(0,H);return b,sc,l
 def fdi_probs(s,im,b):
  W,H=im.size;x1,y1,x2,y2=map(float,b);sp=np.array([[(x1+x2)/2/W,(y1+y2)/2/H,(x2-x1)/W,(y2-y1)/H]],np.float32);return softmax(s.run(None,{'image':crop(im,b,.35,12,224),'spatial':sp})[0])[0]
 def resolve(rows):
@@ -84,9 +87,9 @@ def attach(ds,teeth,key):
 
 class Engine:
  def __init__(self,threads=0):
-  names={'tooth':'tooth_v3.onnx','fdi':'fdi_v3.onnx','gate':'status_gate_v1.onnx','status':'status_v2.onnx','path':'pathology_v41.onnx','deep':'deep_caries_v2.onnx','rd':'restoration_detector_v1.onnx','rc':'restoration_classifier_v1.onnx'};self.s={k:session(v,threads)for k,v in names.items()};self.threads=threads
+  names={'pre':'detector_preprocess.onnx','tooth':'tooth_v3.onnx','fdi':'fdi_v3.onnx','gate':'status_gate_v1.onnx','status':'status_v2.onnx','path':'pathology_v41.onnx','deep':'deep_caries_v2.onnx','rd':'restoration_detector_v1.onnx','rc':'restoration_classifier_v1.onnx'};self.s={k:session(v,threads)for k,v in names.items()};self.threads=threads
  def analyze(self,image_path):
-  start=time.perf_counter();im=Image.open(image_path).convert('RGB');b,sc,l=detect(self.s['tooth'],im,(640,1312));rows=[]
+  start=time.perf_counter();im=Image.open(image_path).convert('RGB');b,sc,l=detect(self.s['tooth'],self.s['pre'],im,640,1600);rows=[]
   for i,(box,score,label)in enumerate(zip(b,sc,l)):
    if score<.5 or int(label)!=1:continue
    p=fdi_probs(self.s['fdi'],im,box);rows.append({'id':i,'bbox':box.tolist(),'probs':p,'raw':FDI[int(p.argmax())],'raw_conf':float(p.max()),'score':float(score)})
@@ -94,8 +97,8 @@ class Engine:
   for x in rr:
    box=x['bbox'];gp,gc,gps=classify(self.s['gate'],crop(im,box,.35,16,224),GATE);sp,ssc,sps=classify(self.s['status'],crop(im,box,.45,18,256),STATUS)
    teeth.append({'tooth_detection':{'instance_id':x['id'],'bbox_xyxy':[round(v,2)for v in box],'confidence':x['score']},'fdi':x['resolved'],'fdi_confidence':x['raw_conf'],'raw_fdi':x['raw'],'fdi_was_changed':x['raw']!=x['resolved'],'duplicate_cleanup_applied':bool(x.get('cleanup')),'fdi_review_required':x['unresolved']or x['raw_conf']<.7,'status_gate':{'prediction':gp,'effective_prediction':'NON_HEALTHY'if gps['NON_HEALTHY']>=.3 else'HEALTHY','confidence':gc,'probabilities':gps,'non_healthy_probability':gps['NON_HEALTHY'],'abnormal_threshold':.3},'status_v2':{'prediction':sp,'confidence':ssc,'probabilities':sps}})
-  pb,ps,pl=detect(self.s['path'],im,(640,1312));paths=[{'type':PATH[int(y)],'confidence':float(s),'threshold':PTH[PATH[int(y)]],'bbox_xyxy':[round(v,2)for v in x]}for x,s,y in zip(pb,ps,pl)if int(y)in PATH and s>=PTH[PATH[int(y)]]];up=attach(paths,teeth,'pathology_evidence')
-  rb,rs,rl=detect(self.s['rd'],im,(650,1333));rests=[]
+  pb,ps,pl=detect(self.s['path'],self.s['pre'],im,640,1600);paths=[{'type':PATH[int(y)],'confidence':float(s),'threshold':PTH[PATH[int(y)]],'bbox_xyxy':[round(v,2)for v in x]}for x,s,y in zip(pb,ps,pl)if int(y)in PATH and s>=PTH[PATH[int(y)]]];up=attach(paths,teeth,'pathology_evidence')
+  rb,rs,rl=detect(self.s['rd'],self.s['pre'],im,800,1333);rests=[]
   for box,s,y in zip(rb,rs,rl):
    if int(y)not in REST or s<.5:continue
    cp,cc,cps=classify(self.s['rc'],crop(im,box,.45,15,224),['FILLING','IMPLANT']);dt=REST[int(y)];rests.append({'type':dt,'bbox_xyxy':[round(v,2)for v in box],'detector_type':dt,'detector_confidence':float(s),'detector_threshold':.5,'classifier_type':cp,'classifier_confidence':cc,'classifier_probabilities':cps,'type_agreement':dt==cp})

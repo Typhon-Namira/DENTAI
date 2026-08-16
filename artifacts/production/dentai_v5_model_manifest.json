@@ -46,7 +46,7 @@
       },
       "onnx_export": {
         "onnx_path": "models/onnx/dentai_v5/tooth_v3.onnx",
-        "onnx_sha256": "fd16b90495811dcb74a470a2ff9e64091bbd80d97f9fe9c2e5e5474dc0285a04",
+        "onnx_sha256": "b0c48faf2137a774cf67140f8775f24c588981e0c1cd742eec92a9482e11d1ec",
         "fixed_input_shape": [
           1,
           3,
@@ -58,11 +58,12 @@
           "scores",
           "labels"
         ],
-        "preprocessing_contract": "aspect-preserving resize then zero letterbox; coordinates mapped back by subtracting padding and dividing scale",
+        "preprocessing_contract": "Exact ONNX bilinear Resize to torchvision-computed transformed H/W; detector graph accepts dynamic H/W; boxes mapped once with independent x/y scale.",
         "providers": [
           "CPUExecutionProvider"
         ],
-        "opset": 18
+        "opset": 18,
+        "dynamic_image_height_width": true
       }
     },
     "fdi": {
@@ -399,7 +400,7 @@
       },
       "onnx_export": {
         "onnx_path": "models/onnx/dentai_v5/pathology_v41.onnx",
-        "onnx_sha256": "b7bd7c1b212f90475351e3c3550bed390345cbc1dbb231bee83693d71623af72",
+        "onnx_sha256": "0f24675b9c1d4235ce82b6fa09296f69786dce10f4edc3fe41f0564dfdb403b3",
         "fixed_input_shape": [
           1,
           3,
@@ -411,11 +412,12 @@
           "scores",
           "labels"
         ],
-        "preprocessing_contract": "aspect-preserving resize then zero letterbox; coordinates mapped back by subtracting padding and dividing scale",
+        "preprocessing_contract": "Exact ONNX bilinear Resize to torchvision-computed transformed H/W; detector graph accepts dynamic H/W; boxes mapped once with independent x/y scale.",
         "providers": [
           "CPUExecutionProvider"
         ],
-        "opset": 18
+        "opset": 18,
+        "dynamic_image_height_width": true
       }
     },
     "deep_caries": {
@@ -503,7 +505,7 @@
       },
       "onnx_export": {
         "onnx_path": "models/onnx/dentai_v5/restoration_detector_v1.onnx",
-        "onnx_sha256": "af0760a1afab175f9f5f3ea4044ade5f088d5b51dd3d4e78a03ece7380bcac54",
+        "onnx_sha256": "c908f667aae070fe53acae98acb22511c2a456f8ae4fb8309c1d2a330f7c43c0",
         "fixed_input_shape": [
           1,
           3,
@@ -515,11 +517,12 @@
           "scores",
           "labels"
         ],
-        "preprocessing_contract": "aspect-preserving resize then zero letterbox; coordinates mapped back by subtracting padding and dividing scale",
+        "preprocessing_contract": "Exact ONNX bilinear Resize to torchvision-computed transformed H/W; detector graph accepts dynamic H/W; boxes mapped once with independent x/y scale.",
         "providers": [
           "CPUExecutionProvider"
         ],
-        "opset": 18
+        "opset": 18,
+        "dynamic_image_height_width": true
       }
     },
     "restoration_classifier": {
@@ -560,5 +563,12 @@
         "opset": 18
       }
     }
+  },
+  "detector_preprocessing": {
+    "onnx_path": "models/onnx/dentai_v5/detector_preprocess.onnx",
+    "sha256": "cb3d0d25cd608138639ef50396c35e9965522dc4c101bdd4cff18c8ce205c242",
+    "operation": "ONNX Resize linear, half_pixel coordinates; output size follows torchvision min_size/max_size rule using floor",
+    "dynamic_input_hw": true,
+    "box_mapping": "independent x/y scaling from exact transformed size to original size"
   }
 }

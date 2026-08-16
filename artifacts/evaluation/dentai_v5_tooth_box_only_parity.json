@@ -1,0 +1,170 @@
+{
+  "images": 20,
+  "all_count_equal": true,
+  "all_labels_equal": true,
+  "max_box_abs": 0.0,
+  "max_score_abs": 0.0,
+  "min_iou": 1.0,
+  "items": [
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/1.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/10.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/107.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/117.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/140.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/15.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/16.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/160.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/184.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/185.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/191.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/210.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/213.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/222.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/225.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/246.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/248.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/251.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/262.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    },
+    {
+      "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/268.jpg",
+      "count_equal": true,
+      "labels_equal": true,
+      "max_box_abs": 0.0,
+      "max_score_abs": 0.0,
+      "min_iou": 1.0
+    }
+  ]
+}

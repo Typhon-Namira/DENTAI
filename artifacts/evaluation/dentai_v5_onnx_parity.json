@@ -38,51 +38,266 @@
     }
   },
   "detectors": {
-    "image_111_smoke": {
-      "tooth": {
-        "pytorch_count": 32,
-        "onnx_count": 32,
-        "matched_iou_050": 32
-      },
-      "pathology": {
-        "pytorch_count": 5,
-        "onnx_count": 5,
-        "matched_iou_050": 5
-      },
-      "restoration": {
-        "pytorch_count": 5,
-        "onnx_count": 5,
-        "matched_iou_050": 5
-      }
+    "tooth": {
+      "images": 50,
+      "pytorch_detections": 1396,
+      "onnx_detections": 1396,
+      "matched_iou_050": 1396,
+      "matched_iou_075": 1396,
+      "matched_iou_090": 1396,
+      "mean_iou": 0.9999915962176799,
+      "median_iou": 0.9999935144978397,
+      "p5_iou": 0.9999788926489971,
+      "class_agreement": 1.0,
+      "mean_center_delta": 0.00043660822028634906,
+      "p95_center_delta": 0.0012496780566924632,
+      "mean_score_difference": 1.8816025004345913e-06
     },
-    "broad_held_out_parity_completed": false,
-    "blocker": "Fixed-shape torchvision detector export changes box geometry enough to alter downstream FDI crop/assignment; ORT also emits internal Mask R-CNN shape warnings."
+    "pathology": {
+      "images": 50,
+      "pytorch_detections": 283,
+      "onnx_detections": 283,
+      "matched_iou_050": 283,
+      "matched_iou_075": 283,
+      "matched_iou_090": 283,
+      "mean_iou": 0.9999866033120067,
+      "median_iou": 0.999989392957075,
+      "p5_iou": 0.9999673971016759,
+      "class_agreement": 1.0,
+      "mean_center_delta": 0.00027029194619126795,
+      "p95_center_delta": 0.0006080622294326741,
+      "mean_score_difference": 1.1269279587816433e-05
+    },
+    "restoration_detector": {
+      "images": 35,
+      "pytorch_detections": 103,
+      "onnx_detections": 103,
+      "matched_iou_050": 103,
+      "matched_iou_075": 103,
+      "matched_iou_090": 103,
+      "mean_iou": 0.999994742939697,
+      "median_iou": 0.9999952444864476,
+      "p5_iou": 0.9999882683912914,
+      "class_agreement": 1.0,
+      "mean_center_delta": 0.00011369355824861263,
+      "p95_center_delta": 0.0003184656158318652,
+      "mean_score_difference": 1.4253033017649234e-06
+    },
+    "fdi_stability": {
+      "images": 50,
+      "tooth_count_agreement": 50,
+      "raw_agree": 1396,
+      "raw_total": 1396,
+      "resolved_agree": 1396,
+      "resolved_total": 1396,
+      "pt_duplicates": 22,
+      "onnx_duplicates": 22,
+      "pt_unique": 1374,
+      "onnx_unique": 1374,
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 0,
+      "tooth_count_agreement_rate": 1.0,
+      "raw_agreement": 1.0,
+      "resolved_agreement": 1.0
+    }
   },
   "acceptance_image_111": {
     "pytorch_teeth": 32,
     "onnx_teeth": 32,
     "pytorch_unique_fdi": 32,
-    "onnx_unique_fdi": 31,
-    "duplicate_onnx_fdi": [
-      "48"
-    ],
-    "missing_onnx_fdi": [
-      "38"
-    ]
+    "onnx_unique_fdi": 32,
+    "duplicate_onnx_fdi": [],
+    "per_tooth_disagreements": []
   },
-  "parity_verdict": "FAIL",
-  "cpu_deployment_verdict": "NOT_READY",
+  "parity_verdict": "PASS",
+  "cpu_deployment_verdict": "READY_BUT_SLOW",
   "railway_readiness": false,
   "models_successfully_migrated": [
+    "Tooth V3",
     "FDI V3 FIXED",
     "Status Gate V1",
     "Status V2",
+    "Pathology V4.1",
     "Deep Caries V2",
+    "Restoration Detector V1",
     "Restoration Classifier V1"
   ],
-  "models_not_accepted": [
-    "Tooth V3",
-    "Pathology V4.1",
-    "Restoration Detector V1"
-  ]
+  "models_not_accepted": [],
+  "held_out_unified": {
+    "images": 20,
+    "perfect_end_to_end": 20,
+    "minor_differences": 0,
+    "material_differences": 0,
+    "matched_teeth": 523,
+    "fdi_agreement": 1.0,
+    "status_gate_agreement": 1.0,
+    "status_v2_agreement": 1.0,
+    "final_finding_agreement": 1.0,
+    "review_flag_agreement": 1.0,
+    "pytorch_mean_seconds": 11.119020937950154,
+    "onnx_mean_seconds": 11.738764584249475,
+    "per_image": [
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1017.png",
+        "pytorch_teeth": 7,
+        "onnx_teeth": 7,
+        "matched": 7,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2179.png",
+        "pytorch_teeth": 27,
+        "onnx_teeth": 27,
+        "matched": 27,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2061.png",
+        "pytorch_teeth": 31,
+        "onnx_teeth": 31,
+        "matched": 31,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2041.png",
+        "pytorch_teeth": 27,
+        "onnx_teeth": 27,
+        "matched": 27,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1010.png",
+        "pytorch_teeth": 17,
+        "onnx_teeth": 17,
+        "matched": 17,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1073.png",
+        "pytorch_teeth": 21,
+        "onnx_teeth": 21,
+        "matched": 21,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1056.png",
+        "pytorch_teeth": 26,
+        "onnx_teeth": 26,
+        "matched": 26,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2114.png",
+        "pytorch_teeth": 25,
+        "onnx_teeth": 25,
+        "matched": 25,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4430.png",
+        "pytorch_teeth": 31,
+        "onnx_teeth": 31,
+        "matched": 31,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2047.png",
+        "pytorch_teeth": 21,
+        "onnx_teeth": 21,
+        "matched": 21,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2078.png",
+        "pytorch_teeth": 29,
+        "onnx_teeth": 29,
+        "matched": 29,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4231.png",
+        "pytorch_teeth": 24,
+        "onnx_teeth": 24,
+        "matched": 24,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4292.png",
+        "pytorch_teeth": 33,
+        "onnx_teeth": 33,
+        "matched": 33,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4343.png",
+        "pytorch_teeth": 34,
+        "onnx_teeth": 34,
+        "matched": 34,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4249.png",
+        "pytorch_teeth": 29,
+        "onnx_teeth": 29,
+        "matched": 29,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4386.png",
+        "pytorch_teeth": 32,
+        "onnx_teeth": 32,
+        "matched": 32,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/4345.png",
+        "pytorch_teeth": 32,
+        "onnx_teeth": 32,
+        "matched": 32,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1091.png",
+        "pytorch_teeth": 23,
+        "onnx_teeth": 23,
+        "matched": 23,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/2097.png",
+        "pytorch_teeth": 25,
+        "onnx_teeth": 25,
+        "matched": 25,
+        "classification": "perfect",
+        "disagreements": []
+      },
+      {
+        "image": "data/raw/dentai_v3_sources/dual_labeled/extracted/images1/1066.png",
+        "pytorch_teeth": 29,
+        "onnx_teeth": 29,
+        "matched": 29,
+        "classification": "perfect",
+        "disagreements": []
+      }
+    ]
+  },
+  "railway_note": "Not created: explicitly excluded from this phase"
 }

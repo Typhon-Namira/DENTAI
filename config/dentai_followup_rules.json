@@ -1,0 +1,20 @@
+{
+  "disclaimer": "Initial configurable product defaults; not clinically validated universal timing rules and not disease occurrence predictions.",
+  "rule_set_id": "DENTAI_FOLLOWUP_PRODUCT_DEFAULTS",
+  "rule_version": "2.0",
+  "priority_order": ["URGENT_REVIEW", "HIGH", "MEDIUM", "LOW", "ROUTINE"],
+  "windows": {"URGENT_REVIEW": [0, 1], "HIGH": [1, 3], "MEDIUM": [3, 6], "LOW": [6, 12], "ROUTINE": [12, 12]},
+  "rules": [
+    {"rule_id":"RULE_DEEP_CARIES_REVIEW", "finding": "DEEP_CARIES", "risk_level": "HIGH", "reason": "DEEP_CARIES_SPECIALIST_UPGRADE"},
+    {"rule_id":"RULE_APICAL_REVIEW", "finding": "APICAL_PERIODONTITIS", "risk_level": "HIGH", "reason": "APICAL_PERIODONTITIS_PRESENT"},
+    {"rule_id":"RULE_ROOT_FRAGMENT_REVIEW", "finding": "ROOT_FRAGMENT", "risk_level": "HIGH", "reason": "ROOT_FRAGMENT_PRESENT"},
+    {"rule_id":"RULE_CARIES_REASSESS", "finding": "CARIES", "risk_level": "HIGH", "reason": "CARIES_PRESENT"},
+    {"rule_id":"RULE_IMPACTED_MONITOR", "finding": "IMPACTED", "risk_level": "MEDIUM", "reason": "IMPACTED_PRESENT"},
+    {"rule_id":"RULE_BONE_EXPERIMENTAL", "finding": "BONE_RESORPTION", "risk_level": "URGENT_REVIEW", "reason": "EXPERIMENTAL_FINDING_REQUIRES_REVIEW"},
+    {"rule_id":"RULE_FURCATION_EXPERIMENTAL", "finding": "FURCATION_LESION", "risk_level": "URGENT_REVIEW", "reason": "EXPERIMENTAL_FINDING_REQUIRES_REVIEW"},
+    {"rule_id":"RULE_RESIDUAL_ROOT_REVIEW", "finding": "RESIDUAL_ROOT", "risk_level": "HIGH", "reason": "RESIDUAL_ROOT_PRESENT"},
+    {"rule_id":"RULE_FILLING_MONITOR", "finding": "FILLING", "risk_level": "LOW", "reason": "RESTORATION_MONITORING"},
+    {"rule_id":"RULE_CROWN_MONITOR", "finding": "CROWN", "risk_level": "LOW", "reason": "RESTORATION_MONITORING"},
+    {"rule_id":"RULE_RCT_MONITOR", "finding": "ROOT_CANAL_TREATMENT", "risk_level": "MEDIUM", "reason": "RCT_MONITORING"}
+  ]
+}
