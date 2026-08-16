@@ -1,0 +1,1462 @@
+{
+  "evaluation": "DENTAI V5 FINAL MASTER EVALUATION",
+  "evaluation_scope": "held-out repository test sets; retrospective; not clinical validation",
+  "device": "cpu",
+  "models": {
+    "tooth": {
+      "name": "Tooth V3",
+      "checkpoint": "checkpoints/tooth_v3/maskrcnn_fpn_v1/best.pt",
+      "epoch": 4,
+      "strict_load": true
+    },
+    "fdi": {
+      "name": "FDI V3 FIXED",
+      "checkpoint": "checkpoints/fdi_v3_fixed/best.pt",
+      "epoch": 5,
+      "strict_load": true
+    },
+    "status_gate": {
+      "name": "Tooth Status Gate V1",
+      "checkpoint": "checkpoints/tooth_status_gate_v1/best.pt",
+      "epoch": 9,
+      "strict_load": true
+    },
+    "status_v2": {
+      "name": "Tooth Status V2",
+      "checkpoint": "checkpoints/tooth_status_v2/best.pt",
+      "epoch": 5,
+      "strict_load": true
+    },
+    "pathology": {
+      "name": "Pathology Detector V4.1",
+      "checkpoint": "checkpoints/pathology_detector_v41/best.pt",
+      "epoch": 5,
+      "strict_load": true
+    },
+    "deep_caries": {
+      "name": "Deep Caries Specialist V2",
+      "checkpoint": "checkpoints/deep_caries_v2/best.pt",
+      "epoch": 2,
+      "strict_load": true
+    },
+    "restoration_detector": {
+      "name": "Restoration Detector V1",
+      "checkpoint": "checkpoints/restoration_detector_v1/best.pt",
+      "epoch": 8,
+      "strict_load": true
+    },
+    "restoration_classifier": {
+      "name": "Restoration Classifier V1",
+      "checkpoint": "checkpoints/restoration_v1/best.pt",
+      "epoch": 1,
+      "strict_load": true
+    }
+  },
+  "thresholds": {
+    "tooth": 0.5,
+    "status_gate_non_healthy": 0.3,
+    "pathology": {
+      "CARIES": 0.7,
+      "APICAL_PERIODONTITIS": 0.65,
+      "IMPACTED": 0.65,
+      "BONE_RESORPTION": 0.65,
+      "ROOT_FRAGMENT": 0.3,
+      "FURCATION_LESION": 0.55
+    },
+    "deep_caries": 0.65,
+    "restoration": 0.5,
+    "matching_iou": 0.5
+  },
+  "dataset_audit": [
+    {
+      "task": "Tooth detection/segmentation",
+      "dataset": "data/canonical/dentai_v3_super/test.json",
+      "source": [
+        "akudental_git_92e2cc3",
+        "dentex_hf_7b27ccc8",
+        "dual_labeled_fdi"
+      ],
+      "test_images": 188,
+      "gt_objects": 4174,
+      "classes": [
+        "TOOTH"
+      ],
+      "available": true,
+      "leakage": {
+        "source_id_overlap": 0,
+        "path_overlap": 0,
+        "sha256_overlap": 0,
+        "status": "SAFE_TEST",
+        "patient_independence": "UNKNOWN"
+      }
+    },
+    {
+      "task": "FDI numbering",
+      "dataset": "data/canonical/dentai_v3_super/test.json",
+      "source": [
+        "akudental_git_92e2cc3",
+        "dentex_hf_7b27ccc8",
+        "dual_labeled_fdi"
+      ],
+      "test_images": 188,
+      "gt_objects": 4174,
+      "classes": [
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48"
+      ],
+      "available": true,
+      "leakage": {
+        "source_id_overlap": 0,
+        "path_overlap": 0,
+        "sha256_overlap": 0,
+        "status": "SAFE_TEST",
+        "patient_independence": "UNKNOWN"
+      }
+    },
+    {
+      "task": "Tooth-level status",
+      "dataset": "data/canonical/dual_labeled_status/test.json",
+      "source": [
+        "dual_labeled_status"
+      ],
+      "test_images": 50,
+      "gt_objects": 1292,
+      "classes": [
+        "HEALTHY",
+        "FILLING",
+        "CARIES",
+        "RCT_CROWN",
+        "CROWN",
+        "ROOT_CANAL_TREATMENT",
+        "RESIDUAL_ROOT"
+      ],
+      "available": true,
+      "leakage": {
+        "source_id_overlap": 0,
+        "path_overlap": 0,
+        "sha256_overlap": 0,
+        "status": "SAFE_TEST",
+        "patient_independence": "UNKNOWN"
+      }
+    },
+    {
+      "task": "Pathology detection",
+      "dataset": "data/canonical/dentai_v3_super/test.json",
+      "source": [
+        "zenodo14"
+      ],
+      "test_images": 100,
+      "gt_objects": 448,
+      "classes": [
+        "CARIES",
+        "APICAL_PERIODONTITIS",
+        "IMPACTED",
+        "BONE_RESORPTION",
+        "ROOT_FRAGMENT",
+        "FURCATION_LESION"
+      ],
+      "available": true,
+      "leakage": {
+        "source_id_overlap": 0,
+        "path_overlap": 0,
+        "sha256_overlap": 0,
+        "status": "SAFE_TEST",
+        "patient_independence": "UNKNOWN"
+      },
+      "independent_source_note": "OralXrays has no independent test split and is not included in test metrics"
+    },
+    {
+      "task": "Deep Caries",
+      "dataset": "data/canonical/dentai_v3_super/test.json",
+      "source": [
+        "dentex_hf_7b27ccc8"
+      ],
+      "test_images": 42,
+      "gt_objects": 150,
+      "classes": [
+        "CARIES",
+        "DEEP_CARIES"
+      ],
+      "available": true,
+      "leakage": {
+        "source_id_overlap": 0,
+        "path_overlap": 0,
+        "sha256_overlap": 0,
+        "status": "SAFE_TEST",
+        "patient_independence": "UNKNOWN"
+      }
+    },
+    {
+      "task": "Restoration detection/classification",
+      "dataset": "data/canonical/akudental/git-92e2cc3/instances.json + data/splits/tooth_v2/test.json",
+      "source": [
+        "akudental"
+      ],
+      "test_images": 35,
+      "gt_objects": 102,
+      "classes": [
+        "FILLING",
+        "IMPLANT"
+      ],
+      "available": true,
+      "leakage": {
+        "source_id_overlap": 0,
+        "path_overlap": 0,
+        "sha256_overlap": 0,
+        "status": "SAFE_TEST",
+        "patient_independence": "UNKNOWN"
+      }
+    }
+  ],
+  "tooth_detection": {
+    "dataset": "data/canonical/dentai_v3_super/test.json",
+    "source": [
+      "akudental_git_92e2cc3",
+      "dentex_hf_7b27ccc8",
+      "dual_labeled_fdi"
+    ],
+    "test_images": 188,
+    "iou_threshold": 0.5,
+    "score_threshold": 0.5,
+    "gt_teeth": 4174,
+    "detected_teeth": 5168,
+    "matched_teeth": 4099,
+    "missed_teeth": 75,
+    "false_positives": 1069,
+    "recall": 0.9820316243411595,
+    "precision": 0.7931501547987616,
+    "f1": 0.8775422821665597,
+    "mean_detected_teeth_per_image": 27.48936170212766,
+    "images_exactly_32": 29,
+    "images_fewer_than_32": 154,
+    "images_more_than_32": 5,
+    "source_wise": {
+      "akudental_git_92e2cc3": {
+        "gt": 982,
+        "predicted": 991,
+        "matched": 977,
+        "recall": 0.994908350305499,
+        "precision": 0.9858728557013118
+      },
+      "dentex_hf_7b27ccc8": {
+        "gt": 1900,
+        "predicted": 2870,
+        "matched": 1841,
+        "recall": 0.9689473684210527,
+        "precision": 0.6414634146341464
+      },
+      "dual_labeled_fdi": {
+        "gt": 1292,
+        "predicted": 1307,
+        "matched": 1281,
+        "recall": 0.9914860681114551,
+        "precision": 0.9801071155317521
+      }
+    }
+  },
+  "fdi": {
+    "dataset": "data/canonical/dentai_v3_super/test.json",
+    "matched_teeth_only": true,
+    "raw": {
+      "accuracy": 0.9104659673090998,
+      "correct": 3732,
+      "support": 4099,
+      "macro_recall": 0.9102847802152796,
+      "per_fdi": {
+        "11": {
+          "recall": 0.9712230215827338,
+          "support": 139,
+          "correct": 135
+        },
+        "12": {
+          "recall": 0.9172932330827067,
+          "support": 133,
+          "correct": 122
+        },
+        "13": {
+          "recall": 0.9626865671641791,
+          "support": 134,
+          "correct": 129
+        },
+        "14": {
+          "recall": 0.944,
+          "support": 125,
+          "correct": 118
+        },
+        "15": {
+          "recall": 0.9140625,
+          "support": 128,
+          "correct": 117
+        },
+        "16": {
+          "recall": 0.9426229508196722,
+          "support": 122,
+          "correct": 115
+        },
+        "17": {
+          "recall": 0.9022556390977443,
+          "support": 133,
+          "correct": 120
+        },
+        "18": {
+          "recall": 0.927710843373494,
+          "support": 83,
+          "correct": 77
+        },
+        "21": {
+          "recall": 0.9925925925925926,
+          "support": 135,
+          "correct": 134
+        },
+        "22": {
+          "recall": 0.9629629629629629,
+          "support": 135,
+          "correct": 130
+        },
+        "23": {
+          "recall": 0.9856115107913669,
+          "support": 139,
+          "correct": 137
+        },
+        "24": {
+          "recall": 0.92,
+          "support": 125,
+          "correct": 115
+        },
+        "25": {
+          "recall": 0.9173553719008265,
+          "support": 121,
+          "correct": 111
+        },
+        "26": {
+          "recall": 0.9322033898305084,
+          "support": 118,
+          "correct": 110
+        },
+        "27": {
+          "recall": 0.8920863309352518,
+          "support": 139,
+          "correct": 124
+        },
+        "28": {
+          "recall": 0.8977272727272727,
+          "support": 88,
+          "correct": 79
+        },
+        "31": {
+          "recall": 0.8161764705882353,
+          "support": 136,
+          "correct": 111
+        },
+        "32": {
+          "recall": 0.8571428571428571,
+          "support": 140,
+          "correct": 120
+        },
+        "33": {
+          "recall": 0.9236111111111112,
+          "support": 144,
+          "correct": 133
+        },
+        "34": {
+          "recall": 0.8905109489051095,
+          "support": 137,
+          "correct": 122
+        },
+        "35": {
+          "recall": 0.9307692307692308,
+          "support": 130,
+          "correct": 121
+        },
+        "36": {
+          "recall": 0.904,
+          "support": 125,
+          "correct": 113
+        },
+        "37": {
+          "recall": 0.8978102189781022,
+          "support": 137,
+          "correct": 123
+        },
+        "38": {
+          "recall": 0.9166666666666666,
+          "support": 108,
+          "correct": 99
+        },
+        "41": {
+          "recall": 0.75,
+          "support": 136,
+          "correct": 102
+        },
+        "42": {
+          "recall": 0.8794326241134752,
+          "support": 141,
+          "correct": 124
+        },
+        "43": {
+          "recall": 0.9295774647887324,
+          "support": 142,
+          "correct": 132
+        },
+        "44": {
+          "recall": 0.9130434782608695,
+          "support": 138,
+          "correct": 126
+        },
+        "45": {
+          "recall": 0.917910447761194,
+          "support": 134,
+          "correct": 123
+        },
+        "46": {
+          "recall": 0.9051724137931034,
+          "support": 116,
+          "correct": 105
+        },
+        "47": {
+          "recall": 0.8832116788321168,
+          "support": 137,
+          "correct": 121
+        },
+        "48": {
+          "recall": 0.8316831683168316,
+          "support": 101,
+          "correct": 84
+        }
+      },
+      "quadrant_accuracy": 0.9629177848255672,
+      "tooth_position_accuracy": 0.9429129055867285
+    },
+    "resolved": {
+      "accuracy": 0.915345206147841,
+      "correct": 3752,
+      "support": 4099,
+      "macro_recall": 0.9154756446644788,
+      "per_fdi": {
+        "11": {
+          "recall": 0.9856115107913669,
+          "support": 139,
+          "correct": 137
+        },
+        "12": {
+          "recall": 0.9548872180451128,
+          "support": 133,
+          "correct": 127
+        },
+        "13": {
+          "recall": 0.9776119402985075,
+          "support": 134,
+          "correct": 131
+        },
+        "14": {
+          "recall": 0.936,
+          "support": 125,
+          "correct": 117
+        },
+        "15": {
+          "recall": 0.9375,
+          "support": 128,
+          "correct": 120
+        },
+        "16": {
+          "recall": 0.9508196721311475,
+          "support": 122,
+          "correct": 116
+        },
+        "17": {
+          "recall": 0.9172932330827067,
+          "support": 133,
+          "correct": 122
+        },
+        "18": {
+          "recall": 0.927710843373494,
+          "support": 83,
+          "correct": 77
+        },
+        "21": {
+          "recall": 0.9925925925925926,
+          "support": 135,
+          "correct": 134
+        },
+        "22": {
+          "recall": 0.9851851851851852,
+          "support": 135,
+          "correct": 133
+        },
+        "23": {
+          "recall": 0.9856115107913669,
+          "support": 139,
+          "correct": 137
+        },
+        "24": {
+          "recall": 0.96,
+          "support": 125,
+          "correct": 120
+        },
+        "25": {
+          "recall": 0.9421487603305785,
+          "support": 121,
+          "correct": 114
+        },
+        "26": {
+          "recall": 0.9661016949152542,
+          "support": 118,
+          "correct": 114
+        },
+        "27": {
+          "recall": 0.9064748201438849,
+          "support": 139,
+          "correct": 126
+        },
+        "28": {
+          "recall": 0.9204545454545454,
+          "support": 88,
+          "correct": 81
+        },
+        "31": {
+          "recall": 0.7720588235294118,
+          "support": 136,
+          "correct": 105
+        },
+        "32": {
+          "recall": 0.8714285714285714,
+          "support": 140,
+          "correct": 122
+        },
+        "33": {
+          "recall": 0.9166666666666666,
+          "support": 144,
+          "correct": 132
+        },
+        "34": {
+          "recall": 0.9051094890510949,
+          "support": 137,
+          "correct": 124
+        },
+        "35": {
+          "recall": 0.9384615384615385,
+          "support": 130,
+          "correct": 122
+        },
+        "36": {
+          "recall": 0.92,
+          "support": 125,
+          "correct": 115
+        },
+        "37": {
+          "recall": 0.8978102189781022,
+          "support": 137,
+          "correct": 123
+        },
+        "38": {
+          "recall": 0.8981481481481481,
+          "support": 108,
+          "correct": 97
+        },
+        "41": {
+          "recall": 0.7573529411764706,
+          "support": 136,
+          "correct": 103
+        },
+        "42": {
+          "recall": 0.8368794326241135,
+          "support": 141,
+          "correct": 118
+        },
+        "43": {
+          "recall": 0.9225352112676056,
+          "support": 142,
+          "correct": 131
+        },
+        "44": {
+          "recall": 0.9057971014492754,
+          "support": 138,
+          "correct": 125
+        },
+        "45": {
+          "recall": 0.8955223880597015,
+          "support": 134,
+          "correct": 120
+        },
+        "46": {
+          "recall": 0.896551724137931,
+          "support": 116,
+          "correct": 104
+        },
+        "47": {
+          "recall": 0.8832116788321168,
+          "support": 137,
+          "correct": 121
+        },
+        "48": {
+          "recall": 0.8316831683168316,
+          "support": 101,
+          "correct": 84
+        }
+      },
+      "quadrant_accuracy": 0.9626738228836301,
+      "tooth_position_accuracy": 0.9407172481092949
+    },
+    "wrong_to_correct": 61,
+    "correct_to_wrong": 41,
+    "unchanged_correct": 3691,
+    "unchanged_wrong": 306,
+    "duplicate_assignments_before_resolver": 269,
+    "duplicate_assignments_after_resolver": 49,
+    "assignments_changed": 226
+  },
+  "status_gate": {
+    "accuracy": 0.9055727554179567,
+    "macro_precision": 0.8692890081905156,
+    "macro_recall": 0.8622675651222773,
+    "balanced_accuracy": 0.8622675651222773,
+    "macro_f1": 0.8656973811568716,
+    "weighted_f1": 0.9051196261649899,
+    "support": 1292,
+    "correct": 1170,
+    "per_class": {
+      "HEALTHY": {
+        "precision": 0.935129740518962,
+        "recall": 0.9426559356136821,
+        "f1": 0.938877755511022,
+        "support": 994,
+        "tp": 937,
+        "fp": 65,
+        "fn": 57
+      },
+      "NON_HEALTHY": {
+        "precision": 0.803448275862069,
+        "recall": 0.7818791946308725,
+        "f1": 0.7925170068027212,
+        "support": 298,
+        "tp": 233,
+        "fp": 57,
+        "fn": 65
+      }
+    },
+    "confusion_matrix": [
+      [
+        937,
+        57
+      ],
+      [
+        65,
+        233
+      ]
+    ],
+    "confusion_matrix_labels": [
+      "HEALTHY",
+      "NON_HEALTHY"
+    ],
+    "dataset": "data/canonical/dual_labeled_status/test.json",
+    "threshold_non_healthy": 0.3,
+    "false_healthy_count": 65
+  },
+  "status_v2": {
+    "accuracy": 0.8258513931888545,
+    "macro_precision": 0.7539245607087341,
+    "macro_recall": 0.8487177753216784,
+    "balanced_accuracy": 0.8487177753216784,
+    "macro_f1": 0.7847413352694812,
+    "weighted_f1": 0.8499912313534131,
+    "support": 1292,
+    "correct": 1067,
+    "per_class": {
+      "HEALTHY": {
+        "precision": 0.9612676056338029,
+        "recall": 0.823943661971831,
+        "f1": 0.8873239436619719,
+        "support": 994,
+        "tp": 819,
+        "fp": 33,
+        "fn": 175
+      },
+      "FILLING": {
+        "precision": 0.6190476190476191,
+        "recall": 0.7878787878787878,
+        "f1": 0.6933333333333334,
+        "support": 99,
+        "tp": 78,
+        "fp": 48,
+        "fn": 21
+      },
+      "CARIES": {
+        "precision": 0.22699386503067484,
+        "recall": 0.6271186440677966,
+        "f1": 0.3333333333333333,
+        "support": 59,
+        "tp": 37,
+        "fp": 126,
+        "fn": 22
+      },
+      "RCT_CROWN": {
+        "precision": 0.9,
+        "recall": 1.0,
+        "f1": 0.9473684210526316,
+        "support": 63,
+        "tp": 63,
+        "fp": 7,
+        "fn": 0
+      },
+      "CROWN": {
+        "precision": 0.8611111111111112,
+        "recall": 0.96875,
+        "f1": 0.911764705882353,
+        "support": 32,
+        "tp": 31,
+        "fp": 5,
+        "fn": 1
+      },
+      "ROOT_CANAL_TREATMENT": {
+        "precision": 0.896551724137931,
+        "recall": 0.8666666666666667,
+        "f1": 0.8813559322033899,
+        "support": 30,
+        "tp": 26,
+        "fp": 3,
+        "fn": 4
+      },
+      "RESIDUAL_ROOT": {
+        "precision": 0.8125,
+        "recall": 0.8666666666666667,
+        "f1": 0.8387096774193549,
+        "support": 15,
+        "tp": 13,
+        "fp": 3,
+        "fn": 2
+      }
+    },
+    "confusion_matrix": [
+      [
+        819,
+        47,
+        120,
+        1,
+        4,
+        0,
+        3
+      ],
+      [
+        14,
+        78,
+        6,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        19,
+        1,
+        37,
+        1,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        63,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        31,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        3,
+        1,
+        26,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        13
+      ]
+    ],
+    "confusion_matrix_labels": [
+      "HEALTHY",
+      "FILLING",
+      "CARIES",
+      "RCT_CROWN",
+      "CROWN",
+      "ROOT_CANAL_TREATMENT",
+      "RESIDUAL_ROOT"
+    ],
+    "dataset": "data/canonical/dual_labeled_status/test.json",
+    "caries": {
+      "precision": 0.22699386503067484,
+      "recall": 0.6271186440677966,
+      "f1": 0.3333333333333333,
+      "support": 59,
+      "tp": 37,
+      "fp": 126,
+      "fn": 22
+    }
+  },
+  "pathology": {
+    "per_class": {
+      "CARIES": {
+        "gt": 141,
+        "tp": 61,
+        "fp": 55,
+        "fn": 80,
+        "precision": 0.5258620689655172,
+        "recall": 0.4326241134751773,
+        "f1": 0.47470817120622577,
+        "experimental": false
+      },
+      "APICAL_PERIODONTITIS": {
+        "gt": 80,
+        "tp": 29,
+        "fp": 25,
+        "fn": 51,
+        "precision": 0.5370370370370371,
+        "recall": 0.3625,
+        "f1": 0.4328358208955224,
+        "experimental": false
+      },
+      "IMPACTED": {
+        "gt": 58,
+        "tp": 51,
+        "fp": 28,
+        "fn": 7,
+        "precision": 0.6455696202531646,
+        "recall": 0.8793103448275862,
+        "f1": 0.7445255474452555,
+        "experimental": false
+      },
+      "BONE_RESORPTION": {
+        "gt": 118,
+        "tp": 24,
+        "fp": 78,
+        "fn": 94,
+        "precision": 0.23529411764705882,
+        "recall": 0.2033898305084746,
+        "f1": 0.2181818181818182,
+        "experimental": true
+      },
+      "ROOT_FRAGMENT": {
+        "gt": 33,
+        "tp": 27,
+        "fp": 26,
+        "fn": 6,
+        "precision": 0.5094339622641509,
+        "recall": 0.8181818181818182,
+        "f1": 0.627906976744186,
+        "experimental": false
+      },
+      "FURCATION_LESION": {
+        "gt": 18,
+        "tp": 3,
+        "fp": 14,
+        "fn": 15,
+        "precision": 0.17647058823529413,
+        "recall": 0.16666666666666666,
+        "f1": 0.17142857142857143,
+        "experimental": true
+      }
+    },
+    "macro_precision": 0.4382778990670371,
+    "macro_recall": 0.47711212894328714,
+    "macro_f1": 0.44493115098359654,
+    "dataset": "data/canonical/dentai_v3_super/test.json",
+    "sources": [
+      "oralxrays9",
+      "zenodo14"
+    ],
+    "test_images": 100,
+    "iou_threshold": 0.5,
+    "thresholds": {
+      "CARIES": 0.7,
+      "APICAL_PERIODONTITIS": 0.65,
+      "IMPACTED": 0.65,
+      "BONE_RESORPTION": 0.65,
+      "ROOT_FRAGMENT": 0.3,
+      "FURCATION_LESION": 0.55
+    },
+    "source_wise": {
+      "zenodo14": {
+        "per_class": {
+          "CARIES": {
+            "gt": 141,
+            "tp": 61,
+            "fp": 55,
+            "fn": 80,
+            "precision": 0.5258620689655172,
+            "recall": 0.4326241134751773,
+            "f1": 0.47470817120622577,
+            "experimental": false
+          },
+          "APICAL_PERIODONTITIS": {
+            "gt": 80,
+            "tp": 29,
+            "fp": 25,
+            "fn": 51,
+            "precision": 0.5370370370370371,
+            "recall": 0.3625,
+            "f1": 0.4328358208955224,
+            "experimental": false
+          },
+          "IMPACTED": {
+            "gt": 58,
+            "tp": 51,
+            "fp": 28,
+            "fn": 7,
+            "precision": 0.6455696202531646,
+            "recall": 0.8793103448275862,
+            "f1": 0.7445255474452555,
+            "experimental": false
+          },
+          "BONE_RESORPTION": {
+            "gt": 118,
+            "tp": 24,
+            "fp": 78,
+            "fn": 94,
+            "precision": 0.23529411764705882,
+            "recall": 0.2033898305084746,
+            "f1": 0.2181818181818182,
+            "experimental": true
+          },
+          "ROOT_FRAGMENT": {
+            "gt": 33,
+            "tp": 27,
+            "fp": 26,
+            "fn": 6,
+            "precision": 0.5094339622641509,
+            "recall": 0.8181818181818182,
+            "f1": 0.627906976744186,
+            "experimental": false
+          },
+          "FURCATION_LESION": {
+            "gt": 18,
+            "tp": 3,
+            "fp": 14,
+            "fn": 15,
+            "precision": 0.17647058823529413,
+            "recall": 0.16666666666666666,
+            "f1": 0.17142857142857143,
+            "experimental": true
+          }
+        },
+        "macro_precision": 0.4382778990670371,
+        "macro_recall": 0.47711212894328714,
+        "macro_f1": 0.44493115098359654
+      }
+    }
+  },
+  "deep_caries": {
+    "accuracy": 0.4,
+    "macro_precision": 0.5091911764705882,
+    "macro_recall": 0.5125,
+    "balanced_accuracy": 0.5125,
+    "macro_f1": 0.39123376623376627,
+    "weighted_f1": 0.43506493506493515,
+    "support": 150,
+    "correct": 60,
+    "per_class": {
+      "CARIES": {
+        "precision": 0.8125,
+        "recall": 0.325,
+        "f1": 0.46428571428571436,
+        "support": 120,
+        "tp": 39,
+        "fp": 9,
+        "fn": 81
+      },
+      "DEEP_CARIES": {
+        "precision": 0.20588235294117646,
+        "recall": 0.7,
+        "f1": 0.3181818181818182,
+        "support": 30,
+        "tp": 21,
+        "fp": 81,
+        "fn": 9
+      }
+    },
+    "confusion_matrix": [
+      [
+        39,
+        81
+      ],
+      [
+        9,
+        21
+      ]
+    ],
+    "confusion_matrix_labels": [
+      "CARIES",
+      "DEEP_CARIES"
+    ],
+    "dataset": "data/canonical/dentai_v3_super/test.json",
+    "test_images": 42,
+    "threshold_deep_caries": 0.65,
+    "caries_recall": 0.325,
+    "deep_precision": 0.20588235294117646,
+    "deep_recall": 0.7,
+    "deep_f1": 0.3181818181818182,
+    "independent_test_available": true
+  },
+  "restoration": {
+    "detector": {
+      "per_class": {
+        "FILLING": {
+          "gt": 95,
+          "tp": 78,
+          "fp": 18,
+          "fn": 17,
+          "precision": 0.8125,
+          "recall": 0.8210526315789474,
+          "f1": 0.8167539267015708,
+          "experimental": false
+        },
+        "IMPLANT": {
+          "gt": 7,
+          "tp": 7,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "experimental": false
+        }
+      },
+      "macro_precision": 0.90625,
+      "macro_recall": 0.9105263157894736,
+      "macro_f1": 0.9083769633507854,
+      "dataset": "data/canonical/akudental/git-92e2cc3/instances.json",
+      "split_manifest": "data/splits/tooth_v2/test.json",
+      "test_images": 35,
+      "threshold": 0.5,
+      "iou_threshold": 0.5
+    },
+    "classifier": {
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "balanced_accuracy": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "support": 102,
+      "correct": 102,
+      "per_class": {
+        "FILLING": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 95,
+          "tp": 95,
+          "fp": 0,
+          "fn": 0
+        },
+        "IMPLANT": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 7,
+          "tp": 7,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "confusion_matrix": [
+        [
+          95,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "FILLING",
+        "IMPLANT"
+      ],
+      "dataset": "data/canonical/akudental/git-92e2cc3/instances.json",
+      "split_manifest": "data/splits/tooth_v2/test.json"
+    },
+    "combined": {
+      "per_class": {
+        "FILLING": {
+          "gt": 95,
+          "tp": 78,
+          "fp": 18,
+          "fn": 17,
+          "precision": 0.8125,
+          "recall": 0.8210526315789474,
+          "f1": 0.8167539267015708,
+          "experimental": false
+        },
+        "IMPLANT": {
+          "gt": 7,
+          "tp": 7,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "experimental": false
+        }
+      },
+      "macro_precision": 0.90625,
+      "macro_recall": 0.9105263157894736,
+      "macro_f1": 0.9083769633507854,
+      "definition": "Detection must IoU-match GT and classifier type must equal GT"
+    }
+  },
+  "unified": {
+    "dataset": "data/canonical/dual_labeled_status/test.json",
+    "source": [
+      "dual_labeled_status"
+    ],
+    "total_test_images": 50,
+    "total_gt_teeth": 1292,
+    "total_detected_teeth": 1307,
+    "matched_teeth": 1281,
+    "iou_threshold": 0.5,
+    "tooth_recall": 0.9914860681114551,
+    "tooth_precision": 0.9801071155317521,
+    "fdi_accuracy_on_matched_teeth": 0.9289617486338798,
+    "fdi_correct_matched": 1190,
+    "fdi_end_to_end_accuracy": 0.9210526315789473,
+    "status_accuracy_on_matched_teeth": 0.8243559718969555,
+    "status_correct": 1056,
+    "healthy_recall": 0.7553083923154702,
+    "non_healthy_recall": 0.9315068493150684,
+    "healthy_binary_confusion_matrix": [
+      [
+        747,
+        242
+      ],
+      [
+        20,
+        272
+      ]
+    ],
+    "finding_metrics": {
+      "CARIES": {
+        "tn": 1075,
+        "fn": 16,
+        "fp": 149,
+        "tp": 41,
+        "precision": 0.21578947368421053,
+        "recall": 0.7192982456140351,
+        "f1": 0.33198380566801616,
+        "gt_compatibility": "dual_labeled_status"
+      },
+      "FILLING": {
+        "tn": 1051,
+        "fp": 131,
+        "tp": 85,
+        "fn": 14,
+        "precision": 0.39351851851851855,
+        "recall": 0.8585858585858586,
+        "f1": 0.5396825396825397,
+        "gt_compatibility": "dual_labeled_status"
+      },
+      "CROWN": {
+        "tp": 92,
+        "tn": 1176,
+        "fp": 13,
+        "precision": 0.8761904761904762,
+        "recall": 1.0,
+        "f1": 0.934010152284264,
+        "gt_compatibility": "dual_labeled_status"
+      },
+      "ROOT_CANAL_TREATMENT": {
+        "tp": 89,
+        "tn": 1184,
+        "fn": 1,
+        "fp": 7,
+        "precision": 0.9270833333333334,
+        "recall": 0.9888888888888889,
+        "f1": 0.9569892473118279,
+        "gt_compatibility": "dual_labeled_status"
+      },
+      "RESIDUAL_ROOT": {
+        "tn": 1265,
+        "tp": 11,
+        "fp": 2,
+        "fn": 3,
+        "precision": 0.8461538461538461,
+        "recall": 0.7857142857142857,
+        "f1": 0.8148148148148148,
+        "gt_compatibility": "dual_labeled_status"
+      },
+      "APICAL_PERIODONTITIS": {
+        "available": false,
+        "reason": "No compatible labels in the end-to-end status test set"
+      },
+      "IMPACTED": {
+        "available": false,
+        "reason": "No compatible labels in the end-to-end status test set"
+      },
+      "ROOT_FRAGMENT": {
+        "available": false,
+        "reason": "No compatible labels in the end-to-end status test set"
+      },
+      "IMPLANT": {
+        "available": false,
+        "reason": "No compatible labels in the end-to-end status test set"
+      },
+      "DEEP_CARIES": {
+        "available": false,
+        "reason": "No Deep Caries labels in the unified dual_labeled_status test cohort; separately evaluated on held-out specialist test"
+      },
+      "RCT_CROWN": {
+        "available": true,
+        "representation": "decomposed into CROWN + ROOT_CANAL_TREATMENT"
+      }
+    },
+    "review_system": {
+      "correct_not_marked": 507,
+      "correct_marked_review": 471,
+      "errors_marked_review": 192,
+      "errors_not_marked_review": 111,
+      "all_errors": 303,
+      "all_reviewed": 663,
+      "error_capture_rate": 0.6336633663366337,
+      "review_precision": 0.2895927601809955,
+      "error_definition": "FDI or 7-class status incorrect on geometrically matched tooth"
+    },
+    "performance": {
+      "device": "cpu",
+      "images_evaluated": 50,
+      "mean_seconds_per_image": 11.358940512320187,
+      "median_seconds_per_image": 11.40007978900212,
+      "p95_seconds_per_image": 12.897611745000177,
+      "peak_gpu_memory_bytes": null
+    },
+    "source_wise": {
+      "dual_labeled_status": {
+        "gt": 1292,
+        "predicted": 1307,
+        "matched": 1281,
+        "recall": 0.9914860681114551,
+        "precision": 0.9801071155317521
+      }
+    },
+    "leakage_check": {
+      "status_train_test_overlap": 0,
+      "super_train_status_test_basename_overlap": 0,
+      "status_test_excluded_from_all_relevant_training_manifests": true,
+      "patient_independence": "UNKNOWN"
+    }
+  },
+  "readiness_assessment": {
+    "tooth_detection": {
+      "classification": "ACCEPTABLE",
+      "reason": "Held-out image test: recall 0.982, precision 0.793; Dentex false positives reduce cross-source precision."
+    },
+    "fdi": {
+      "classification": "STRONG",
+      "reason": "Resolved matched-tooth accuracy 0.915; image-disjoint test, patient independence unknown."
+    },
+    "status_gate": {
+      "classification": "ACCEPTABLE",
+      "reason": "Balanced accuracy 0.862; false-healthy count 65."
+    },
+    "status_v2": {
+      "classification": "ACCEPTABLE",
+      "reason": "Macro F1 0.785; minority-class supports are limited."
+    },
+    "pathology": {
+      "classification": "EXPERIMENTAL",
+      "reason": "Macro F1 0.445; heterogeneous class performance and no OralXrays independent test."
+    },
+    "deep_caries": {
+      "classification": "WEAK",
+      "reason": "Held-out deep-caries F1 0.318 and precision 0.206 on support 30."
+    },
+    "restoration": {
+      "classification": "ACCEPTABLE",
+      "reason": "Detector macro F1 0.908; implant support is limited."
+    },
+    "unified": {
+      "classification": "ACCEPTABLE",
+      "reason": "True panorama-to-findings test: tooth recall 0.991, end-to-end FDI 0.921; repository-only, retrospective labels."
+    }
+  },
+  "overall_readiness": "ADVANCED PROTOTYPE",
+  "top_5_weaknesses": [
+    {
+      "rank": 1,
+      "weakness": "No external/prospective patient-independent clinical test cohort",
+      "impact": "Generalization and clinical safety cannot be established",
+      "next_improvement": "EXTERNAL VALIDATION"
+    },
+    {
+      "rank": 2,
+      "weakness": "Pathology detector performance is heterogeneous, especially experimental findings",
+      "impact": "Potential missed or false pathology findings",
+      "next_improvement": "MORE DATA"
+    },
+    {
+      "rank": 3,
+      "weakness": "Minority status and restoration classes have limited held-out support",
+      "impact": "Uncertain reliability for rare but important findings",
+      "next_improvement": "MORE DATA"
+    },
+    {
+      "rank": 4,
+      "weakness": "End-to-end compatible GT covers status findings but not every pathology class",
+      "impact": "Full fused finding performance cannot be measured on one cohort",
+      "next_improvement": "BETTER LABELS"
+    },
+    {
+      "rank": 5,
+      "weakness": "Review flags do not guarantee capture of all end-to-end errors",
+      "impact": "Unreviewed errors can reach downstream users",
+      "next_improvement": "FUSION LOGIC"
+    }
+  ],
+  "recommended_next_actions": [
+    "Build a patient-independent external multi-center annotated test cohort.",
+    "Expand and adjudicate pathology boxes, prioritizing weak and experimental classes.",
+    "Increase rare status and implant examples without changing the locked test sets.",
+    "Create unified per-tooth plus object-level GT on the same panoramic cohort.",
+    "Calibrate review/fusion behavior on a separate calibration split, never the test set."
+  ],
+  "source_wise_generalization": {
+    "akudental": {
+      "gt": 982,
+      "predicted": 991,
+      "matched": 977,
+      "recall": 0.994908350305499,
+      "precision": 0.9858728557013118
+    },
+    "dentex": {
+      "gt": 1900,
+      "predicted": 2870,
+      "matched": 1841,
+      "recall": 0.9689473684210527,
+      "precision": 0.6414634146341464
+    },
+    "dual_labeled": {
+      "gt": 1292,
+      "predicted": 1307,
+      "matched": 1281,
+      "recall": 0.9914860681114551,
+      "precision": 0.9801071155317521
+    },
+    "zenodo": {
+      "per_class": {
+        "CARIES": {
+          "gt": 141,
+          "tp": 61,
+          "fp": 55,
+          "fn": 80,
+          "precision": 0.5258620689655172,
+          "recall": 0.4326241134751773,
+          "f1": 0.47470817120622577,
+          "experimental": false
+        },
+        "APICAL_PERIODONTITIS": {
+          "gt": 80,
+          "tp": 29,
+          "fp": 25,
+          "fn": 51,
+          "precision": 0.5370370370370371,
+          "recall": 0.3625,
+          "f1": 0.4328358208955224,
+          "experimental": false
+        },
+        "IMPACTED": {
+          "gt": 58,
+          "tp": 51,
+          "fp": 28,
+          "fn": 7,
+          "precision": 0.6455696202531646,
+          "recall": 0.8793103448275862,
+          "f1": 0.7445255474452555,
+          "experimental": false
+        },
+        "BONE_RESORPTION": {
+          "gt": 118,
+          "tp": 24,
+          "fp": 78,
+          "fn": 94,
+          "precision": 0.23529411764705882,
+          "recall": 0.2033898305084746,
+          "f1": 0.2181818181818182,
+          "experimental": true
+        },
+        "ROOT_FRAGMENT": {
+          "gt": 33,
+          "tp": 27,
+          "fp": 26,
+          "fn": 6,
+          "precision": 0.5094339622641509,
+          "recall": 0.8181818181818182,
+          "f1": 0.627906976744186,
+          "experimental": false
+        },
+        "FURCATION_LESION": {
+          "gt": 18,
+          "tp": 3,
+          "fp": 14,
+          "fn": 15,
+          "precision": 0.17647058823529413,
+          "recall": 0.16666666666666666,
+          "f1": 0.17142857142857143,
+          "experimental": true
+        }
+      },
+      "macro_precision": 0.4382778990670371,
+      "macro_recall": 0.47711212894328714,
+      "macro_f1": 0.44493115098359654
+    },
+    "oralxrays": {
+      "available": false,
+      "reason": "No independent test split; only deterministic train/validation partition"
+    }
+  }
+}

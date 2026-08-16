@@ -1,0 +1,217 @@
+============================================================
+DENTAI V5 MASTER EVALUATION
+============================================================
+
+TOOTH DETECTION
+Recall: 0.9820
+Precision: 0.7932
+F1: 0.8775
+
+FDI
+Raw accuracy: 0.9105
+Resolved accuracy: 0.9153
+End-to-end FDI accuracy: 0.9211
+
+STATUS GATE
+Healthy recall: 0.9427
+Non-healthy recall: 0.7819
+Balanced accuracy: 0.8623
+
+STATUS 7-CLASS
+Accuracy: 0.8259
+Macro recall: 0.8487
+Macro F1: 0.7847
+Caries recall: 0.6271
+
+PATHOLOGY
+Macro F1: 0.4449
+Caries F1: 0.4747
+Apical Periodontitis F1: 0.4328
+Impacted F1: 0.7445
+Root Fragment F1: 0.6279
+Bone Resorption F1: 0.2182 EXPERIMENTAL
+Furcation Lesion F1: 0.1714 EXPERIMENTAL
+
+DEEP CARIES
+Deep recall: 0.7000
+Deep precision: 0.2059
+Deep F1: 0.3182
+
+RESTORATION
+Detector F1: 0.9084
+Classifier accuracy: 1.0000
+
+UNIFIED END-TO-END
+Images: 50
+GT teeth: 1292
+Detected teeth: 1307
+Matched teeth: 1281
+Tooth recall: 0.9915
+FDI end-to-end accuracy: 0.9211
+Status accuracy: 0.8244
+Review error capture rate: 0.6337
+============================================================
+
+DATASET AUDIT
+Tooth detection/segmentation: SAFE_TEST
+  Dataset: data/canonical/dentai_v3_super/test.json
+  Images: 188 | GT: 4174 | Patient independence: UNKNOWN
+FDI numbering: SAFE_TEST
+  Dataset: data/canonical/dentai_v3_super/test.json
+  Images: 188 | GT: 4174 | Patient independence: UNKNOWN
+Tooth-level status: SAFE_TEST
+  Dataset: data/canonical/dual_labeled_status/test.json
+  Images: 50 | GT: 1292 | Patient independence: UNKNOWN
+Pathology detection: SAFE_TEST
+  Dataset: data/canonical/dentai_v3_super/test.json
+  Images: 100 | GT: 448 | Patient independence: UNKNOWN
+Deep Caries: SAFE_TEST
+  Dataset: data/canonical/dentai_v3_super/test.json
+  Images: 42 | GT: 150 | Patient independence: UNKNOWN
+Restoration detection/classification: SAFE_TEST
+  Dataset: data/canonical/akudental/git-92e2cc3/instances.json + data/splits/tooth_v2/test.json
+  Images: 35 | GT: 102 | Patient independence: UNKNOWN
+
+TOOTH DETAILS
+GT 4174 | detected 5168 | matched 4099 | missed 75 | FP 1069
+Mean detected/image 27.4894 | exactly 32: 29 | fewer: 154 | more: 5
+
+FDI TRANSITIONS
+wrong->correct 61 | correct->wrong 41 | unchanged correct 3691 | unchanged wrong 306
+duplicates before 269 | after 49 | changed 226
+Quadrant accuracy raw/resolved: 0.9629/0.9627
+Position accuracy raw/resolved: 0.9429/0.9407
+Per-FDI recall (raw/resolved/support):
+  11: 0.9712 / 0.9856 / 139
+  12: 0.9173 / 0.9549 / 133
+  13: 0.9627 / 0.9776 / 134
+  14: 0.9440 / 0.9360 / 125
+  15: 0.9141 / 0.9375 / 128
+  16: 0.9426 / 0.9508 / 122
+  17: 0.9023 / 0.9173 / 133
+  18: 0.9277 / 0.9277 / 83
+  21: 0.9926 / 0.9926 / 135
+  22: 0.9630 / 0.9852 / 135
+  23: 0.9856 / 0.9856 / 139
+  24: 0.9200 / 0.9600 / 125
+  25: 0.9174 / 0.9421 / 121
+  26: 0.9322 / 0.9661 / 118
+  27: 0.8921 / 0.9065 / 139
+  28: 0.8977 / 0.9205 / 88
+  31: 0.8162 / 0.7721 / 136
+  32: 0.8571 / 0.8714 / 140
+  33: 0.9236 / 0.9167 / 144
+  34: 0.8905 / 0.9051 / 137
+  35: 0.9308 / 0.9385 / 130
+  36: 0.9040 / 0.9200 / 125
+  37: 0.8978 / 0.8978 / 137
+  38: 0.9167 / 0.8981 / 108
+  41: 0.7500 / 0.7574 / 136
+  42: 0.8794 / 0.8369 / 141
+  43: 0.9296 / 0.9225 / 142
+  44: 0.9130 / 0.9058 / 138
+  45: 0.9179 / 0.8955 / 134
+  46: 0.9052 / 0.8966 / 116
+  47: 0.8832 / 0.8832 / 137
+  48: 0.8317 / 0.8317 / 101
+
+STATUS GATE PER CLASS
+  HEALTHY: P 0.9351 R 0.9427 F1 0.9389 support 994
+  NON_HEALTHY: P 0.8034 R 0.7819 F1 0.7925 support 298
+  Confusion: [[937, 57], [65, 233]]
+
+STATUS V2 PER CLASS
+  HEALTHY: P 0.9613 R 0.8239 F1 0.8873 support 994
+  FILLING: P 0.6190 R 0.7879 F1 0.6933 support 99
+  CARIES: P 0.2270 R 0.6271 F1 0.3333 support 59
+  RCT_CROWN: P 0.9000 R 1.0000 F1 0.9474 support 63
+  CROWN: P 0.8611 R 0.9688 F1 0.9118 support 32
+  ROOT_CANAL_TREATMENT: P 0.8966 R 0.8667 F1 0.8814 support 30
+  RESIDUAL_ROOT: P 0.8125 R 0.8667 F1 0.8387 support 15
+  Confusion: [[819, 47, 120, 1, 4, 0, 3], [14, 78, 6, 1, 0, 0, 0], [19, 1, 37, 1, 0, 1, 0], [0, 0, 0, 63, 0, 0, 0], [0, 0, 0, 1, 31, 0, 0], [0, 0, 0, 3, 1, 26, 0], [0, 0, 0, 0, 0, 2, 13]]
+
+PATHOLOGY PER CLASS
+  CARIES: GT 141 TP 61 FP 55 FN 80 P 0.5259 R 0.4326 F1 0.4747
+  APICAL_PERIODONTITIS: GT 80 TP 29 FP 25 FN 51 P 0.5370 R 0.3625 F1 0.4328
+  IMPACTED: GT 58 TP 51 FP 28 FN 7 P 0.6456 R 0.8793 F1 0.7445
+  BONE_RESORPTION EXPERIMENTAL: GT 118 TP 24 FP 78 FN 94 P 0.2353 R 0.2034 F1 0.2182
+  ROOT_FRAGMENT: GT 33 TP 27 FP 26 FN 6 P 0.5094 R 0.8182 F1 0.6279
+  FURCATION_LESION EXPERIMENTAL: GT 18 TP 3 FP 14 FN 15 P 0.1765 R 0.1667 F1 0.1714
+
+DEEP CARIES
+Independent test available: True | support 150
+Confusion: [[39, 81], [9, 21]]
+
+RESTORATION DETAILS
+DETECTOR
+  FILLING: TP 78 FP 18 FN 17 P 0.8125 R 0.8211 F1 0.8168
+  IMPLANT: TP 7 FP 0 FN 0 P 1.0000 R 1.0000 F1 1.0000
+COMBINED
+  FILLING: TP 78 FP 18 FN 17 P 0.8125 R 0.8211 F1 0.8168
+  IMPLANT: TP 7 FP 0 FN 0 P 1.0000 R 1.0000 F1 1.0000
+CLASSIFIER
+  FILLING: P 1.0000 R 1.0000 F1 1.0000 support 95
+  IMPLANT: P 1.0000 R 1.0000 F1 1.0000 support 7
+
+UNIFIED FINDINGS
+  CARIES: P 0.2158 R 0.7193 F1 0.3320
+  FILLING: P 0.3935 R 0.8586 F1 0.5397
+  CROWN: P 0.8762 R 1.0000 F1 0.9340
+  ROOT_CANAL_TREATMENT: P 0.9271 R 0.9889 F1 0.9570
+  RESIDUAL_ROOT: P 0.8462 R 0.7857 F1 0.8148
+  APICAL_PERIODONTITIS: NOT EVALUABLE — No compatible labels in the end-to-end status test set
+  IMPACTED: NOT EVALUABLE — No compatible labels in the end-to-end status test set
+  ROOT_FRAGMENT: NOT EVALUABLE — No compatible labels in the end-to-end status test set
+  IMPLANT: NOT EVALUABLE — No compatible labels in the end-to-end status test set
+  DEEP_CARIES: NOT EVALUABLE — No Deep Caries labels in the unified dual_labeled_status test cohort; separately evaluated on held-out specialist test
+  RCT_CROWN: decomposed into CROWN + ROOT_CANAL_TREATMENT
+
+REVIEW SYSTEM
+Errors reviewed 192 | errors not reviewed 111 | correct reviewed 471 | correct not reviewed 507
+Error capture 0.6337 | review precision 0.2896
+
+PERFORMANCE
+cpu | images 50 | mean 11.3589s | median 11.4001s | P95 12.8976s | peak GPU bytes None
+
+SOURCE-WISE GENERALIZATION
+  akudental_git_92e2cc3: tooth recall 0.9949, precision 0.9859, GT 982
+  dentex_hf_7b27ccc8: tooth recall 0.9689, precision 0.6415, GT 1900
+  dual_labeled_fdi: tooth recall 0.9915, precision 0.9801, GT 1292
+  zenodo14: pathology metrics available in master_results.json
+  oralxrays9: INDEPENDENT TEST NOT AVAILABLE (only deterministic train/validation partition)
+  dual_labeled_status: unified metrics reported above
+
+SUBSYSTEM READINESS
+tooth_detection: ACCEPTABLE — Held-out image test: recall 0.982, precision 0.793; Dentex false positives reduce cross-source precision.
+fdi: STRONG — Resolved matched-tooth accuracy 0.915; image-disjoint test, patient independence unknown.
+status_gate: ACCEPTABLE — Balanced accuracy 0.862; false-healthy count 65.
+status_v2: ACCEPTABLE — Macro F1 0.785; minority-class supports are limited.
+pathology: EXPERIMENTAL — Macro F1 0.445; heterogeneous class performance and no OralXrays independent test.
+deep_caries: WEAK — Held-out deep-caries F1 0.318 and precision 0.206 on support 30.
+restoration: ACCEPTABLE — Detector macro F1 0.908; implant support is limited.
+unified: ACCEPTABLE — True panorama-to-findings test: tooth recall 0.991, end-to-end FDI 0.921; repository-only, retrospective labels.
+
+TOP 5 WEAKNESSES
+1. No external/prospective patient-independent clinical test cohort — EXTERNAL VALIDATION
+2. Pathology detector performance is heterogeneous, especially experimental findings — MORE DATA
+3. Minority status and restoration classes have limited held-out support — MORE DATA
+4. End-to-end compatible GT covers status findings but not every pathology class — BETTER LABELS
+5. Review flags do not guarantee capture of all end-to-end errors — FUSION LOGIC
+
+RECOMMENDED NEXT ACTIONS
+1. Build a patient-independent external multi-center annotated test cohort.
+2. Expand and adjudicate pathology boxes, prioritizing weak and experimental classes.
+3. Increase rare status and implant examples without changing the locked test sets.
+4. Create unified per-tooth plus object-level GT on the same panoramic cohort.
+5. Calibrate review/fusion behavior on a separate calibration split, never the test set.
+
+============================================================
+DENTAI V5 FINAL VERDICT
+============================================================
+Overall readiness: ADVANCED PROTOTYPE
+Strongest subsystem: FDI resolver (0.9153 matched-tooth accuracy)
+Weakest subsystem: Pathology (0.4449 macro F1)
+Biggest data limitation: No external/prospective patient-independent unified GT cohort
+Recommended next training target: Pathology detector with expanded adjudicated class-balanced data
+Ready for external clinical validation: YES
+============================================================

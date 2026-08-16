@@ -1,0 +1,2076 @@
+{
+  "version": "dentai-unified-v5",
+  "image": "data/raw/akudental/current/source_repo/AKUDENTAL/images/111.jpg",
+  "device": "cpu",
+  "models": {
+    "tooth": {
+      "name": "Tooth V3",
+      "checkpoint": "checkpoints/tooth_v3/maskrcnn_fpn_v1/best.pt",
+      "epoch": 4,
+      "strict_load": true
+    },
+    "fdi": {
+      "name": "FDI V3 FIXED",
+      "checkpoint": "checkpoints/fdi_v3_fixed/best.pt",
+      "epoch": 5,
+      "strict_load": true
+    },
+    "status_gate": {
+      "name": "Tooth Status Gate V1",
+      "checkpoint": "checkpoints/tooth_status_gate_v1/best.pt",
+      "epoch": 9,
+      "strict_load": true
+    },
+    "status_v2": {
+      "name": "Tooth Status V2",
+      "checkpoint": "checkpoints/tooth_status_v2/best.pt",
+      "epoch": 5,
+      "strict_load": true
+    },
+    "pathology": {
+      "name": "Pathology Detector V4.1",
+      "checkpoint": "checkpoints/pathology_detector_v41/best.pt",
+      "epoch": 5,
+      "strict_load": true
+    },
+    "deep_caries": {
+      "name": "Deep Caries Specialist V2",
+      "checkpoint": "checkpoints/deep_caries_v2/best.pt",
+      "epoch": 2,
+      "strict_load": true
+    },
+    "restoration_detector": {
+      "name": "Restoration Detector V1",
+      "checkpoint": "checkpoints/restoration_detector_v1/best.pt",
+      "epoch": 8,
+      "strict_load": true
+    },
+    "restoration_classifier": {
+      "name": "Restoration Classifier V1",
+      "checkpoint": "checkpoints/restoration_v1/best.pt",
+      "epoch": 1,
+      "strict_load": true
+    }
+  },
+  "thresholds": {
+    "tooth": 0.5,
+    "status_gate_non_healthy": 0.3,
+    "pathology": {
+      "CARIES": 0.7,
+      "APICAL_PERIODONTITIS": 0.65,
+      "IMPACTED": 0.65,
+      "BONE_RESORPTION": 0.65,
+      "ROOT_FRAGMENT": 0.3,
+      "FURCATION_LESION": 0.55
+    },
+    "deep_caries": 0.65,
+    "restoration": 0.5
+  },
+  "summary": {
+    "teeth": 32,
+    "unique_fdi": 32,
+    "duplicate_fdi": [],
+    "pathology_detections": 5,
+    "restorations": 5,
+    "review_required": 4,
+    "resolver_duplicate_cleanup_changes": []
+  },
+  "teeth": [
+    {
+      "tooth_detection": {
+        "instance_id": 13,
+        "bbox_xyxy": [
+          1394.22,
+          557.81,
+          1480.71,
+          832.31
+        ],
+        "confidence": 0.997934
+      },
+      "fdi": "11",
+      "fdi_confidence": 0.998212,
+      "raw_fdi": "11",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "NON_HEALTHY",
+        "effective_prediction": "NON_HEALTHY",
+        "confidence": 0.831588,
+        "probabilities": {
+          "HEALTHY": 0.168412,
+          "NON_HEALTHY": 0.831588
+        },
+        "non_healthy_probability": 0.831588,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "FILLING",
+        "confidence": 0.942353,
+        "probabilities": {
+          "HEALTHY": 0.003401,
+          "FILLING": 0.942353,
+          "CARIES": 0.009484,
+          "RCT_CROWN": 0.006722,
+          "CROWN": 0.007114,
+          "ROOT_CANAL_TREATMENT": 0.012624,
+          "RESIDUAL_ROOT": 0.018303
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [
+        {
+          "type": "FILLING",
+          "bbox_xyxy": [
+            1465.42,
+            749.82,
+            1491.52,
+            793.18
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.763797,
+          "detector_threshold": 0.5,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.96497,
+          "classifier_probabilities": {
+            "FILLING": 0.96497,
+            "IMPLANT": 0.03503
+          },
+          "type_agreement": true,
+          "associated_fdi": "11",
+          "association_score": 2.7369
+        }
+      ],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "FILLING"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 27,
+        "bbox_xyxy": [
+          1315.58,
+          550.84,
+          1388.22,
+          815.65
+        ],
+        "confidence": 0.994638
+      },
+      "fdi": "12",
+      "fdi_confidence": 0.942405,
+      "raw_fdi": "12",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.954565,
+        "probabilities": {
+          "HEALTHY": 0.954565,
+          "NON_HEALTHY": 0.045435
+        },
+        "non_healthy_probability": 0.045435,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.868611,
+        "probabilities": {
+          "HEALTHY": 0.868611,
+          "FILLING": 0.017618,
+          "CARIES": 0.005944,
+          "RCT_CROWN": 0.008774,
+          "CROWN": 0.035138,
+          "ROOT_CANAL_TREATMENT": 0.018,
+          "RESIDUAL_ROOT": 0.045914
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 30,
+        "bbox_xyxy": [
+          1222.33,
+          501.18,
+          1316.21,
+          828.26
+        ],
+        "confidence": 0.988732
+      },
+      "fdi": "13",
+      "fdi_confidence": 0.985657,
+      "raw_fdi": "13",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.984758,
+        "probabilities": {
+          "HEALTHY": 0.984758,
+          "NON_HEALTHY": 0.015242
+        },
+        "non_healthy_probability": 0.015242,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.850341,
+        "probabilities": {
+          "HEALTHY": 0.850341,
+          "FILLING": 0.028275,
+          "CARIES": 0.034649,
+          "RCT_CROWN": 0.016017,
+          "CROWN": 0.017883,
+          "ROOT_CANAL_TREATMENT": 0.018381,
+          "RESIDUAL_ROOT": 0.034453
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 26,
+        "bbox_xyxy": [
+          1138.01,
+          547.5,
+          1238.96,
+          829.49
+        ],
+        "confidence": 0.994912
+      },
+      "fdi": "14",
+      "fdi_confidence": 0.999271,
+      "raw_fdi": "14",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.977112,
+        "probabilities": {
+          "HEALTHY": 0.977112,
+          "NON_HEALTHY": 0.022888
+        },
+        "non_healthy_probability": 0.022888,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.580441,
+        "probabilities": {
+          "HEALTHY": 0.580441,
+          "FILLING": 0.00882,
+          "CARIES": 0.268333,
+          "RCT_CROWN": 0.018298,
+          "CROWN": 0.028226,
+          "ROOT_CANAL_TREATMENT": 0.035616,
+          "RESIDUAL_ROOT": 0.060265
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 17,
+        "bbox_xyxy": [
+          1053.65,
+          548.28,
+          1146.56,
+          833.35
+        ],
+        "confidence": 0.997503
+      },
+      "fdi": "15",
+      "fdi_confidence": 0.924228,
+      "raw_fdi": "15",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.982793,
+        "probabilities": {
+          "HEALTHY": 0.982793,
+          "NON_HEALTHY": 0.017207
+        },
+        "non_healthy_probability": 0.017207,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.701722,
+        "probabilities": {
+          "HEALTHY": 0.21613,
+          "FILLING": 0.013784,
+          "CARIES": 0.701722,
+          "RCT_CROWN": 0.009644,
+          "CROWN": 0.013983,
+          "ROOT_CANAL_TREATMENT": 0.02106,
+          "RESIDUAL_ROOT": 0.023676
+        }
+      },
+      "pathology_evidence": [
+        {
+          "type": "CARIES",
+          "confidence": 0.995891,
+          "threshold": 0.7,
+          "bbox_xyxy": [
+            1050.67,
+            730.58,
+            1113.59,
+            818.47
+          ],
+          "associated_fdi": "15",
+          "association_score": 4.1804
+        }
+      ],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "DEEP_CARIES",
+        "confidence": 0.585096,
+        "probability": 0.585096,
+        "threshold": 0.65,
+        "upgraded": false
+      },
+      "final_findings": [
+        "CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 1,
+        "bbox_xyxy": [
+          946.56,
+          547.09,
+          1057.65,
+          832.84
+        ],
+        "confidence": 0.999123
+      },
+      "fdi": "16",
+      "fdi_confidence": 0.989566,
+      "raw_fdi": "16",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "NON_HEALTHY",
+        "effective_prediction": "NON_HEALTHY",
+        "confidence": 0.590327,
+        "probabilities": {
+          "HEALTHY": 0.409673,
+          "NON_HEALTHY": 0.590327
+        },
+        "non_healthy_probability": 0.590327,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.856813,
+        "probabilities": {
+          "HEALTHY": 0.002438,
+          "FILLING": 0.081606,
+          "CARIES": 0.856813,
+          "RCT_CROWN": 0.010693,
+          "CROWN": 0.011232,
+          "ROOT_CANAL_TREATMENT": 0.017484,
+          "RESIDUAL_ROOT": 0.019734
+        }
+      },
+      "pathology_evidence": [
+        {
+          "type": "CARIES",
+          "confidence": 0.997971,
+          "threshold": 0.7,
+          "bbox_xyxy": [
+            942.97,
+            725.79,
+            1004.12,
+            814.85
+          ],
+          "associated_fdi": "16",
+          "association_score": 4.0741
+        },
+        {
+          "type": "CARIES",
+          "confidence": 0.979477,
+          "threshold": 0.7,
+          "bbox_xyxy": [
+            1008.87,
+            738.27,
+            1068.61,
+            810.28
+          ],
+          "associated_fdi": "16",
+          "association_score": 3.5906
+        }
+      ],
+      "restorations": [
+        {
+          "type": "FILLING",
+          "bbox_xyxy": [
+            983.16,
+            784.63,
+            1042.67,
+            816.64
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.817728,
+          "detector_threshold": 0.5,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.981279,
+          "classifier_probabilities": {
+            "FILLING": 0.981279,
+            "IMPLANT": 0.018721
+          },
+          "type_agreement": true,
+          "associated_fdi": "16",
+          "association_score": 4.0293
+        }
+      ],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "DEEP_CARIES",
+        "confidence": 0.827106,
+        "probability": 0.827106,
+        "threshold": 0.65,
+        "upgraded": true
+      },
+      "final_findings": [
+        "DEEP_CARIES",
+        "FILLING"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 18,
+        "bbox_xyxy": [
+          822.13,
+          543.11,
+          951.13,
+          814.38
+        ],
+        "confidence": 0.997408
+      },
+      "fdi": "17",
+      "fdi_confidence": 0.990406,
+      "raw_fdi": "17",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.996693,
+        "probabilities": {
+          "HEALTHY": 0.996693,
+          "NON_HEALTHY": 0.003307
+        },
+        "non_healthy_probability": 0.003307,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.898842,
+        "probabilities": {
+          "HEALTHY": 0.898842,
+          "FILLING": 0.00744,
+          "CARIES": 0.023807,
+          "RCT_CROWN": 0.007473,
+          "CROWN": 0.011929,
+          "ROOT_CANAL_TREATMENT": 0.017881,
+          "RESIDUAL_ROOT": 0.032629
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 10,
+        "bbox_xyxy": [
+          750.71,
+          488.0,
+          866.68,
+          718.55
+        ],
+        "confidence": 0.998429
+      },
+      "fdi": "18",
+      "fdi_confidence": 0.975076,
+      "raw_fdi": "18",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.996462,
+        "probabilities": {
+          "HEALTHY": 0.996462,
+          "NON_HEALTHY": 0.003538
+        },
+        "non_healthy_probability": 0.003538,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.864709,
+        "probabilities": {
+          "HEALTHY": 0.864709,
+          "FILLING": 0.007526,
+          "CARIES": 0.029464,
+          "RCT_CROWN": 0.012052,
+          "CROWN": 0.013021,
+          "ROOT_CANAL_TREATMENT": 0.019691,
+          "RESIDUAL_ROOT": 0.053537
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 15,
+        "bbox_xyxy": [
+          1482.47,
+          557.97,
+          1577.98,
+          821.37
+        ],
+        "confidence": 0.9978
+      },
+      "fdi": "21",
+      "fdi_confidence": 0.999863,
+      "raw_fdi": "21",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "NON_HEALTHY",
+        "effective_prediction": "NON_HEALTHY",
+        "confidence": 0.997253,
+        "probabilities": {
+          "HEALTHY": 0.002747,
+          "NON_HEALTHY": 0.997253
+        },
+        "non_healthy_probability": 0.997253,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "FILLING",
+        "confidence": 0.973031,
+        "probabilities": {
+          "HEALTHY": 0.000175,
+          "FILLING": 0.973031,
+          "CARIES": 0.005202,
+          "RCT_CROWN": 0.003441,
+          "CROWN": 0.002769,
+          "ROOT_CANAL_TREATMENT": 0.004498,
+          "RESIDUAL_ROOT": 0.010884
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [
+        {
+          "type": "FILLING",
+          "bbox_xyxy": [
+            1481.77,
+            746.0,
+            1510.42,
+            793.62
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.988665,
+          "detector_threshold": 0.5,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.934404,
+          "classifier_probabilities": {
+            "FILLING": 0.934404,
+            "IMPLANT": 0.065596
+          },
+          "type_agreement": true,
+          "associated_fdi": "21",
+          "association_score": 3.9547
+        }
+      ],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "FILLING"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 32,
+        "bbox_xyxy": [
+          1581.38,
+          562.43,
+          1659.62,
+          822.84
+        ],
+        "confidence": 0.987988
+      },
+      "fdi": "22",
+      "fdi_confidence": 0.994148,
+      "raw_fdi": "22",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.961986,
+        "probabilities": {
+          "HEALTHY": 0.961986,
+          "NON_HEALTHY": 0.038014
+        },
+        "non_healthy_probability": 0.038014,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.710193,
+        "probabilities": {
+          "HEALTHY": 0.710193,
+          "FILLING": 0.050354,
+          "CARIES": 0.102193,
+          "RCT_CROWN": 0.019193,
+          "CROWN": 0.036869,
+          "ROOT_CANAL_TREATMENT": 0.033716,
+          "RESIDUAL_ROOT": 0.047482
+        }
+      },
+      "pathology_evidence": [
+        {
+          "type": "CARIES",
+          "confidence": 0.78495,
+          "threshold": 0.7,
+          "bbox_xyxy": [
+            1628.34,
+            739.8,
+            1661.36,
+            795.62
+          ],
+          "associated_fdi": "22",
+          "association_score": 3.9399
+        }
+      ],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "CARIES",
+        "confidence": 0.645527,
+        "probability": 0.354473,
+        "threshold": 0.65,
+        "upgraded": false
+      },
+      "final_findings": [
+        "CARIES"
+      ],
+      "review_reasons": [
+        "STATUS_HEALTHY_CONFLICTS_WITH_PATHOLOGY"
+      ],
+      "review_required": true
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 31,
+        "bbox_xyxy": [
+          1656.0,
+          520.38,
+          1761.49,
+          829.03
+        ],
+        "confidence": 0.988694
+      },
+      "fdi": "23",
+      "fdi_confidence": 0.997552,
+      "raw_fdi": "23",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.991909,
+        "probabilities": {
+          "HEALTHY": 0.991909,
+          "NON_HEALTHY": 0.008091
+        },
+        "non_healthy_probability": 0.008091,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.456779,
+        "probabilities": {
+          "HEALTHY": 0.456779,
+          "FILLING": 0.012466,
+          "CARIES": 0.400561,
+          "RCT_CROWN": 0.022803,
+          "CROWN": 0.022408,
+          "ROOT_CANAL_TREATMENT": 0.042489,
+          "RESIDUAL_ROOT": 0.042494
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 23,
+        "bbox_xyxy": [
+          1730.72,
+          556.68,
+          1832.17,
+          840.74
+        ],
+        "confidence": 0.996099
+      },
+      "fdi": "24",
+      "fdi_confidence": 0.997768,
+      "raw_fdi": "24",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.958402,
+        "probabilities": {
+          "HEALTHY": 0.958402,
+          "NON_HEALTHY": 0.041598
+        },
+        "non_healthy_probability": 0.041598,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.941368,
+        "probabilities": {
+          "HEALTHY": 0.010587,
+          "FILLING": 0.007522,
+          "CARIES": 0.941368,
+          "RCT_CROWN": 0.005724,
+          "CROWN": 0.00779,
+          "ROOT_CANAL_TREATMENT": 0.014078,
+          "RESIDUAL_ROOT": 0.012931
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "CARIES",
+        "confidence": 0.756563,
+        "probability": 0.243437,
+        "threshold": 0.65,
+        "upgraded": false
+      },
+      "final_findings": [
+        "CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 11,
+        "bbox_xyxy": [
+          1820.67,
+          576.05,
+          1911.39,
+          841.15
+        ],
+        "confidence": 0.998383
+      },
+      "fdi": "25",
+      "fdi_confidence": 0.988968,
+      "raw_fdi": "25",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "NON_HEALTHY",
+        "effective_prediction": "NON_HEALTHY",
+        "confidence": 0.992555,
+        "probabilities": {
+          "HEALTHY": 0.007445,
+          "NON_HEALTHY": 0.992555
+        },
+        "non_healthy_probability": 0.992555,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.962099,
+        "probabilities": {
+          "HEALTHY": 0.001281,
+          "FILLING": 0.011838,
+          "CARIES": 0.962099,
+          "RCT_CROWN": 0.004106,
+          "CROWN": 0.003145,
+          "ROOT_CANAL_TREATMENT": 0.008233,
+          "RESIDUAL_ROOT": 0.009299
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "CARIES",
+        "confidence": 0.658654,
+        "probability": 0.341346,
+        "threshold": 0.65,
+        "upgraded": false
+      },
+      "final_findings": [
+        "CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 19,
+        "bbox_xyxy": [
+          1910.71,
+          574.02,
+          2040.12,
+          839.24
+        ],
+        "confidence": 0.997355
+      },
+      "fdi": "26",
+      "fdi_confidence": 0.999494,
+      "raw_fdi": "26",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "NON_HEALTHY",
+        "effective_prediction": "NON_HEALTHY",
+        "confidence": 0.999092,
+        "probabilities": {
+          "HEALTHY": 0.000908,
+          "NON_HEALTHY": 0.999092
+        },
+        "non_healthy_probability": 0.999092,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CROWN",
+        "confidence": 0.601724,
+        "probabilities": {
+          "HEALTHY": 0.029331,
+          "FILLING": 0.072069,
+          "CARIES": 0.219166,
+          "RCT_CROWN": 0.010057,
+          "CROWN": 0.601724,
+          "ROOT_CANAL_TREATMENT": 0.037116,
+          "RESIDUAL_ROOT": 0.030537
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [
+        {
+          "type": "FILLING",
+          "bbox_xyxy": [
+            1947.18,
+            755.68,
+            2033.69,
+            834.99
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.9973,
+          "detector_threshold": 0.5,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.993064,
+          "classifier_probabilities": {
+            "FILLING": 0.993064,
+            "IMPLANT": 0.006936
+          },
+          "type_agreement": true,
+          "associated_fdi": "26",
+          "association_score": 4.3236
+        }
+      ],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "CROWN",
+        "FILLING"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 25,
+        "bbox_xyxy": [
+          1989.05,
+          566.2,
+          2156.77,
+          795.94
+        ],
+        "confidence": 0.995081
+      },
+      "fdi": "27",
+      "fdi_confidence": 0.999424,
+      "raw_fdi": "27",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.94044,
+        "probabilities": {
+          "HEALTHY": 0.94044,
+          "NON_HEALTHY": 0.05956
+        },
+        "non_healthy_probability": 0.05956,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.423144,
+        "probabilities": {
+          "HEALTHY": 0.153311,
+          "FILLING": 0.269213,
+          "CARIES": 0.423144,
+          "RCT_CROWN": 0.018742,
+          "CROWN": 0.080943,
+          "ROOT_CANAL_TREATMENT": 0.019715,
+          "RESIDUAL_ROOT": 0.034932
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "DEEP_CARIES",
+        "confidence": 0.79074,
+        "probability": 0.79074,
+        "threshold": 0.65,
+        "upgraded": true
+      },
+      "final_findings": [
+        "DEEP_CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 4,
+        "bbox_xyxy": [
+          2087.89,
+          473.9,
+          2243.18,
+          679.46
+        ],
+        "confidence": 0.998875
+      },
+      "fdi": "28",
+      "fdi_confidence": 0.997826,
+      "raw_fdi": "28",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.996893,
+        "probabilities": {
+          "HEALTHY": 0.996893,
+          "NON_HEALTHY": 0.003107
+        },
+        "non_healthy_probability": 0.003107,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.816563,
+        "probabilities": {
+          "HEALTHY": 0.816563,
+          "FILLING": 0.006567,
+          "CARIES": 0.054328,
+          "RCT_CROWN": 0.014002,
+          "CROWN": 0.016169,
+          "ROOT_CANAL_TREATMENT": 0.018836,
+          "RESIDUAL_ROOT": 0.073535
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 8,
+        "bbox_xyxy": [
+          1528.38,
+          855.59,
+          1581.59,
+          1098.17
+        ],
+        "confidence": 0.998502
+      },
+      "fdi": "31",
+      "fdi_confidence": 0.523698,
+      "raw_fdi": "31",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": true,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.989448,
+        "probabilities": {
+          "HEALTHY": 0.989448,
+          "NON_HEALTHY": 0.010552
+        },
+        "non_healthy_probability": 0.010552,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.8895,
+        "probabilities": {
+          "HEALTHY": 0.8895,
+          "FILLING": 0.007591,
+          "CARIES": 0.011513,
+          "RCT_CROWN": 0.010426,
+          "CROWN": 0.014623,
+          "ROOT_CANAL_TREATMENT": 0.016141,
+          "RESIDUAL_ROOT": 0.050206
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [
+        "FDI_LOW_CONFIDENCE_OR_UNRESOLVED"
+      ],
+      "review_required": true
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 6,
+        "bbox_xyxy": [
+          1397.6,
+          850.95,
+          1462.73,
+          1116.4
+        ],
+        "confidence": 0.998616
+      },
+      "fdi": "32",
+      "fdi_confidence": 0.969912,
+      "raw_fdi": "32",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.993899,
+        "probabilities": {
+          "HEALTHY": 0.993899,
+          "NON_HEALTHY": 0.006101
+        },
+        "non_healthy_probability": 0.006101,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.851372,
+        "probabilities": {
+          "HEALTHY": 0.851372,
+          "FILLING": 0.00454,
+          "CARIES": 0.012317,
+          "RCT_CROWN": 0.014615,
+          "CROWN": 0.026214,
+          "ROOT_CANAL_TREATMENT": 0.04094,
+          "RESIDUAL_ROOT": 0.050001
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 29,
+        "bbox_xyxy": [
+          1321.91,
+          852.91,
+          1399.63,
+          1165.24
+        ],
+        "confidence": 0.991842
+      },
+      "fdi": "33",
+      "fdi_confidence": 0.849364,
+      "raw_fdi": "33",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.975892,
+        "probabilities": {
+          "HEALTHY": 0.975892,
+          "NON_HEALTHY": 0.024108
+        },
+        "non_healthy_probability": 0.024108,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.851986,
+        "probabilities": {
+          "HEALTHY": 0.048856,
+          "FILLING": 0.015518,
+          "CARIES": 0.851986,
+          "RCT_CROWN": 0.017512,
+          "CROWN": 0.018084,
+          "ROOT_CANAL_TREATMENT": 0.024638,
+          "RESIDUAL_ROOT": 0.023405
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "CARIES",
+        "confidence": 0.705058,
+        "probability": 0.294942,
+        "threshold": 0.65,
+        "upgraded": false
+      },
+      "final_findings": [
+        "CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 22,
+        "bbox_xyxy": [
+          1235.69,
+          860.28,
+          1319.88,
+          1145.74
+        ],
+        "confidence": 0.996877
+      },
+      "fdi": "34",
+      "fdi_confidence": 0.969257,
+      "raw_fdi": "34",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.968507,
+        "probabilities": {
+          "HEALTHY": 0.968507,
+          "NON_HEALTHY": 0.031493
+        },
+        "non_healthy_probability": 0.031493,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.543075,
+        "probabilities": {
+          "HEALTHY": 0.543075,
+          "FILLING": 0.016937,
+          "CARIES": 0.285802,
+          "RCT_CROWN": 0.027396,
+          "CROWN": 0.025738,
+          "ROOT_CANAL_TREATMENT": 0.040772,
+          "RESIDUAL_ROOT": 0.060281
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 12,
+        "bbox_xyxy": [
+          1145.1,
+          862.2,
+          1245.73,
+          1130.49
+        ],
+        "confidence": 0.998243
+      },
+      "fdi": "35",
+      "fdi_confidence": 0.974894,
+      "raw_fdi": "35",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.976224,
+        "probabilities": {
+          "HEALTHY": 0.976224,
+          "NON_HEALTHY": 0.023776
+        },
+        "non_healthy_probability": 0.023776,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.741049,
+        "probabilities": {
+          "HEALTHY": 0.14313,
+          "FILLING": 0.017608,
+          "CARIES": 0.741049,
+          "RCT_CROWN": 0.019696,
+          "CROWN": 0.020511,
+          "ROOT_CANAL_TREATMENT": 0.035244,
+          "RESIDUAL_ROOT": 0.022761
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "CARIES",
+        "confidence": 0.686057,
+        "probability": 0.313943,
+        "threshold": 0.65,
+        "upgraded": false
+      },
+      "final_findings": [
+        "CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 3,
+        "bbox_xyxy": [
+          957.07,
+          858.92,
+          1143.0,
+          1119.59
+        ],
+        "confidence": 0.998899
+      },
+      "fdi": "36",
+      "fdi_confidence": 0.988785,
+      "raw_fdi": "36",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "NON_HEALTHY",
+        "effective_prediction": "NON_HEALTHY",
+        "confidence": 0.999037,
+        "probabilities": {
+          "HEALTHY": 0.000963,
+          "NON_HEALTHY": 0.999037
+        },
+        "non_healthy_probability": 0.999037,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "FILLING",
+        "confidence": 0.952221,
+        "probabilities": {
+          "HEALTHY": 0.000483,
+          "FILLING": 0.952221,
+          "CARIES": 0.003158,
+          "RCT_CROWN": 0.00763,
+          "CROWN": 0.007925,
+          "ROOT_CANAL_TREATMENT": 0.011424,
+          "RESIDUAL_ROOT": 0.017159
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [
+        {
+          "type": "FILLING",
+          "bbox_xyxy": [
+            1011.4,
+            867.41,
+            1125.34,
+            916.65
+          ],
+          "detector_type": "FILLING",
+          "detector_confidence": 0.99814,
+          "detector_threshold": 0.5,
+          "classifier_type": "FILLING",
+          "classifier_confidence": 0.987682,
+          "classifier_probabilities": {
+            "FILLING": 0.987682,
+            "IMPLANT": 0.012319
+          },
+          "type_agreement": true,
+          "associated_fdi": "36",
+          "association_score": 4.1543
+        }
+      ],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "FILLING"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 2,
+        "bbox_xyxy": [
+          831.78,
+          841.92,
+          983.55,
+          1095.92
+        ],
+        "confidence": 0.999109
+      },
+      "fdi": "37",
+      "fdi_confidence": 0.872907,
+      "raw_fdi": "37",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.891366,
+        "probabilities": {
+          "HEALTHY": 0.891366,
+          "NON_HEALTHY": 0.108634
+        },
+        "non_healthy_probability": 0.108634,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.949655,
+        "probabilities": {
+          "HEALTHY": 0.009802,
+          "FILLING": 0.011184,
+          "CARIES": 0.949655,
+          "RCT_CROWN": 0.003346,
+          "CROWN": 0.010651,
+          "ROOT_CANAL_TREATMENT": 0.00822,
+          "RESIDUAL_ROOT": 0.007141
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "DEEP_CARIES",
+        "confidence": 0.922571,
+        "probability": 0.922571,
+        "threshold": 0.65,
+        "upgraded": true
+      },
+      "final_findings": [
+        "DEEP_CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 9,
+        "bbox_xyxy": [
+          665.84,
+          850.21,
+          880.99,
+          1026.19
+        ],
+        "confidence": 0.998499
+      },
+      "fdi": "38",
+      "fdi_confidence": 0.537609,
+      "raw_fdi": "38",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": true,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.970424,
+        "probabilities": {
+          "HEALTHY": 0.970424,
+          "NON_HEALTHY": 0.029576
+        },
+        "non_healthy_probability": 0.029576,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.678798,
+        "probabilities": {
+          "HEALTHY": 0.678798,
+          "FILLING": 0.009209,
+          "CARIES": 0.194478,
+          "RCT_CROWN": 0.012456,
+          "CROWN": 0.034124,
+          "ROOT_CANAL_TREATMENT": 0.031288,
+          "RESIDUAL_ROOT": 0.039646
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [
+        "FDI_LOW_CONFIDENCE_OR_UNRESOLVED"
+      ],
+      "review_required": true
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 20,
+        "bbox_xyxy": [
+          1467.44,
+          850.81,
+          1522.37,
+          1111.82
+        ],
+        "confidence": 0.996967
+      },
+      "fdi": "41",
+      "fdi_confidence": 0.997784,
+      "raw_fdi": "41",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.905076,
+        "probabilities": {
+          "HEALTHY": 0.905076,
+          "NON_HEALTHY": 0.094924
+        },
+        "non_healthy_probability": 0.094924,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.684313,
+        "probabilities": {
+          "HEALTHY": 0.684313,
+          "FILLING": 0.019364,
+          "CARIES": 0.135925,
+          "RCT_CROWN": 0.013714,
+          "CROWN": 0.02446,
+          "ROOT_CANAL_TREATMENT": 0.086678,
+          "RESIDUAL_ROOT": 0.035546
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 16,
+        "bbox_xyxy": [
+          1585.8,
+          852.06,
+          1644.86,
+          1120.23
+        ],
+        "confidence": 0.997514
+      },
+      "fdi": "42",
+      "fdi_confidence": 0.869377,
+      "raw_fdi": "42",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.993132,
+        "probabilities": {
+          "HEALTHY": 0.993132,
+          "NON_HEALTHY": 0.006868
+        },
+        "non_healthy_probability": 0.006868,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.836454,
+        "probabilities": {
+          "HEALTHY": 0.836454,
+          "FILLING": 0.006924,
+          "CARIES": 0.024677,
+          "RCT_CROWN": 0.019129,
+          "CROWN": 0.02038,
+          "ROOT_CANAL_TREATMENT": 0.029876,
+          "RESIDUAL_ROOT": 0.062561
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 28,
+        "bbox_xyxy": [
+          1649.41,
+          852.05,
+          1720.9,
+          1161.26
+        ],
+        "confidence": 0.994254
+      },
+      "fdi": "43",
+      "fdi_confidence": 0.993836,
+      "raw_fdi": "43",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.979326,
+        "probabilities": {
+          "HEALTHY": 0.979326,
+          "NON_HEALTHY": 0.020674
+        },
+        "non_healthy_probability": 0.020674,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.72768,
+        "probabilities": {
+          "HEALTHY": 0.18686,
+          "FILLING": 0.003107,
+          "CARIES": 0.72768,
+          "RCT_CROWN": 0.011624,
+          "CROWN": 0.013327,
+          "ROOT_CANAL_TREATMENT": 0.024073,
+          "RESIDUAL_ROOT": 0.03333
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "DEEP_CARIES",
+        "confidence": 0.590753,
+        "probability": 0.590753,
+        "threshold": 0.65,
+        "upgraded": false
+      },
+      "final_findings": [
+        "CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 21,
+        "bbox_xyxy": [
+          1726.88,
+          870.34,
+          1812.2,
+          1151.02
+        ],
+        "confidence": 0.996942
+      },
+      "fdi": "44",
+      "fdi_confidence": 0.981027,
+      "raw_fdi": "44",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.900869,
+        "probabilities": {
+          "HEALTHY": 0.900869,
+          "NON_HEALTHY": 0.099131
+        },
+        "non_healthy_probability": 0.099131,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "CARIES",
+        "confidence": 0.853937,
+        "probabilities": {
+          "HEALTHY": 0.070168,
+          "FILLING": 0.003215,
+          "CARIES": 0.853937,
+          "RCT_CROWN": 0.015678,
+          "CROWN": 0.013564,
+          "ROOT_CANAL_TREATMENT": 0.023805,
+          "RESIDUAL_ROOT": 0.019633
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "DEEP_CARIES",
+        "confidence": 0.78017,
+        "probability": 0.78017,
+        "threshold": 0.65,
+        "upgraded": true
+      },
+      "final_findings": [
+        "DEEP_CARIES"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 24,
+        "bbox_xyxy": [
+          1811.45,
+          873.69,
+          1912.49,
+          1149.41
+        ],
+        "confidence": 0.996044
+      },
+      "fdi": "45",
+      "fdi_confidence": 0.995268,
+      "raw_fdi": "45",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "NON_HEALTHY",
+        "effective_prediction": "NON_HEALTHY",
+        "confidence": 0.890095,
+        "probabilities": {
+          "HEALTHY": 0.109905,
+          "NON_HEALTHY": 0.890095
+        },
+        "non_healthy_probability": 0.890095,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "ROOT_CANAL_TREATMENT",
+        "confidence": 0.951457,
+        "probabilities": {
+          "HEALTHY": 0.002978,
+          "FILLING": 0.004725,
+          "CARIES": 0.006003,
+          "RCT_CROWN": 0.017974,
+          "CROWN": 0.003128,
+          "ROOT_CANAL_TREATMENT": 0.951457,
+          "RESIDUAL_ROOT": 0.013735
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "ROOT_CANAL_TREATMENT"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 14,
+        "bbox_xyxy": [
+          1892.59,
+          863.75,
+          2072.87,
+          1137.79
+        ],
+        "confidence": 0.997877
+      },
+      "fdi": "46",
+      "fdi_confidence": 0.992446,
+      "raw_fdi": "46",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "NON_HEALTHY",
+        "confidence": 0.529389,
+        "probabilities": {
+          "HEALTHY": 0.529389,
+          "NON_HEALTHY": 0.47061
+        },
+        "non_healthy_probability": 0.47061,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.477855,
+        "probabilities": {
+          "HEALTHY": 0.477855,
+          "FILLING": 0.068619,
+          "CARIES": 0.059239,
+          "RCT_CROWN": 0.214286,
+          "CROWN": 0.015149,
+          "ROOT_CANAL_TREATMENT": 0.092154,
+          "RESIDUAL_ROOT": 0.072699
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 7,
+        "bbox_xyxy": [
+          2032.75,
+          848.59,
+          2173.88,
+          1122.35
+        ],
+        "confidence": 0.998612
+      },
+      "fdi": "47",
+      "fdi_confidence": 0.683894,
+      "raw_fdi": "47",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": true,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.889524,
+        "probabilities": {
+          "HEALTHY": 0.889524,
+          "NON_HEALTHY": 0.110476
+        },
+        "non_healthy_probability": 0.110476,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "FILLING",
+        "confidence": 0.850988,
+        "probabilities": {
+          "HEALTHY": 0.024566,
+          "FILLING": 0.850988,
+          "CARIES": 0.072839,
+          "RCT_CROWN": 0.009852,
+          "CROWN": 0.016262,
+          "ROOT_CANAL_TREATMENT": 0.009858,
+          "RESIDUAL_ROOT": 0.015635
+        }
+      },
+      "pathology_evidence": [
+        {
+          "type": "CARIES",
+          "confidence": 0.994001,
+          "threshold": 0.7,
+          "bbox_xyxy": [
+            2040.93,
+            855.2,
+            2146.32,
+            953.27
+          ],
+          "associated_fdi": "47",
+          "association_score": 4.4686
+        }
+      ],
+      "restorations": [],
+      "deep_caries": {
+        "ran": true,
+        "prediction": "DEEP_CARIES",
+        "confidence": 0.923994,
+        "probability": 0.923994,
+        "threshold": 0.65,
+        "upgraded": true
+      },
+      "final_findings": [
+        "FILLING",
+        "DEEP_CARIES"
+      ],
+      "review_reasons": [
+        "FDI_LOW_CONFIDENCE_OR_UNRESOLVED"
+      ],
+      "review_required": true
+    },
+    {
+      "tooth_detection": {
+        "instance_id": 5,
+        "bbox_xyxy": [
+          2153.73,
+          860.72,
+          2362.99,
+          1029.49
+        ],
+        "confidence": 0.998686
+      },
+      "fdi": "48",
+      "fdi_confidence": 0.909169,
+      "raw_fdi": "48",
+      "fdi_was_changed": false,
+      "duplicate_cleanup_applied": false,
+      "fdi_review_required": false,
+      "status_gate": {
+        "prediction": "HEALTHY",
+        "effective_prediction": "HEALTHY",
+        "confidence": 0.993066,
+        "probabilities": {
+          "HEALTHY": 0.993066,
+          "NON_HEALTHY": 0.006934
+        },
+        "non_healthy_probability": 0.006934,
+        "abnormal_threshold": 0.3
+      },
+      "status_v2": {
+        "prediction": "HEALTHY",
+        "confidence": 0.460341,
+        "probabilities": {
+          "HEALTHY": 0.460341,
+          "FILLING": 0.133859,
+          "CARIES": 0.304164,
+          "RCT_CROWN": 0.013913,
+          "CROWN": 0.02109,
+          "ROOT_CANAL_TREATMENT": 0.027567,
+          "RESIDUAL_ROOT": 0.039066
+        }
+      },
+      "pathology_evidence": [],
+      "restorations": [],
+      "deep_caries": {
+        "ran": false,
+        "probability": null,
+        "threshold": 0.65,
+        "upgraded": false,
+        "reason": "NO_CARIES_EVIDENCE"
+      },
+      "final_findings": [
+        "HEALTHY"
+      ],
+      "review_reasons": [],
+      "review_required": false
+    }
+  ],
+  "unmatched_pathologies": [],
+  "unmatched_restorations": []
+}
