@@ -90,7 +90,8 @@ async function request<T>(
     : await response.text();
 
   if (!response.ok) {
-    const body = typeof payload === "object" && payload !== null ? payload as ApiErrorBody : {};
+    const body: ApiErrorBody =
+      typeof payload === "object" && payload !== null ? payload as ApiErrorBody : {};
     const code = body.error?.code ?? "HTTP_" + response.status;
     const message =
       body.error?.message ??

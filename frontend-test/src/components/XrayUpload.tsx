@@ -26,6 +26,14 @@ export function XrayUpload({ patientId, onUploaded }: XrayUploadProps) {
   const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
+    setFile(null);
+    setPreview("");
+    setState("idle");
+    setError("");
+    setDragging(false);
+  }, [patientId]);
+
+  useEffect(() => {
     if (!file || !file.type.startsWith("image/")) {
       setPreview("");
       return;
@@ -66,9 +74,9 @@ export function XrayUpload({ patientId, onUploaded }: XrayUploadProps) {
     setState("uploading");
     setError("");
     try {
-      const xray = await api.uploadXray(patientId, file);
+      const xrayRecord = await api.uploadXray(patientId, file);
       setState("uploaded");
-      await onUploaded(xray);
+      await onUploaded(xrayRecord);
     } catch (reason) {
       setState("error");
       setError(errorMessage(reason));
