@@ -18,7 +18,7 @@ from ai_engine.groq.provider import (
 
 
 def raw_finding(
-    tooth: str = "37",
+    tooth: str | None = "37",
     finding_type: str = "FILLING",
     score: float | None = 0.8945,
 ) -> dict:
@@ -234,3 +234,37 @@ async def test_missing_groq_provider_leaves_narrative_absent():
 def test_safe_failure_categories_do_not_include_exception_messages():
     error = GroqEvidenceBindingError("invented clinical response")
     assert safe_failure_reason(error) == "evidence_binding_error"
+
+
+def test_unresolved_product_finding_is_excluded_from_tooth_specific_evidence() -> None:
+    resolved = raw_finding("37", "FILLING", 0.8945)
+    unresolved = raw_finding(None, "DEEP_CARIES", 0.9516)
+
+    evidence = build_product_finding_evidence([resolved, unresolved])
+
+    assert [(item.evidence_id, item.tooth_fdi) for item in evidence] == [
+        ("finding_0", "37")
+    ]
+    assert unresolved["tooth_code"] is None
+    assert unresolved["confidence"] == 0.9516
+
+
+@pytest.mark.asyncio
+async def test_mixed_resolved_and_unresolved_findings_keep_groq_summary_available() -> None:
+    findings = [
+        raw_finding("37", "FILLING", 0.8945),
+        raw_finding(None, "DEEP_CARIES", 0.9516),
+    ]
+
+    class Provider:
+        model = "openai/gpt-oss-20b"
+
+        async def summarize(self, evidence):
+            assert [item.tooth_fdi for item in evidence] == ["37"]
+            return valid_summary(evidence)
+
+    result = await summarize_product_findings(Provider(), findings)
+
+    assert result["doctor_summary"]
+    assert result.get("status") != "UNAVAILABLE"
+    assert set(result["canonical_evidence"]) == {"finding_0"}
