@@ -18,20 +18,23 @@ def metadata():
     }
     from sqlalchemy import MetaData
 
-    m = MetaData()
+    target = MetaData()
     for table in tables.values():
-        table.to_metadata(m)
-    return m
+        table.to_metadata(target)
+    return target
+
+
+def do_run_migrations(connection) -> None:
+    context.configure(connection=connection, target_metadata=metadata(), compare_type=True)
+    with context.begin_transaction():
+        context.run_migrations()
 
 
 async def run():
     url = os.environ["DATABASE_URL"]
     engine = create_async_engine(url)
     async with engine.connect() as conn:
-        await conn.run_sync(
-            lambda c: context.configure(connection=c, target_metadata=metadata(), compare_type=True)
-        )
-        await conn.run_sync(lambda _: context.run_migrations())
+        await conn.run_sync(do_run_migrations)
     await engine.dispose()
 
 
@@ -39,6 +42,7 @@ if context.is_offline_mode():
     context.configure(
         url=os.environ["DATABASE_URL"], target_metadata=metadata(), literal_binds=True
     )
-    context.run_migrations()
+    with context.begin_transaction():
+        context.run_migrations()
 else:
     asyncio.run(run())

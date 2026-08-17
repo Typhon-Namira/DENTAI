@@ -1,0 +1,15 @@
+{
+  "name": "dentai-whatsapp-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"start": "node src/index.js", "test": "node --test"},
+  "engines": {"node": ">=20 <23"},
+  "dependencies": {
+    "@hapi/boom": "10.0.1",
+    "@whiskeysockets/baileys": "6.7.22",
+    "express": "4.19.2",
+    "pino": "9.4.0",
+    "qrcode": "1.5.4"
+  }
+}

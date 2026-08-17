@@ -38,6 +38,7 @@ export interface Patient {
   date_of_birth: string | null;
   sex: string | null;
   phone: string | null;
+  whatsapp_phone: string | null;
   email: string | null;
   branch_id: string;
   status: string;
@@ -211,6 +212,48 @@ export interface ReviewPayload {
     finding_id: string;
     decision: ReviewDecision;
   }>;
+}
+
+export interface WhatsAppConnection {
+  connected: boolean;
+  connection: string;
+  sender: string | null;
+  qr?: string | null;
+}
+
+export type WhatsAppOutreachStatus =
+  | "QUEUED"
+  | "SCHEDULED"
+  | "CLAIMED"
+  | "SENDING"
+  | "SEND_UNKNOWN"
+  | "SENT"
+  | "FAILED"
+  | "CANCELLED";
+
+export interface WhatsAppOutreach {
+  id: string;
+  patient_id: string;
+  analysis_id: string;
+  finding_id: string | null;
+  source_finding_ids: string[];
+  tooth_fdi: string;
+  finding_type: string;
+  recommended_window: string;
+  target_followup_at: string;
+  scheduled_send_at: string;
+  message: string;
+  language: string;
+  status: WhatsAppOutreachStatus;
+  provider_message_id: string | null;
+  attempt_count: number;
+  retry_at: string | null;
+  timing_reason: string;
+  timing_policy_version: string;
+  created_at: string;
+  sent_at: string | null;
+  failed_at: string | null;
+  safe_error: string | null;
 }
 
 export interface ApiErrorBody {

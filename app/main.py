@@ -22,6 +22,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler, unexpected_error_handler
 from app.core.logging import configure_logging, request_logging, security_headers
 from app.database.sessions import ControlSession, dispose_control_engine
+from app.outreach import api as outreach
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -58,6 +59,7 @@ for router in (
     users.router,
     clinical.router,
     administration.router,
+    outreach.router,
 ):
     app.include_router(router, prefix="/api/v1")
 
