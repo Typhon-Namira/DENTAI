@@ -5,7 +5,6 @@ import pytest
 
 import ai_engine.groq.provider as groq_module
 from ai_engine.groq.provider import (
-    PRODUCT_MODEL_SCORE_THRESHOLD,
     GroqClinicalSummary,
     GroqEvidenceBindingError,
     GroqFindingEvidence,
