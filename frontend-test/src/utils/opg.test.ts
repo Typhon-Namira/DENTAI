@@ -45,7 +45,7 @@ function finding(
 }
 
 function structuredTeeth(
-  teeth: Array<{ fdi: string; box: unknown }>
+  teeth: Array<{ fdi: string | null; box: unknown }>
 ): AIAnalysisStructuredResult {
   return {
     vision_evidence: {
@@ -134,6 +134,36 @@ describe("OPG finding utilities", () => {
         1200
       )
     ).toBe(false);
+  });
+
+  it("keeps an unresolved finding visible without fabricating an FDI overlay", () => {
+    const unresolved = {
+      ...finding("unresolved", null, "PENDING", [240.56, 381.01, 336.86, 504.73]),
+      provenance: {
+        bounding_box: [240.56, 381.01, 336.86, 504.73] as [
+          number,
+          number,
+          number,
+          number
+        ],
+        raw_fdi: "37",
+        fdi_confidence: 0.94,
+        fdi_review_required: true
+      }
+    };
+    const geometry = extractVisionToothGeometry(structuredTeeth([
+      { fdi: null, box: [240.56, 381.01, 336.86, 504.73] },
+      { fdi: "47", box: [120, 360, 220, 520] }
+    ]));
+    const groups = groupFindingsByTooth([unresolved], geometry.boxes);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.toothCode).toBeNull();
+    expect(groups[0]?.key).toBe("unassigned:unresolved");
+    expect(groups[0]?.findings[0].tooth_code).toBeNull();
+    expect(groups[0]?.boundingBox).toEqual([240.56, 381.01, 336.86, 504.73]);
+    expect(geometry.boxes.has("37")).toBe(false);
+    expect(geometry.boxes.get("47")).toEqual([120, 360, 220, 520]);
   });
 
   it("does not reuse another tooth's canonical region", () => {
