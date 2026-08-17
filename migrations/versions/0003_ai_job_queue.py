@@ -15,6 +15,11 @@ def has_column(table: str, column: str) -> bool:
     return column in {item["name"] for item in sa.inspect(op.get_bind()).get_columns(table)}
 
 
+def has_index(table: str, index: str) -> bool:
+    inspector = sa.inspect(op.get_bind())
+    return index in {item["name"] for item in inspector.get_indexes(table)}
+
+
 def upgrade():
     if os.getenv("MIGRATION_PLANE", "clinic") == "control":
         return
@@ -29,13 +34,15 @@ def upgrade():
     for column in columns:
         if not has_column("ai_analyses", column.name):
             op.add_column("ai_analyses", column)
-    op.create_index("ix_ai_analyses_retry_at", "ai_analyses", ["retry_at"], unique=False)
+    if not has_index("ai_analyses", "ix_ai_analyses_retry_at"):
+        op.create_index("ix_ai_analyses_retry_at", "ai_analyses", ["retry_at"], unique=False)
 
 
 def downgrade():
     if os.getenv("MIGRATION_PLANE", "clinic") == "control":
         return
-    op.drop_index("ix_ai_analyses_retry_at", table_name="ai_analyses")
+    if has_index("ai_analyses", "ix_ai_analyses_retry_at"):
+        op.drop_index("ix_ai_analyses_retry_at", table_name="ai_analyses")
     for name in (
         "retry_at",
         "heartbeat_at",
