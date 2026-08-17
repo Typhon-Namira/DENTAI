@@ -13,6 +13,8 @@ import {
   findingModelScore,
   formatModelScore,
   groupFindingsByTooth,
+  isFindingProductVisible,
+  MODEL_SCORE_DISPLAY_THRESHOLD,
   resolveSelectedGroupKey,
   type FindingFilter
 } from "../utils/opg";
@@ -45,9 +47,13 @@ export function AnalysisResults({
   const [filter, setFilter] = useState<FindingFilter>("ALL");
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
 
+  const productVisibleFindings = useMemo(
+    () => findings.filter(isFindingProductVisible),
+    [findings]
+  );
   const filteredFindings = useMemo(
-    () => filterFindings(findings, filter),
-    [findings, filter]
+    () => filterFindings(productVisibleFindings, filter),
+    [productVisibleFindings, filter]
   );
   const visionBoxes = useMemo(
     () => extractVisionToothBoxes(analysis?.structured_result ?? null),
@@ -58,8 +64,8 @@ export function AnalysisResults({
     [filteredFindings, visionBoxes]
   );
   const pending = useMemo(
-    () => findings.filter((finding) => finding.review_status === "PENDING"),
-    [findings]
+    () => productVisibleFindings.filter((finding) => finding.review_status === "PENDING"),
+    [productVisibleFindings]
   );
   const canSubmit = pending.length > 0 && pending.every((finding) => decisions[finding.id]);
 
@@ -162,6 +168,10 @@ export function AnalysisResults({
           <span className="count-badge">{filteredFindings.length}</span>
         </div>
         <p className="score-helper">
+          Product view shows AI findings with a model score of{" "}
+          {MODEL_SCORE_DISPLAY_THRESHOLD.toFixed(2)} or higher.
+        </p>
+        <p className="score-helper">
           Model score is supporting AI evidence and is not an independent diagnostic probability.
           Exact backend values remain available in Raw JSON.
         </p>
@@ -172,7 +182,9 @@ export function AnalysisResults({
               ? analysis.status === "COMPLETED"
                 ? "No DentalFinding records were returned for this analysis."
                 : "Findings will appear after processing completes."
-              : "No findings match the selected review filter."}
+              : productVisibleFindings.length === 0
+                ? "No findings meet the product display threshold."
+                : "No findings match the selected review filter."}
           </div>
         ) : (
           <div className="finding-group-grid">
