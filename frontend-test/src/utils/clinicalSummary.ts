@@ -48,25 +48,34 @@ function parseEvidence(value: unknown): GroqFindingEvidence | null {
   };
 }
 
+function parseCanonicalEvidence(value: unknown): Record<string, GroqFindingEvidence> | null {
+  if (!isRecord(value)) return null;
+  const result: Record<string, GroqFindingEvidence> = {};
+  for (const [evidenceId, rawEvidence] of Object.entries(value)) {
+    const evidence = parseEvidence(rawEvidence);
+    if (!evidence || evidence.evidence_id !== evidenceId) return null;
+    result[evidenceId] = evidence;
+  }
+  return result;
+}
+
 function parseToothExplanation(value: unknown): GroqToothExplanation | null {
-  if (!isRecord(value) || !Array.isArray(value.evidence)) return null;
-  const evidence = value.evidence.map(parseEvidence);
+  if (!isRecord(value)) return null;
+  const evidenceIds = stringArray(value.evidence_ids);
   if (
-    evidence.some((item) => item === null) ||
+    evidenceIds === null ||
     typeof value.tooth_fdi !== "string" ||
     typeof value.headline !== "string" ||
     typeof value.clinical_explanation !== "string" ||
-    typeof value.confidence_explanation !== "string" ||
     typeof value.review_explanation !== "string"
   ) {
     return null;
   }
   return {
     tooth_fdi: value.tooth_fdi,
-    evidence: evidence as GroqFindingEvidence[],
+    evidence_ids: evidenceIds,
     headline: value.headline,
     clinical_explanation: value.clinical_explanation,
-    confidence_explanation: value.confidence_explanation,
     review_explanation: value.review_explanation
   };
 }
@@ -76,25 +85,58 @@ export function parseClinicalSummary(value: unknown): GroqClinicalSummary | null
   const importantChanges = stringArray(value.important_changes);
   const monitoringPoints = stringArray(value.monitoring_points);
   const questionsForDoctor = stringArray(value.questions_for_doctor);
+  const canonicalEvidence = parseCanonicalEvidence(value.canonical_evidence);
   if (
     typeof value.doctor_summary !== "string" ||
     !Array.isArray(value.tooth_explanations) ||
     importantChanges === null ||
     monitoringPoints === null ||
     questionsForDoctor === null ||
-    typeof value.patient_message_draft !== "string"
+    typeof value.patient_message_draft !== "string" ||
+    canonicalEvidence === null
   ) {
     return null;
   }
+
   const toothExplanations = value.tooth_explanations.map(parseToothExplanation);
   if (toothExplanations.some((item) => item === null)) return null;
+
+  const expectedIds = new Set(Object.keys(canonicalEvidence));
+  const expectedTeeth = new Set(
+    Object.values(canonicalEvidence).map((item) => item.tooth_fdi)
+  );
+  const returnedTeeth = new Set<string>();
+  const seen = new Set<string>();
+  for (const explanation of toothExplanations as GroqToothExplanation[]) {
+    if (returnedTeeth.has(explanation.tooth_fdi) || explanation.evidence_ids.length === 0) {
+      return null;
+    }
+    returnedTeeth.add(explanation.tooth_fdi);
+    for (const evidenceId of explanation.evidence_ids) {
+      const evidence = canonicalEvidence[evidenceId];
+      if (!evidence || seen.has(evidenceId) || evidence.tooth_fdi !== explanation.tooth_fdi) {
+        return null;
+      }
+      seen.add(evidenceId);
+    }
+  }
+  if (
+    returnedTeeth.size !== expectedTeeth.size ||
+    [...returnedTeeth].some((tooth) => !expectedTeeth.has(tooth)) ||
+    seen.size !== expectedIds.size ||
+    [...seen].some((evidenceId) => !expectedIds.has(evidenceId))
+  ) {
+    return null;
+  }
+
   return {
     doctor_summary: value.doctor_summary,
     tooth_explanations: toothExplanations as GroqToothExplanation[],
     important_changes: importantChanges,
     monitoring_points: monitoringPoints,
     questions_for_doctor: questionsForDoctor,
-    patient_message_draft: value.patient_message_draft
+    patient_message_draft: value.patient_message_draft,
+    canonical_evidence: canonicalEvidence
   };
 }
 
@@ -148,8 +190,15 @@ export function explanationForGroup(
 
   const findingEvidence = group.findings.map(findingFingerprint);
   if (findingEvidence.some((item) => item === null)) return null;
+  const returnedEvidence = matches[0].evidence_ids.map(
+    (evidenceId) => summary.canonical_evidence[evidenceId]
+  );
+  if (returnedEvidence.some((item) => item === undefined)) return null;
+
   const expected = (findingEvidence as string[]).sort();
-  const returned = matches[0].evidence.map(evidenceFingerprint).sort();
+  const returned = (returnedEvidence as GroqFindingEvidence[])
+    .map(evidenceFingerprint)
+    .sort();
   if (expected.length !== returned.length) return null;
   return expected.every((item, index) => item === returned[index]) ? matches[0] : null;
 }
@@ -167,6 +216,17 @@ export function reviewStatusLanguage(
     );
   }
   return "This finding is awaiting clinician review.";
+}
+
+export function modelScoreLanguage(score: number | null): string {
+  if (typeof score !== "number" || !Number.isFinite(score)) {
+    return "Model score was not provided.";
+  }
+  return (
+    "Model score: " + score.toFixed(4) +
+    ". This score represents supporting AI evidence and is not an independent " +
+    "diagnostic probability."
+  );
 }
 
 export function technicalDetailsForFinding(finding: DentalFinding) {

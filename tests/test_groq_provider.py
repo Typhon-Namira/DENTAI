@@ -3,13 +3,16 @@ from copy import deepcopy
 
 import pytest
 
+import ai_engine.groq.provider as groq_module
 from ai_engine.groq.provider import (
     PRODUCT_MODEL_SCORE_THRESHOLD,
     GroqClinicalSummary,
+    GroqEvidenceBindingError,
     GroqFindingEvidence,
     GroqToothExplanation,
     build_groq_request_payload,
     build_product_finding_evidence,
+    safe_failure_reason,
     summarize_product_findings,
     validate_summary_against_evidence,
 )
@@ -39,21 +42,20 @@ def raw_finding(
 
 
 def valid_summary(evidence: list[GroqFindingEvidence]) -> GroqClinicalSummary:
-    by_tooth: dict[str, list[GroqFindingEvidence]] = {}
+    by_tooth: dict[str, list[str]] = {}
     for item in evidence:
-        by_tooth.setdefault(item.tooth_fdi, []).append(item)
+        by_tooth.setdefault(item.tooth_fdi, []).append(item.evidence_id)
     return GroqClinicalSummary(
         doctor_summary="DENTAI evidence is available for clinician review.",
         tooth_explanations=[
             GroqToothExplanation(
                 tooth_fdi=tooth,
-                evidence=items,
+                evidence_ids=evidence_ids,
                 headline=f"Tooth {tooth} — DENTAI finding",
                 clinical_explanation="DENTAI identified the supplied finding.",
-                confidence_explanation="The model score is supporting AI evidence.",
-                review_explanation="Clinician review is required.",
+                review_explanation="Clinician verification is required.",
             )
-            for tooth, items in by_tooth.items()
+            for tooth, evidence_ids in by_tooth.items()
         ],
         important_changes=[],
         monitoring_points=["Verify the highlighted tooth region."],
@@ -62,114 +64,174 @@ def valid_summary(evidence: list[GroqFindingEvidence]) -> GroqClinicalSummary:
     )
 
 
-def test_strict_schema_forbids_extra_properties_and_requires_every_field():
+def production_findings() -> list[dict]:
+    return [
+        raw_finding("16", "CROWN", 0.9231),
+        raw_finding("16", "ROOT_CANAL_TREATMENT", 0.6951),
+        raw_finding("24", "FILLING", 0.6287),
+        raw_finding("36", "CROWN", 0.9516),
+        raw_finding("36", "ROOT_CANAL_TREATMENT", 0.8945),
+        raw_finding("36", "FILLING", 0.8732),
+        raw_finding("37", "FILLING", 0.8945),
+        raw_finding("47", "FILLING", 0.6951),
+        raw_finding("44", "FILLING", 0.3206733167171478),
+    ]
+
+
+def test_strict_output_schema_contains_ids_and_no_canonical_evidence_values():
     schema = GroqClinicalSummary.model_json_schema()
+    tooth = schema["$defs"]["GroqToothExplanation"]["properties"]
+    assert set(tooth) == {
+        "tooth_fdi",
+        "evidence_ids",
+        "headline",
+        "clinical_explanation",
+        "review_explanation",
+    }
+    assert "confidence_explanation" not in tooth
+    assert "model_score" not in json.dumps(schema)
     object_schemas = [schema, *schema.get("$defs", {}).values()]
     for object_schema in object_schemas:
-        if object_schema.get("type") != "object":
-            continue
-        assert object_schema["additionalProperties"] is False
-        assert set(object_schema["required"]) == set(object_schema["properties"])
+        if object_schema.get("type") == "object":
+            assert object_schema["additionalProperties"] is False
+            assert set(object_schema["required"]) == set(object_schema["properties"])
 
 
-def test_one_tooth_one_finding_validates_exact_evidence():
+def test_one_evidence_id_validates():
     evidence = build_product_finding_evidence([raw_finding()])
     summary = valid_summary(evidence)
     assert validate_summary_against_evidence(summary, evidence) is summary
-    assert summary.tooth_explanations[0].evidence == evidence
+    assert summary.tooth_explanations[0].evidence_ids == ["finding_0"]
 
 
-def test_one_tooth_multiple_findings_remain_distinct():
+def test_multiple_findings_on_one_tooth_validate_by_ids_only():
     evidence = build_product_finding_evidence(
         [
-            raw_finding(finding_type="FILLING", score=0.8945),
-            raw_finding(finding_type="ROOT_CANAL_TREATMENT", score=0.9516),
+            raw_finding("37", "FILLING", 0.8945),
+            raw_finding("37", "ROOT_CANAL_TREATMENT", 0.9516),
         ]
     )
     summary = valid_summary(evidence)
-    validated = validate_summary_against_evidence(summary, evidence)
-    assert len(validated.tooth_explanations) == 1
-    assert [item.finding_type for item in validated.tooth_explanations[0].evidence] == [
-        "FILLING",
-        "ROOT_CANAL_TREATMENT",
-    ]
+    assert validate_summary_against_evidence(summary, evidence) is summary
+    assert summary.tooth_explanations[0].evidence_ids == ["finding_0", "finding_1"]
 
 
-def test_low_scores_are_excluded_without_mutating_raw_findings():
-    findings = [
-        raw_finding(tooth="37", score=PRODUCT_MODEL_SCORE_THRESHOLD),
-        raw_finding(tooth="44", score=0.3206733167171478),
-    ]
+def test_realistic_multi_tooth_fixture_covers_every_visible_evidence_once():
+    findings = production_findings()
     before = deepcopy(findings)
     evidence = build_product_finding_evidence(findings)
-    assert [(item.evidence_id, item.tooth_fdi) for item in evidence] == [("finding_0", "37")]
+    summary = valid_summary(evidence)
+    validate_summary_against_evidence(summary, evidence)
+
+    assert len(evidence) == 8
+    assert {item.tooth_fdi for item in evidence} == {"16", "24", "36", "37", "47"}
+    assert [item.evidence_id for item in evidence] == [f"finding_{index}" for index in range(8)]
+    assert all(item.tooth_fdi != "44" for item in evidence)
     assert findings == before
 
 
 @pytest.mark.parametrize(
-    ("field", "value"),
+    "mutation",
     [
-        ("evidence_id", "finding_99"),
-        ("tooth_fdi", "36"),
-        ("finding_type", "CARIES"),
-        ("model_score", 0.7),
-        ("review_required", False),
-        ("uncertainty", "HIGH_CONFIDENCE"),
-        ("uncertainty_reason", "OTHER_REASON"),
-        ("review_reasons", ["OTHER_REASON"]),
-        ("source_model", "OTHER_MODEL"),
-        ("model_version", "other-version"),
+        "unknown_id",
+        "duplicate_id",
+        "omitted_id",
+        "wrong_tooth",
+        "omitted_tooth",
     ],
 )
-def test_changed_or_invented_evidence_rejects_entire_summary(field: str, value: object):
-    evidence = build_product_finding_evidence([raw_finding()])
-    payload = evidence[0].model_dump()
-    payload[field] = value
+def test_invalid_id_coverage_rejects_complete_narrative(mutation: str):
+    evidence = build_product_finding_evidence(
+        [raw_finding("37", "FILLING"), raw_finding("47", "FILLING")]
+    )
     summary = valid_summary(evidence)
-    summary.tooth_explanations[0].evidence[0] = GroqFindingEvidence.model_validate(payload)
-    with pytest.raises(ValueError):
+    if mutation == "unknown_id":
+        summary.tooth_explanations[0].evidence_ids[0] = "finding_99"
+    elif mutation == "duplicate_id":
+        summary.tooth_explanations[1].evidence_ids[0] = "finding_0"
+    elif mutation == "omitted_id":
+        summary.tooth_explanations[0].evidence_ids = []
+    elif mutation == "wrong_tooth":
+        summary.tooth_explanations[0].evidence_ids[0] = "finding_1"
+        summary.tooth_explanations[1].evidence_ids[0] = "finding_0"
+    else:
+        summary.tooth_explanations.pop()
+
+    with pytest.raises(GroqEvidenceBindingError):
         validate_summary_against_evidence(summary, evidence)
 
 
-def test_request_contains_only_deidentified_structured_dentai_evidence():
+def test_request_contains_deidentified_canonical_input_but_output_schema_only_uses_ids():
     evidence = build_product_finding_evidence([raw_finding()])
     payload = build_groq_request_payload("openai/gpt-oss-20b", evidence)
-    user_content = payload["messages"][1]["content"]
-    finding_payload = json.loads(user_content)["findings"][0]
-    assert set(finding_payload) == {
-        "evidence_id",
-        "tooth_fdi",
-        "finding_type",
-        "model_score",
-        "review_required",
-        "uncertainty",
-        "uncertainty_reason",
-        "review_reasons",
-        "source_model",
-        "model_version",
-    }
-    assert "review_status" not in finding_payload
-    assert "patient" not in user_content
-    assert "source_image_id" not in user_content
-    assert "bounding_box" not in user_content
-    assert payload["model"] == "openai/gpt-oss-20b"
+    finding_payload = json.loads(payload["messages"][1]["content"])["findings"][0]
+    assert finding_payload["model_score"] == 0.8945
+    assert finding_payload["source_model"] == "DENTAI Unified V5"
+    assert "patient" not in payload["messages"][1]["content"]
+    assert "source_image_id" not in payload["messages"][1]["content"]
+    assert "bounding_box" not in payload["messages"][1]["content"]
+    output_properties = payload["response_format"]["json_schema"]["schema"]["$defs"][
+        "GroqToothExplanation"
+    ]["properties"]
+    assert "evidence_ids" in output_properties
+    assert "model_score" not in output_properties
     assert payload["temperature"] == 0
-    assert payload["response_format"]["json_schema"]["strict"] is True
 
 
 @pytest.mark.asyncio
-async def test_groq_unavailable_returns_narrative_fallback_without_raising():
-    class UnavailableProvider:
-        async def summarize(self, evidence):
-            raise TimeoutError("Groq unavailable")
+async def test_canonical_values_are_attached_server_side_not_returned_by_groq():
+    evidence = build_product_finding_evidence([raw_finding()])
 
-    findings = [raw_finding()]
-    before = deepcopy(findings)
-    result = await summarize_product_findings(UnavailableProvider(), findings)
+    class Provider:
+        model = "openai/gpt-oss-20b"
+
+        async def summarize(self, received):
+            assert received == evidence
+            return valid_summary(received)
+
+    result = await summarize_product_findings(Provider(), [raw_finding()])
+    canonical = result["canonical_evidence"]["finding_0"]
+    assert canonical == evidence[0].model_dump(mode="json")
+    assert "model_score" not in result["tooth_explanations"][0]
+    assert "finding_type" not in result["tooth_explanations"][0]
+
+
+@pytest.mark.asyncio
+async def test_groq_failure_logs_safe_diagnostics_and_returns_unavailable(monkeypatch):
+    events = []
+
+    class CapturingLogger:
+        def warning(self, event, **values):
+            events.append((event, values))
+
+    class UnavailableProvider:
+        model = "openai/gpt-oss-20b"
+
+        async def summarize(self, evidence):
+            raise TimeoutError("sensitive response must not be logged")
+
+    monkeypatch.setattr(groq_module, "logger", CapturingLogger())
+    result = await summarize_product_findings(UnavailableProvider(), [raw_finding()])
     assert result == {"status": "UNAVAILABLE"}
-    assert findings == before
+    assert events == [
+        (
+            "groq_clinical_summary_unavailable",
+            {
+                "exception_class": "TimeoutError",
+                "reason": "timeout",
+                "evidence_count": 1,
+                "model": "openai/gpt-oss-20b",
+            },
+        )
+    ]
+    assert "sensitive response" not in repr(events)
 
 
 @pytest.mark.asyncio
 async def test_missing_groq_provider_leaves_narrative_absent():
     assert await summarize_product_findings(None, [raw_finding()]) is None
+
+
+def test_safe_failure_categories_do_not_include_exception_messages():
+    error = GroqEvidenceBindingError("invented clinical response")
+    assert safe_failure_reason(error) == "evidence_binding_error"
