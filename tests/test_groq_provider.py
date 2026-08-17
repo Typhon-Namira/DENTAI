@@ -276,7 +276,6 @@ async def test_mixed_resolved_and_unresolved_findings_keep_groq_summary_availabl
     assert set(result["canonical_evidence"]) == {"finding_0"}
 
 
-
 class RecordingProvider:
     model = "openai/gpt-oss-20b"
 
@@ -326,10 +325,7 @@ class RecordingProvider:
 
 
 def findings_for_teeth(*teeth: str) -> list[dict]:
-    return [
-        raw_finding(tooth, "FILLING", 0.70 + index / 100)
-        for index, tooth in enumerate(teeth)
-    ]
+    return [raw_finding(tooth, "FILLING", 0.70 + index / 100) for index, tooth in enumerate(teeth)]
 
 
 @pytest.mark.asyncio
@@ -406,9 +402,7 @@ async def test_multi_tooth_failure_can_recover_completely_with_single_tooth_retr
 
     assert result["status"] == "AVAILABLE"
     assert len(provider.calls) == 4
-    assert all(
-        len({item.tooth_fdi for item in call}) == 1 for call in provider.calls[1:]
-    )
+    assert all(len({item.tooth_fdi for item in call}) == 1 for call in provider.calls[1:])
 
 
 @pytest.mark.asyncio
@@ -447,9 +441,7 @@ def test_batching_keeps_all_findings_for_one_tooth_together():
     )
     batches = batch_tooth_evidence(group_evidence_by_tooth(evidence))
 
-    tooth_16_batches = [
-        batch for batch in batches if any(item.tooth_fdi == "16" for item in batch)
-    ]
+    tooth_16_batches = [batch for batch in batches if any(item.tooth_fdi == "16" for item in batch)]
     assert len(tooth_16_batches) == 1
     assert [item.finding_type for item in tooth_16_batches[0] if item.tooth_fdi == "16"] == [
         "CROWN",
