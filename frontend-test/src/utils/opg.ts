@@ -29,6 +29,12 @@ export interface ToothFindingGroup {
   boundingBox: BoundingBox | null;
   boundingBoxSource: BoundingBoxSource | null;
   provenanceBoxes: BoundingBox[];
+  geometryAmbiguous: boolean;
+}
+
+export interface VisionToothGeometry {
+  boxes: Map<string, BoundingBox>;
+  ambiguousToothCodes: Set<string>;
 }
 
 export function extractBoundingBox(
@@ -57,12 +63,14 @@ function unionBoundingBoxes(boxes: BoundingBox[]): BoundingBox | null {
   ];
 }
 
-export function extractVisionToothBoxes(
+export function extractVisionToothGeometry(
   structuredResult: AIAnalysisStructuredResult | null
-): Map<string, BoundingBox> {
+): VisionToothGeometry {
   const boxesByTooth = new Map<string, BoundingBox[]>();
   const teeth = structuredResult?.vision_evidence?.teeth;
-  if (!Array.isArray(teeth)) return new Map();
+  if (!Array.isArray(teeth)) {
+    return { boxes: new Map(), ambiguousToothCodes: new Set() };
+  }
 
   for (const value of teeth) {
     if (!value || typeof value !== "object") continue;
@@ -79,17 +87,28 @@ export function extractVisionToothBoxes(
     boxesByTooth.set(toothCode, [...(boxesByTooth.get(toothCode) ?? []), box]);
   }
 
-  const result = new Map<string, BoundingBox>();
-  for (const [toothCode, boxes] of boxesByTooth) {
-    const union = unionBoundingBoxes(boxes);
-    if (union) result.set(toothCode, union);
+  const boxes = new Map<string, BoundingBox>();
+  const ambiguousToothCodes = new Set<string>();
+  for (const [toothCode, toothBoxes] of boxesByTooth) {
+    if (toothBoxes.length === 1) {
+      boxes.set(toothCode, toothBoxes[0]);
+    } else {
+      ambiguousToothCodes.add(toothCode);
+    }
   }
-  return result;
+  return { boxes, ambiguousToothCodes };
+}
+
+export function extractVisionToothBoxes(
+  structuredResult: AIAnalysisStructuredResult | null
+): Map<string, BoundingBox> {
+  return extractVisionToothGeometry(structuredResult).boxes;
 }
 
 export function groupFindingsByTooth(
   findings: DentalFinding[],
-  visionBoxes: Map<string, BoundingBox> = new Map()
+  visionBoxes: Map<string, BoundingBox> = new Map(),
+  ambiguousVisionToothCodes: Set<string> = new Set()
 ): ToothFindingGroup[] {
   const grouped = new Map<string, DentalFinding[]>();
 
@@ -103,19 +122,29 @@ export function groupFindingsByTooth(
     const provenanceBoxes = groupedFindings
       .map((finding) => extractBoundingBox(finding.provenance))
       .filter((box): box is BoundingBox => box !== null);
-    const visionBox = toothCode ? visionBoxes.get(toothCode) ?? null : null;
-    const boundingBoxSource: BoundingBoxSource | null = visionBox
-      ? "VISION_EVIDENCE"
-      : provenanceBoxes.length
-        ? "FINDING_PROVENANCE"
-        : null;
+    const geometryAmbiguous = toothCode
+      ? ambiguousVisionToothCodes.has(toothCode)
+      : false;
+    const visionBox = toothCode && !geometryAmbiguous
+      ? visionBoxes.get(toothCode) ?? null
+      : null;
+    const boundingBoxSource: BoundingBoxSource | null = geometryAmbiguous
+      ? null
+      : visionBox
+        ? "VISION_EVIDENCE"
+        : provenanceBoxes.length
+          ? "FINDING_PROVENANCE"
+          : null;
     return {
       key,
       toothCode,
       findings: groupedFindings,
-      boundingBox: visionBox ?? unionBoundingBoxes(provenanceBoxes),
+      boundingBox: geometryAmbiguous
+        ? null
+        : visionBox ?? unionBoundingBoxes(provenanceBoxes),
       boundingBoxSource,
-      provenanceBoxes
+      provenanceBoxes,
+      geometryAmbiguous
     };
   }).sort((left, right) =>
     (left.toothCode ?? left.key).localeCompare(right.toothCode ?? right.key, undefined, {
