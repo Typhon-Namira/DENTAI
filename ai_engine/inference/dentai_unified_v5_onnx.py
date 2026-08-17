@@ -72,15 +72,23 @@ def detect(s,pre,im,min_size,max_size):
  b,sc,l=s.run(None,{'image':x});b=b.astype(float);b[:,[0,2]]*=W/nw;b[:,[1,3]]*=H/nh;b[:,[0,2]]=b[:,[0,2]].clip(0,W);b[:,[1,3]]=b[:,[1,3]].clip(0,H);return b,sc,l
 def fdi_probs(s,im,b):
  W,H=im.size;x1,y1,x2,y2=map(float,b);sp=np.array([[(x1+x2)/2/W,(y1+y2)/2/H,(x2-x1)/W,(y2-y1)/H]],np.float32);return softmax(s.run(None,{'image':crop(im,b,.35,12,224),'spatial':sp})[0])[0]
+CENTER_DEAD_ZONE_FRACTION=.08
 def bbox_center_x(bbox):return(float(bbox[0])+float(bbox[2]))/2
 def expected_viewer_side(fdi):return'LEFT'if str(fdi)[:1]in'14'else'RIGHT'
+def allowed_quadrants_for_bbox(bbox,image_width):
+ if image_width is None or image_width<=0:return tuple(QUADS)
+ midpoint=image_width/2;half_zone=image_width*CENTER_DEAD_ZONE_FRACTION/2;center=bbox_center_x(bbox)
+ if abs(center-midpoint)<=half_zone:return tuple(QUADS)
+ return('1','4')if center<midpoint else('2','3')
 def fdi_side_consistent(fdi,bbox,image_width):
  if not fdi or image_width is None or image_width<=0:return True
- observed='LEFT'if bbox_center_x(bbox)<image_width/2 else'RIGHT'
- return observed==expected_viewer_side(fdi)
+ allowed=allowed_quadrants_for_bbox(bbox,image_width)
+ return len(allowed)==4 or str(fdi)[0]in allowed
 def resolve(rows,image_width=None):
  groups=defaultdict(list)
- for x in rows:groups[max(QUADS,key=lambda q:sum(float(x['probs'][FDI_IDX[c]]) for c in QUADS[q]))].append(x)
+ for x in rows:
+  allowed=allowed_quadrants_for_bbox(x['bbox'],image_width);quadrant=max(allowed,key=lambda q:sum(float(x['probs'][FDI_IDX[c]])for c in QUADS[q]));raw_quadrant=str(x['raw'])[0]
+  groups[quadrant].append({**x,'quadrant_candidates':list(allowed),'resolved_quadrant':quadrant,'side_constraint_applied':len(allowed)<4,'side_constraint_overrode_raw_quadrant':raw_quadrant not in allowed})
  out=[]
  for q in '1234':
   teeth=sorted(groups[q],key=lambda x:bbox_center_x(x['bbox']),reverse=q in '14');labels=QUADS[q];n,m=len(teeth),8;inf=1e9;dp=[[inf]*(m+1)for _ in range(n+1)];par=[[None]*(m+1)for _ in range(n+1)];dp[0][0]=0
@@ -91,7 +99,7 @@ def resolve(rows,image_width=None):
     if j<m and cur+.3<dp[i][j+1]:dp[i][j+1]=cur+.3;par[i][j+1]=(i,j,'l')
     if i<n and cur+1.6<dp[i+1][j]:dp[i+1][j]=cur+1.6;par[i+1][j]=(i,j,'d')
     if i<n and j<m:
-     cost=cur-math.log(max(float(teeth[i]['probs'][FDI_IDX[labels[j]]]),1e-8))-(.25 if teeth[i]['raw']==labels[j] else 0)
+     cost=cur-math.log(max(float(teeth[i]['probs'][FDI_IDX[labels[j]]]),1e-8))-(.25 if teeth[i]['raw']==labels[j]else 0)
      if cost<dp[i+1][j+1]:dp[i+1][j+1]=cost;par[i+1][j+1]=(i,j,'a')
   j=min(range(m+1),key=lambda k:dp[n][k]+(m-k)*.3);i=n;a={}
   while i or j:
@@ -101,12 +109,11 @@ def resolve(rows,image_width=None):
    if act=='a':a[pi]=labels[pj]
    elif act=='d':a[pi]=None
    i,j=pi,pj
-  for i,x in enumerate(teeth):out.append({**x,'resolved':a.get(i)or x['raw'],'unresolved':a.get(i)is None})
- # Duplicate-only V3.1 cleanup. Geometry may repair a duplicate only when one
- # missing slot is unambiguous between its ordered neighbours. Otherwise every
- # duplicate detection is preserved and marked for FDI review.
+  for i,x in enumerate(teeth):out.append({**x,'resolved':a.get(i),'unresolved':a.get(i)is None})
+ # Duplicate-only cleanup may use one unambiguous missing slot. Any duplicate
+ # still present afterwards loses authoritative FDI while preserving its raw trace.
  for q in '1234':
-  g=[x for x in out if x['resolved'].startswith(q)];ordered=sorted(g,key=lambda x:bbox_center_x(x['bbox']),reverse=q in '14');cnt=Counter(x['resolved']for x in g);missing=[x for x in QUADS[q]if x not in cnt]
+  g=[x for x in out if x['resolved']and x['resolved'].startswith(q)];ordered=sorted(g,key=lambda x:bbox_center_x(x['bbox']),reverse=q in '14');cnt=Counter(x['resolved']for x in g);missing=[x for x in QUADS[q]if x not in cnt]
   if len(ordered)<=8:
    for dup,n in cnt.items():
     if n<2:continue
@@ -115,11 +122,12 @@ def resolve(rows,image_width=None):
      if x is keeper:continue
      rank=ordered.index(x);previous=[int(y['resolved'][1])for y in ordered[:rank]if y is not x and y['resolved']!=dup];following=[int(y['resolved'][1])for y in ordered[rank+1:]if y is not x and y['resolved']!=dup];low=max(previous)if previous else 0;high=min(following)if following else 9;candidates=[z for z in missing if low<int(z[1])<high]
      if len(candidates)==1:x['resolved']=candidates[0];x['cleanup']=True;missing.remove(candidates[0])
-  remaining=Counter(x['resolved']for x in g)
+  remaining=Counter(x['resolved']for x in g if x['resolved'])
+  ambiguous={fdi for fdi,count in remaining.items()if count>1}
   for x in g:
-   if remaining[x['resolved']]>1:x['unresolved']=True
+   if x['resolved']in ambiguous:x['resolved']=None;x['unresolved']=True
  for x in out:
-  if not fdi_side_consistent(x['resolved'],x['bbox'],image_width):x['unresolved']=True
+  if x['resolved']is not None and not fdi_side_consistent(x['resolved'],x['bbox'],image_width):x['resolved']=None;x['unresolved']=True
  return out
 def iou(a,b):
  ix=max(0,min(a[2],b[2])-max(a[0],b[0]));iy=max(0,min(a[3],b[3])-max(a[1],b[1]));inter=ix*iy;aa=max(0,a[2]-a[0])*max(0,a[3]-a[1]);bb=max(0,b[2]-b[0])*max(0,b[3]-b[1]);return inter/(aa+bb-inter) if aa+bb>inter else 0,inter/bb if bb else 0
@@ -149,7 +157,7 @@ class Engine:
   rr=resolve(rows,im.width);teeth=[]
   for x in rr:
    box=x['bbox'];gp,gc,gps=classify(self.s['gate'],crop(im,box,.35,16,224),GATE);sp,ssc,sps=classify(self.s['status'],crop(im,box,.45,18,256),STATUS)
-   teeth.append({'tooth_detection':{'instance_id':x['id'],'bbox_xyxy':[round(v,2)for v in box],'confidence':x['score']},'fdi':x['resolved'],'fdi_confidence':x['raw_conf'],'raw_fdi':x['raw'],'fdi_was_changed':x['raw']!=x['resolved'],'duplicate_cleanup_applied':bool(x.get('cleanup')),'fdi_review_required':x['unresolved']or x['raw_conf']<.7,'status_gate':{'prediction':gp,'effective_prediction':'NON_HEALTHY'if gps['NON_HEALTHY']>=.3 else'HEALTHY','confidence':gc,'probabilities':gps,'non_healthy_probability':gps['NON_HEALTHY'],'abnormal_threshold':.3},'status_v2':{'prediction':sp,'confidence':ssc,'probabilities':sps}})
+   teeth.append({'tooth_detection':{'instance_id':x['id'],'bbox_xyxy':[round(v,2)for v in box],'confidence':x['score']},'fdi':x['resolved'],'fdi_confidence':x['raw_conf'],'raw_fdi':x['raw'],'fdi_was_changed':x['raw']!=x['resolved'],'duplicate_cleanup_applied':bool(x.get('cleanup')),'fdi_review_required':x['unresolved']or x['raw_conf']<.7,'quadrant_candidates':x['quadrant_candidates'],'resolved_quadrant':x['resolved_quadrant'],'side_constraint_applied':x['side_constraint_applied'],'side_constraint_overrode_raw_quadrant':x['side_constraint_overrode_raw_quadrant'],'status_gate':{'prediction':gp,'effective_prediction':'NON_HEALTHY'if gps['NON_HEALTHY']>=.3 else'HEALTHY','confidence':gc,'probabilities':gps,'non_healthy_probability':gps['NON_HEALTHY'],'abnormal_threshold':.3},'status_v2':{'prediction':sp,'confidence':ssc,'probabilities':sps}})
   pb,ps,pl=detect(self.s['path'],self.s['pre'],im,640,1600);paths=[{'type':PATH[int(y)],'confidence':float(s),'threshold':PTH[PATH[int(y)]],'bbox_xyxy':[round(v,2)for v in x]}for x,s,y in zip(pb,ps,pl)if int(y)in PATH and s>=PTH[PATH[int(y)]]];up=attach(paths,teeth,'pathology_evidence')
   rb,rs,rl=detect(self.s['rd'],self.s['pre'],im,800,1333);rests=[]
   for box,s,y in zip(rb,rs,rl):
@@ -170,7 +178,7 @@ class Engine:
    if any(x in EXP for x in find):reasons.append('EXPERIMENTAL_PATHOLOGY_FINDING')
    if t['fdi_review_required']:reasons.append('FDI_LOW_CONFIDENCE_OR_UNRESOLVED')
    t['final_findings']=list(dict.fromkeys(find))or['HEALTHY'];t['review_reasons']=list(dict.fromkeys(reasons));t['review_required']=bool(t['review_reasons'])
-  teeth.sort(key=lambda x:int(x['fdi']));return {'version':'dentai-unified-v5','device':'cpu','models':{k:{'runtime':'ONNX Runtime','artifact':v}for k,v in {'tooth':'tooth_v3.onnx','fdi':'fdi_v3.onnx','status_gate':'status_gate_v1.onnx','status_v2':'status_v2.onnx','pathology':'pathology_v41.onnx','deep_caries':'deep_caries_v2.onnx','restoration_detector':'restoration_detector_v1.onnx','restoration_classifier':'restoration_classifier_v1.onnx'}.items()},'thresholds':{'tooth':.5,'status_gate_non_healthy':.3,'pathology':PTH,'deep_caries':.65,'restoration':.5},'summary':{'teeth':len(teeth),'unique_fdi':len(set(x['fdi']for x in teeth)),'pathology_detections':len(paths),'restorations':len(rests),'review_required':sum(x['review_required']for x in teeth),'runtime_seconds':time.perf_counter()-start},'teeth':teeth,'unmatched_pathologies':up,'unmatched_restorations':ur}
+  teeth.sort(key=lambda x:(x['fdi']is None,int(x['fdi'])if x['fdi']else x['tooth_detection']['instance_id']));return {'version':'dentai-unified-v5','device':'cpu','models':{k:{'runtime':'ONNX Runtime','artifact':v}for k,v in {'tooth':'tooth_v3.onnx','fdi':'fdi_v3.onnx','status_gate':'status_gate_v1.onnx','status_v2':'status_v2.onnx','pathology':'pathology_v41.onnx','deep_caries':'deep_caries_v2.onnx','restoration_detector':'restoration_detector_v1.onnx','restoration_classifier':'restoration_classifier_v1.onnx'}.items()},'thresholds':{'tooth':.5,'status_gate_non_healthy':.3,'pathology':PTH,'deep_caries':.65,'restoration':.5},'summary':{'teeth':len(teeth),'unique_fdi':len(set(x['fdi']for x in teeth if x['fdi']is not None)),'pathology_detections':len(paths),'restorations':len(rests),'review_required':sum(x['review_required']for x in teeth),'runtime_seconds':time.perf_counter()-start},'teeth':teeth,'unmatched_pathologies':up,'unmatched_restorations':ur}
  def analyze(self,image_path):
   return self.analyze_bytes(Path(image_path).read_bytes())
 
