@@ -260,7 +260,7 @@ export function AnalysisResults({
                 onClick={() => setSelectedGroupKey(group.key)}
                 onMouseEnter={() => setSelectedGroupKey(group.key)}
               >
-                <span className="tooth-code">{group.toothCode ?? "Unresolved tooth region"}</span>
+                <span className="tooth-code">{group.toothCode ?? "Finding region"}</span>
                 <span className="group-findings">
                   <strong>{group.findings.map((finding) =>
                     finding.finding_type.replaceAll("_", " ")
@@ -298,7 +298,7 @@ export function AnalysisResults({
                   onMouseEnter={() => inspectFinding(finding)}
                 >
                   <button type="button" onClick={() => inspectFinding(finding)}>
-                    <span className="tooth-code">{finding.tooth_code ?? "Unresolved region"}</span>
+                    <span className="tooth-code">{finding.tooth_code ?? "Finding region"}</span>
                     <span>
                       <strong>{finding.finding_type.replaceAll("_", " ")}</strong>
                       <small>{finding.description}</small>
