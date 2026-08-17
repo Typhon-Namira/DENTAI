@@ -296,7 +296,7 @@ export function OPGAnalysisViewer({
               <div className="selected-tooth-heading">
                 <div>
                   <p className="eyebrow">Selected tooth</p>
-                  <h2>{selectedGroup.toothCode ?? "Unresolved tooth region"}</h2>
+                  <h2>{selectedGroup.toothCode ?? "Finding region"}</h2>
                 </div>
                 <span className="count-badge">{selectedGroup.findings.length}</span>
               </div>
@@ -458,12 +458,6 @@ export function OPGAnalysisViewer({
         </aside>
       </div>
 
-      {projectedGroups.some((group) => !group.toothCode) && (
-        <p className="overlay-note">
-          Unresolved tooth regions remain available in the finding panel. Their raw FDI
-          candidates are not rendered as labelled overlays.
-        </p>
-      )}
       {projectedGroups.some((group) => group.geometryAmbiguous) && (
         <p className="overlay-note">
           Duplicate canonical FDI regions were detected. Ambiguous overlays are withheld
