@@ -5,12 +5,12 @@ import pytest
 
 import ai_engine.groq.provider as groq_module
 from ai_engine.groq.provider import (
+    MAX_GROQ_CONCURRENCY,
+    MAX_GROQ_TEETH_PER_BATCH,
     GroqClinicalSummary,
     GroqEvidenceBindingError,
     GroqFindingEvidence,
     GroqToothExplanation,
-    MAX_GROQ_CONCURRENCY,
-    MAX_GROQ_TEETH_PER_BATCH,
     batch_tooth_evidence,
     build_groq_request_payload,
     build_product_finding_evidence,
