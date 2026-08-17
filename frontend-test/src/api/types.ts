@@ -86,10 +86,9 @@ export interface GroqFindingEvidence {
 
 export interface GroqToothExplanation {
   tooth_fdi: string;
-  evidence: GroqFindingEvidence[];
+  evidence_ids: string[];
   headline: string;
   clinical_explanation: string;
-  confidence_explanation: string;
   review_explanation: string;
 }
 
@@ -100,6 +99,7 @@ export interface GroqClinicalSummary {
   monitoring_points: string[];
   questions_for_doctor: string[];
   patient_message_draft: string;
+  canonical_evidence: Record<string, GroqFindingEvidence>;
 }
 
 export interface AIAnalysisStructuredResult {

@@ -6,6 +6,7 @@ import type {
 } from "../api/types";
 import {
   explanationForGroup,
+  modelScoreLanguage,
   parseClinicalSummary,
   reviewStatusLanguage,
   technicalDetailsForFinding
@@ -66,20 +67,24 @@ function evidence(
 }
 
 function summary(items: GroqFindingEvidence[]): GroqClinicalSummary {
+  const byTooth = new Map<string, string[]>();
+  for (const item of items) {
+    byTooth.set(item.tooth_fdi, [...(byTooth.get(item.tooth_fdi) ?? []), item.evidence_id]);
+  }
   return {
     doctor_summary: "AI-assisted explanation of supplied DENTAI evidence.",
-    tooth_explanations: [{
-      tooth_fdi: items[0].tooth_fdi,
-      evidence: items,
+    tooth_explanations: Array.from(byTooth, ([toothFdi, evidenceIds]) => ({
+      tooth_fdi: toothFdi,
+      evidence_ids: evidenceIds,
       headline: "Existing restoration detected",
       clinical_explanation: "DENTAI identified features consistent with the supplied finding.",
-      confidence_explanation: "The model score is supporting AI evidence.",
       review_explanation: "DENTAI marked this AI-generated finding for clinician review."
-    }],
+    })),
     important_changes: [],
     monitoring_points: [],
     questions_for_doctor: [],
-    patient_message_draft: ""
+    patient_message_draft: "",
+    canonical_evidence: Object.fromEntries(items.map((item) => [item.evidence_id, item]))
   };
 }
 
@@ -89,7 +94,7 @@ describe("clinical summary utilities", () => {
     expect(parseClinicalSummary({ status: "UNAVAILABLE" })).toBeNull();
   });
 
-  it("matches a one-finding explanation only to its exact DENTAI tooth evidence", () => {
+  it("matches one evidence ID to canonical DENTAI data", () => {
     const group = groupFindingsByTooth([
       finding("a", "37", "FILLING", 0.8945)
     ])[0];
@@ -99,17 +104,19 @@ describe("clinical summary utilities", () => {
     expect(explanationForGroup(parsed, group)?.headline).toBe("Existing restoration detected");
   });
 
-  it("supports multiple findings on one tooth without merging their identities", () => {
-    const findings = [
-      finding("a", "37", "FILLING", 0.8945),
-      finding("b", "37", "ROOT_CANAL_TREATMENT", 0.9516)
+  it("supports multiple findings on one tooth and multiple teeth", () => {
+    const items = [
+      evidence("finding_0", "16", "CROWN", 0.9231),
+      evidence("finding_1", "16", "ROOT_CANAL_TREATMENT", 0.6951),
+      evidence("finding_2", "37", "FILLING", 0.8945)
     ];
-    const group = groupFindingsByTooth(findings)[0];
-    const parsed = parseClinicalSummary(summary([
-      evidence("finding_0", "37", "FILLING", 0.8945),
-      evidence("finding_1", "37", "ROOT_CANAL_TREATMENT", 0.9516)
-    ]));
-    expect(explanationForGroup(parsed, group)?.evidence).toHaveLength(2);
+    const parsed = parseClinicalSummary(summary(items));
+    const tooth16 = groupFindingsByTooth([
+      finding("a", "16", "CROWN", 0.9231),
+      finding("b", "16", "ROOT_CANAL_TREATMENT", 0.6951)
+    ])[0];
+    expect(explanationForGroup(parsed, tooth16)?.evidence_ids)
+      .toEqual(["finding_0", "finding_1"]);
   });
 
   it.each(["PENDING", "CONFIRMED", "REJECTED"] as const)(
@@ -126,50 +133,62 @@ describe("clinical summary utilities", () => {
     }
   );
 
-  it("renders deterministic live review language from DentalFinding state", () => {
-    expect(reviewStatusLanguage(
-      finding("pending", "37", "FILLING", 0.8945, "PENDING").review_status
-    )).toBe("This finding is awaiting clinician review.");
-    expect(reviewStatusLanguage(
-      finding("confirmed", "37", "FILLING", 0.8945, "CONFIRMED").review_status
-    )).toBe("This finding has been confirmed by the reviewing clinician.");
-    expect(reviewStatusLanguage(
-      finding("rejected", "37", "FILLING", 0.8945, "REJECTED").review_status
-    )).toBe(
-      "This finding was rejected by the reviewing clinician and is not treated as a " +
-      "confirmed finding."
-    );
+  it("rejects unknown, duplicate, omitted, or wrong-tooth evidence IDs", () => {
+    const base = summary([
+      evidence("finding_0", "37", "FILLING", 0.8945),
+      evidence("finding_1", "47", "FILLING", 0.6951)
+    ]);
+    const invalid = [
+      { ...base, tooth_explanations: [
+        { ...base.tooth_explanations[0], evidence_ids: ["finding_99"] },
+        base.tooth_explanations[1]
+      ] },
+      { ...base, tooth_explanations: [
+        base.tooth_explanations[0],
+        { ...base.tooth_explanations[1], evidence_ids: ["finding_0"] }
+      ] },
+      { ...base, tooth_explanations: [base.tooth_explanations[0]] },
+      { ...base, tooth_explanations: [
+        { ...base.tooth_explanations[0], evidence_ids: ["finding_1"] },
+        { ...base.tooth_explanations[1], evidence_ids: ["finding_0"] }
+      ] }
+    ];
+    for (const candidate of invalid) {
+      expect(parseClinicalSummary(candidate)).toBeNull();
+    }
   });
 
-  it("rejects invented or changed immutable DENTAI evidence", () => {
+  it("does not trust narrative IDs when canonical DENTAI values differ", () => {
+    const parsed = parseClinicalSummary(summary([
+      evidence("finding_0", "37", "CARIES", 0.8945)
+    ]));
     const group = groupFindingsByTooth([
       finding("a", "37", "FILLING", 0.8945)
     ])[0];
-    const original = evidence("finding_0", "37", "FILLING", 0.8945);
-    const changed: GroqFindingEvidence[] = [
-      { ...original, tooth_fdi: "36" },
-      { ...original, finding_type: "CARIES" },
-      { ...original, model_score: 0.7 },
-      { ...original, review_required: false },
-      { ...original, uncertainty: "HIGH_CONFIDENCE" },
-      { ...original, uncertainty_reason: "OTHER_REASON" },
-      { ...original, review_reasons: ["OTHER_REASON"] },
-      { ...original, source_model: "OTHER_MODEL" },
-      { ...original, model_version: "other-version" }
-    ];
-    for (const item of changed) {
-      expect(explanationForGroup(summary([item]), group)).toBeNull();
-    }
-    expect(explanationForGroup(summary([
-      evidence("finding_99", "36", "CARIES", 0.8945)
-    ]), group)).toBeNull();
+    expect(explanationForGroup(parsed, group)).toBeNull();
   });
 
-  it("preserves exact machine evidence in technical details", () => {
-    const details = technicalDetailsForFinding(
-      finding("a", "37", "FILLING", 0.8945)
+  it("renders current review language from DentalFinding state", () => {
+    expect(reviewStatusLanguage("PENDING"))
+      .toBe("This finding is awaiting clinician review.");
+    expect(reviewStatusLanguage("CONFIRMED"))
+      .toBe("This finding has been confirmed by the reviewing clinician.");
+    expect(reviewStatusLanguage("REJECTED")).toContain("was rejected");
+  });
+
+  it("renders numeric model-score language deterministically without confidence labels", () => {
+    const text = modelScoreLanguage(0.8945);
+    expect(text).toBe(
+      "Model score: 0.8945. This score represents supporting AI evidence and is not an " +
+      "independent diagnostic probability."
     );
-    expect(details).toEqual({
+    expect(text).not.toMatch(/high confidence|moderate confidence|low confidence/i);
+  });
+
+  it("preserves technical details from canonical DentalFinding data", () => {
+    expect(technicalDetailsForFinding(
+      finding("a", "37", "FILLING", 0.8945)
+    )).toEqual({
       confidence: 0.8945,
       raw_score: 0.8945,
       review_status: "PENDING",

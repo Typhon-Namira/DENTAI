@@ -13,6 +13,7 @@ import {
 import {
   explanationForGroup,
   humanizeFindingType,
+  modelScoreLanguage,
   reviewStatusLanguage,
   technicalDetailsForFinding
 } from "../utils/clinicalSummary";
@@ -306,7 +307,6 @@ export function OPGAnalysisViewer({
                   <p className="eyebrow">AI-assisted explanation</p>
                   <h3>{selectedExplanation.headline}</h3>
                   <p>{selectedExplanation.clinical_explanation}</p>
-                  <p>{selectedExplanation.confidence_explanation}</p>
                   <p>{selectedExplanation.review_explanation}</p>
                 </section>
               ) : (
@@ -334,6 +334,9 @@ export function OPGAnalysisViewer({
                       </div>
                       <p className="live-review-language">
                         {reviewStatusLanguage(finding.review_status)}
+                      </p>
+                      <p className="model-score-language">
+                        {modelScoreLanguage(finding.confidence)}
                       </p>
 
                       {canReview && finding.review_status === "PENDING" && (
