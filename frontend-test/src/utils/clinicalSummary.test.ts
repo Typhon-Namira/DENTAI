@@ -5,9 +5,11 @@ import type {
   GroqFindingEvidence
 } from "../api/types";
 import {
+  clinicalSummaryPresentation,
   explanationForGroup,
   modelScoreLanguage,
   parseClinicalSummary,
+  PARTIAL_CLINICAL_SUMMARY_NOTICE,
   reviewStatusLanguage,
   technicalDetailsForFinding
 } from "./clinicalSummary";
@@ -94,6 +96,56 @@ describe("clinical summary utilities", () => {
   it("falls back when clinical_summary is missing or Groq is unavailable", () => {
     expect(parseClinicalSummary(undefined)).toBeNull();
     expect(parseClinicalSummary({ status: "UNAVAILABLE" })).toBeNull();
+  });
+
+  it("keeps AVAILABLE summaries complete without a partial warning", () => {
+    const candidate = summary([
+      evidence("finding_0", "37", "FILLING", 0.8945)
+    ]);
+    candidate.patient_message_draft = "Optional complete-coverage draft.";
+    const parsed = parseClinicalSummary(candidate);
+    const presentation = clinicalSummaryPresentation(parsed);
+
+    expect(presentation.showPanel).toBe(true);
+    expect(presentation.showPartialWarning).toBe(false);
+    expect(presentation.partialWarning).toBeNull();
+    expect(presentation.showPatientMessage).toBe(true);
+  });
+
+  it("shows a clear PARTIAL warning and hides the patient message draft", () => {
+    const candidate = summary([
+      evidence("finding_0", "37", "FILLING", 0.8945),
+      evidence("finding_1", "47", "FILLING", 0.81)
+    ]);
+    candidate.status = "PARTIAL";
+    candidate.failed_tooth_fdis = ["47"];
+    candidate.patient_message_draft = "This incomplete draft must remain hidden.";
+    candidate.tooth_explanations = candidate.tooth_explanations.filter(
+      (item) => item.tooth_fdi === "37"
+    );
+    const parsed = parseClinicalSummary(candidate);
+    const presentation = clinicalSummaryPresentation(parsed);
+
+    expect(presentation.showPanel).toBe(true);
+    expect(presentation.showPartialWarning).toBe(true);
+    expect(presentation.partialWarning).toBe(PARTIAL_CLINICAL_SUMMARY_NOTICE);
+    expect(presentation.partialWarning).toContain(
+      "Findings without a validated AI-assisted explanation"
+    );
+    expect(presentation.showPatientMessage).toBe(false);
+  });
+
+  it("does not render a Groq summary panel for UNAVAILABLE summaries", () => {
+    const parsed = parseClinicalSummary({ status: "UNAVAILABLE" });
+    const presentation = clinicalSummaryPresentation(parsed);
+
+    expect(parsed).toBeNull();
+    expect(presentation).toEqual({
+      showPanel: false,
+      showPartialWarning: false,
+      partialWarning: null,
+      showPatientMessage: false
+    });
   });
 
   it("matches one evidence ID to canonical DENTAI data", () => {
