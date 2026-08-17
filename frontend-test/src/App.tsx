@@ -385,7 +385,7 @@ export default function App() {
               analysis={selectedAnalysis}
               findings={analysisFindings}
               role={user.role}
-              onReviewed={() => loadProfile(profile.patient.id)}
+              onReviewed={async () => { await loadProfile(profile.patient.id); }}
             />
           </>
         )}
