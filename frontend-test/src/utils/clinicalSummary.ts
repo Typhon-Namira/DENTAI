@@ -170,6 +170,37 @@ export function parseClinicalSummary(value: unknown): GroqClinicalSummary | null
   };
 }
 
+export const PARTIAL_CLINICAL_SUMMARY_NOTICE =
+  "AI-assisted language is available for part of this analysis. Findings without a " +
+  "validated AI-assisted explanation continue to use the original DENTAI evidence.";
+
+export interface ClinicalSummaryPresentation {
+  showPanel: boolean;
+  showPartialWarning: boolean;
+  partialWarning: string | null;
+  showPatientMessage: boolean;
+}
+
+export function clinicalSummaryPresentation(
+  summary: GroqClinicalSummary | null
+): ClinicalSummaryPresentation {
+  if (!summary) {
+    return {
+      showPanel: false,
+      showPartialWarning: false,
+      partialWarning: null,
+      showPatientMessage: false
+    };
+  }
+  const partial = summary.status === "PARTIAL";
+  return {
+    showPanel: true,
+    showPartialWarning: partial,
+    partialWarning: partial ? PARTIAL_CLINICAL_SUMMARY_NOTICE : null,
+    showPatientMessage: !partial && summary.patient_message_draft.length > 0
+  };
+}
+
 function findingFingerprint(finding: DentalFinding): string | null {
   const provenance = finding.provenance;
   if (
