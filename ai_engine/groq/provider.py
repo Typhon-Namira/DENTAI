@@ -1,14 +1,9 @@
 import json
 import math
-from typing import Literal
-
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 PRODUCT_MODEL_SCORE_THRESHOLD = 0.60
-GroqReviewStatus = Literal["PENDING", "CONFIRMED", "REJECTED"]
-
-
 class StrictGroqModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -18,7 +13,6 @@ class GroqFindingEvidence(StrictGroqModel):
     tooth_fdi: str = Field(pattern=r"^[1-4][1-8]$")
     finding_type: str = Field(min_length=1)
     model_score: float = Field(ge=0, le=1)
-    review_status: GroqReviewStatus
     review_required: bool
     uncertainty: str = Field(min_length=1)
     uncertainty_reason: str | None
@@ -64,7 +58,9 @@ Create exactly one tooth_explanations item for each distinct tooth_fdi. Copy eve
 finding evidence object for that tooth into its evidence list without changing any
 field. Do not omit, duplicate, merge, or invent evidence. Do not interpret model_score
 as an independent diagnostic probability. Translate internal enum and reason-code names
-into plain language instead of repeating raw code tokens. Dentist review remains required.
+into plain language instead of repeating raw code tokens. Explain only whether DENTAI
+marked review_required. Never claim that clinician review is pending, confirmed, or rejected;
+that mutable application state is not supplied to you. Dentist review remains required.
 Return only the requested structured JSON."""
 
 
@@ -94,7 +90,6 @@ def build_product_finding_evidence(findings: list[dict]) -> list[GroqFindingEvid
                 tooth_fdi=finding["tooth_code"],
                 finding_type=finding["finding_type"],
                 model_score=score,
-                review_status="PENDING",
                 review_required=review_required,
                 uncertainty=provenance["uncertainty"],
                 uncertainty_reason=provenance.get("uncertainty_reason"),

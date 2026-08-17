@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 
 import pytest
@@ -112,7 +113,12 @@ def test_low_scores_are_excluded_without_mutating_raw_findings():
         ("tooth_fdi", "36"),
         ("finding_type", "CARIES"),
         ("model_score", 0.7),
-        ("review_status", "CONFIRMED"),
+        ("review_required", False),
+        ("uncertainty", "HIGH_CONFIDENCE"),
+        ("uncertainty_reason", "OTHER_REASON"),
+        ("review_reasons", ["OTHER_REASON"]),
+        ("source_model", "OTHER_MODEL"),
+        ("model_version", "other-version"),
     ],
 )
 def test_changed_or_invented_evidence_rejects_entire_summary(field: str, value: object):
@@ -129,6 +135,20 @@ def test_request_contains_only_deidentified_structured_dentai_evidence():
     evidence = build_product_finding_evidence([raw_finding()])
     payload = build_groq_request_payload("openai/gpt-oss-20b", evidence)
     user_content = payload["messages"][1]["content"]
+    finding_payload = json.loads(user_content)["findings"][0]
+    assert set(finding_payload) == {
+        "evidence_id",
+        "tooth_fdi",
+        "finding_type",
+        "model_score",
+        "review_required",
+        "uncertainty",
+        "uncertainty_reason",
+        "review_reasons",
+        "source_model",
+        "model_version",
+    }
+    assert "review_status" not in finding_payload
     assert "patient" not in user_content
     assert "source_image_id" not in user_content
     assert "bounding_box" not in user_content

@@ -13,6 +13,7 @@ import {
 import {
   explanationForGroup,
   humanizeFindingType,
+  reviewStatusLanguage,
   technicalDetailsForFinding
 } from "../utils/clinicalSummary";
 import { StatusBadge } from "./StatusBadge";
@@ -331,6 +332,9 @@ export function OPGAnalysisViewer({
                         <strong>{humanizeFindingType(finding.finding_type)}</strong>
                         <StatusBadge value={finding.review_status} />
                       </div>
+                      <p className="live-review-language">
+                        {reviewStatusLanguage(finding.review_status)}
+                      </p>
 
                       {canReview && finding.review_status === "PENDING" && (
                         <label className="inline-review-decision">

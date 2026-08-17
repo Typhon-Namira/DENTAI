@@ -1,6 +1,5 @@
 import type {
   DentalFinding,
-  FindingReview,
   GroqClinicalSummary,
   GroqFindingEvidence,
   GroqToothExplanation
@@ -19,14 +18,13 @@ function stringArray(value: unknown): string[] | null {
 function parseEvidence(value: unknown): GroqFindingEvidence | null {
   if (!isRecord(value)) return null;
   const reviewReasons = stringArray(value.review_reasons);
-  const reviewStatus = value.review_status;
   if (
     typeof value.evidence_id !== "string" ||
     typeof value.tooth_fdi !== "string" ||
     typeof value.finding_type !== "string" ||
     typeof value.model_score !== "number" ||
     !Number.isFinite(value.model_score) ||
-    !["PENDING", "CONFIRMED", "REJECTED"].includes(String(reviewStatus)) ||
+    "review_status" in value ||
     typeof value.review_required !== "boolean" ||
     typeof value.uncertainty !== "string" ||
     !(typeof value.uncertainty_reason === "string" || value.uncertainty_reason === null) ||
@@ -41,7 +39,6 @@ function parseEvidence(value: unknown): GroqFindingEvidence | null {
     tooth_fdi: value.tooth_fdi,
     finding_type: value.finding_type,
     model_score: value.model_score,
-    review_status: reviewStatus as FindingReview,
     review_required: value.review_required,
     uncertainty: value.uncertainty,
     uncertainty_reason: value.uncertainty_reason,
@@ -125,7 +122,6 @@ function findingFingerprint(finding: DentalFinding): string | null {
     tooth_fdi: finding.tooth_code,
     finding_type: finding.finding_type,
     model_score: finding.confidence,
-    review_status: finding.review_status,
     review_required: provenance.review_required,
     uncertainty: provenance.uncertainty,
     uncertainty_reason: provenance.uncertainty_reason,
@@ -156,6 +152,21 @@ export function explanationForGroup(
   const returned = matches[0].evidence.map(evidenceFingerprint).sort();
   if (expected.length !== returned.length) return null;
   return expected.every((item, index) => item === returned[index]) ? matches[0] : null;
+}
+
+export function reviewStatusLanguage(
+  status: DentalFinding["review_status"]
+): string {
+  if (status === "CONFIRMED") {
+    return "This finding has been confirmed by the reviewing clinician.";
+  }
+  if (status === "REJECTED") {
+    return (
+      "This finding was rejected by the reviewing clinician and is not treated as a " +
+      "confirmed finding."
+    );
+  }
+  return "This finding is awaiting clinician review.";
 }
 
 export function technicalDetailsForFinding(finding: DentalFinding) {

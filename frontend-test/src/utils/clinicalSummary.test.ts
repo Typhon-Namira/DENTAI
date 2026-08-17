@@ -7,6 +7,7 @@ import type {
 import {
   explanationForGroup,
   parseClinicalSummary,
+  reviewStatusLanguage,
   technicalDetailsForFinding
 } from "./clinicalSummary";
 import { groupFindingsByTooth } from "./opg";
@@ -48,15 +49,13 @@ function evidence(
   id: string,
   toothCode: string,
   findingType: string,
-  score: number,
-  reviewStatus: DentalFinding["review_status"] = "PENDING"
+  score: number
 ): GroqFindingEvidence {
   return {
     evidence_id: id,
     tooth_fdi: toothCode,
     finding_type: findingType,
     model_score: score,
-    review_status: reviewStatus,
     review_required: true,
     uncertainty: "LOW_CONFIDENCE",
     uncertainty_reason: "FDI_LOW_CONFIDENCE_OR_UNRESOLVED",
@@ -75,7 +74,7 @@ function summary(items: GroqFindingEvidence[]): GroqClinicalSummary {
       headline: "Existing restoration detected",
       clinical_explanation: "DENTAI identified features consistent with the supplied finding.",
       confidence_explanation: "The model score is supporting AI evidence.",
-      review_explanation: "Clinician review is required."
+      review_explanation: "DENTAI marked this AI-generated finding for clinician review."
     }],
     important_changes: [],
     monitoring_points: [],
@@ -91,8 +90,9 @@ describe("clinical summary utilities", () => {
   });
 
   it("matches a one-finding explanation only to its exact DENTAI tooth evidence", () => {
-    const dentaiFinding = finding("a", "37", "FILLING", 0.8945);
-    const group = groupFindingsByTooth([dentaiFinding])[0];
+    const group = groupFindingsByTooth([
+      finding("a", "37", "FILLING", 0.8945)
+    ])[0];
     const parsed = parseClinicalSummary(summary([
       evidence("finding_0", "37", "FILLING", 0.8945)
     ]));
@@ -112,21 +112,56 @@ describe("clinical summary utilities", () => {
     expect(explanationForGroup(parsed, group)?.evidence).toHaveLength(2);
   });
 
-  it("rejects a narrative that invents a tooth or finding", () => {
+  it.each(["PENDING", "CONFIRMED", "REJECTED"] as const)(
+    "keeps the same Groq explanation when live review status is %s",
+    (reviewStatus) => {
+      const group = groupFindingsByTooth([
+        finding("a", "37", "FILLING", 0.8945, reviewStatus)
+      ])[0];
+      const parsed = parseClinicalSummary(summary([
+        evidence("finding_0", "37", "FILLING", 0.8945)
+      ]));
+      expect(explanationForGroup(parsed, group)?.headline)
+        .toBe("Existing restoration detected");
+    }
+  );
+
+  it("renders deterministic live review language from DentalFinding state", () => {
+    expect(reviewStatusLanguage(
+      finding("pending", "37", "FILLING", 0.8945, "PENDING").review_status
+    )).toBe("This finding is awaiting clinician review.");
+    expect(reviewStatusLanguage(
+      finding("confirmed", "37", "FILLING", 0.8945, "CONFIRMED").review_status
+    )).toBe("This finding has been confirmed by the reviewing clinician.");
+    expect(reviewStatusLanguage(
+      finding("rejected", "37", "FILLING", 0.8945, "REJECTED").review_status
+    )).toBe(
+      "This finding was rejected by the reviewing clinician and is not treated as a " +
+      "confirmed finding."
+    );
+  });
+
+  it("rejects invented or changed immutable DENTAI evidence", () => {
     const group = groupFindingsByTooth([
       finding("a", "37", "FILLING", 0.8945)
     ])[0];
+    const original = evidence("finding_0", "37", "FILLING", 0.8945);
+    const changed: GroqFindingEvidence[] = [
+      { ...original, tooth_fdi: "36" },
+      { ...original, finding_type: "CARIES" },
+      { ...original, model_score: 0.7 },
+      { ...original, review_required: false },
+      { ...original, uncertainty: "HIGH_CONFIDENCE" },
+      { ...original, uncertainty_reason: "OTHER_REASON" },
+      { ...original, review_reasons: ["OTHER_REASON"] },
+      { ...original, source_model: "OTHER_MODEL" },
+      { ...original, model_version: "other-version" }
+    ];
+    for (const item of changed) {
+      expect(explanationForGroup(summary([item]), group)).toBeNull();
+    }
     expect(explanationForGroup(summary([
-      evidence("finding_0", "36", "CARIES", 0.8945)
-    ]), group)).toBeNull();
-  });
-
-  it("falls back after review status changes so stale narrative is not shown", () => {
-    const group = groupFindingsByTooth([
-      finding("a", "37", "FILLING", 0.8945, "CONFIRMED")
-    ])[0];
-    expect(explanationForGroup(summary([
-      evidence("finding_0", "37", "FILLING", 0.8945, "PENDING")
+      evidence("finding_99", "36", "CARIES", 0.8945)
     ]), group)).toBeNull();
   });
 

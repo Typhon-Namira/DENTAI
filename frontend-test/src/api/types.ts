@@ -76,7 +76,6 @@ export interface GroqFindingEvidence {
   tooth_fdi: string;
   finding_type: string;
   model_score: number;
-  review_status: FindingReview;
   review_required: boolean;
   uncertainty: string;
   uncertainty_reason: string | null;
