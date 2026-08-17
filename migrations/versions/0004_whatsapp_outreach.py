@@ -4,6 +4,7 @@ import os
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision = "0004_whatsapp_outreach"
 down_revision = "0003_ai_job_queue"
@@ -52,6 +53,15 @@ def ensure_postgres_status_values() -> None:
 
 
 def outreach_status_enum() -> sa.Enum:
+    if op.get_bind().dialect.name == "postgresql":
+        # The enum is created explicitly with checkfirst=True below.  Setting
+        # create_type=False prevents PostgreSQL's table-create hook from trying
+        # to CREATE TYPE a second time when op.create_table() runs.
+        return postgresql.ENUM(
+            *STATUS_VALUES,
+            name="whatsappoutreachstatus",
+            create_type=False,
+        )
     return sa.Enum(*STATUS_VALUES, name="whatsappoutreachstatus")
 
 
