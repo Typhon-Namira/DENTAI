@@ -150,6 +150,7 @@ export function createService(deps = {}) {
 }
 const isEntryPoint = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 if (isEntryPoint) {
+  if (!INTERNAL_TOKEN) throw new Error("WHATSAPP_SERVICE_TOKEN is required");
   const { app } = createService();
   const port = Number(process.env.PORT || 3001);
   app.listen(port, "0.0.0.0", () => logger.info({ event: "whatsapp_service_started", port }));

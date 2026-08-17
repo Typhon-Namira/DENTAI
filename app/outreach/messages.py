@@ -29,8 +29,9 @@ async def armenian_message(timing: FollowupTiming) -> str:
     if not settings.groq_api_key:
         return fallback
     system = (
-        "You are not a dental diagnostic model. You do not analyze radiographs or perform clinical inference. "
-        "Render one calm Eastern Armenian introductory sentence using only the supplied DENTAI evidence. "
+        "You are not a dental diagnostic model. You do not analyze radiographs "
+        "or perform clinical inference. Render one calm Eastern Armenian introductory "
+        "sentence using only the supplied DENTAI evidence. "
         "Do not add diagnoses, treatment, urgency, certainty, scores, or dates. "
         "Return strict JSON with only the required intro field."
     )
@@ -69,6 +70,10 @@ async def armenian_message(timing: FollowupTiming) -> str:
         if not intro or len(intro) > 400:
             return fallback
         local = timing.target_followup_at.astimezone(ZoneInfo(timing.clinic_timezone))
-        return f"{intro} Առաջարկվող այցի ամսաթիվն է՝ {local.strftime('%d.%m.%Y')}։ Խնդրում ենք կապվել կլինիկայի հետ և ամրագրել հարմար ժամ։"
+        return (
+            f"{intro} Առաջարկվող այցի ամսաթիվն է՝ "
+            f"{local.strftime('%d.%m.%Y')}։ Խնդրում ենք կապվել կլինիկայի հետ և "
+            "ամրագրել հարմար ժամ։"
+        )
     except (httpx.HTTPError, KeyError, ValueError):
         return fallback
