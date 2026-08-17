@@ -28,7 +28,15 @@ jobs:
           tests/test_groq_provider.py
           tests/test_ai_provider_unresolved_fdi.py
       - run: uv run python -c "import app.main"
-      - run: uv run ruff check app/outreach tests/test_whatsapp_outreach.py migrations/versions/0004_whatsapp_outreach.py
+      - run: >-
+          uv run ruff check
+          app/outreach
+          app/ai/worker.py
+          app/core/config.py
+          app/database/models.py
+          app/main.py
+          tests/test_whatsapp_outreach.py
+          migrations/versions/0004_whatsapp_outreach.py
   node:
     runs-on: ubuntu-latest
     steps:
