@@ -246,10 +246,7 @@ def batch_tooth_evidence(
 
 
 def _auth_failure(error: Exception) -> bool:
-    return (
-        isinstance(error, httpx.HTTPStatusError)
-        and error.response.status_code in {401, 403}
-    )
+    return isinstance(error, httpx.HTTPStatusError) and error.response.status_code in {401, 403}
 
 
 def _unique_strings(values: list[str]) -> list[str]:
@@ -326,9 +323,7 @@ def _aggregate_summaries(
     failed_tooth_fdis: list[str],
 ) -> dict:
     explanations = [
-        explanation
-        for summary in summaries
-        for explanation in summary.tooth_explanations
+        explanation for summary in summaries for explanation in summary.tooth_explanations
     ]
     successful_teeth = {explanation.tooth_fdi for explanation in explanations}
     eligible_teeth = {item.tooth_fdi for item in evidence}
@@ -347,9 +342,7 @@ def _aggregate_summaries(
         "doctor_summary": " ".join(
             _unique_strings([summary.doctor_summary for summary in summaries])
         ),
-        "tooth_explanations": [
-            explanation.model_dump(mode="json") for explanation in explanations
-        ],
+        "tooth_explanations": [explanation.model_dump(mode="json") for explanation in explanations],
         "important_changes": _unique_strings(
             [item for summary in summaries for item in summary.important_changes]
         ),
