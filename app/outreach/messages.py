@@ -35,7 +35,8 @@ async def armenian_message(timing: FollowupTiming) -> str:
         "Return strict JSON with only the required intro field."
     )
     evidence = {
-        "finding_type": timing.finding_type, "tooth_fdi": timing.tooth_fdi,
+        "finding_type": timing.finding_type,
+        "tooth_fdi": timing.tooth_fdi,
         "recommended_window": timing.recommended_window,
         "target_followup_at": timing.target_followup_at.isoformat(),
     }
@@ -45,15 +46,26 @@ async def armenian_message(timing: FollowupTiming) -> str:
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {settings.groq_api_key}"},
                 json={
-                    "model": settings.groq_model, "temperature": 0,
-                    "messages": [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(evidence)}],
-                    "response_format": {"type": "json_schema", "json_schema": {
-                        "name": "armenian_intro", "strict": True, "schema": ArmenianIntro.model_json_schema()
-                    }},
+                    "model": settings.groq_model,
+                    "temperature": 0,
+                    "messages": [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": json.dumps(evidence)},
+                    ],
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "armenian_intro",
+                            "strict": True,
+                            "schema": ArmenianIntro.model_json_schema(),
+                        },
+                    },
                 },
             )
             response.raise_for_status()
-            intro = ArmenianIntro.model_validate_json(response.json()["choices"][0]["message"]["content"]).intro.strip()
+            intro = ArmenianIntro.model_validate_json(
+                response.json()["choices"][0]["message"]["content"]
+            ).intro.strip()
         if not intro or len(intro) > 400:
             return fallback
         local = timing.target_followup_at.astimezone(ZoneInfo(timing.clinic_timezone))

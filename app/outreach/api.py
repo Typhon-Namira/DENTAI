@@ -12,7 +12,11 @@ from app.core.errors import AppError
 from app.database.models import Role, WhatsAppOutreach, WhatsAppOutreachStatus, XRay
 from app.outreach.images import finding_crop
 from app.outreach.service import build_outreach, latest_eligible_finding
-from app.outreach.whatsapp_client import WhatsAppServiceClient, WhatsAppServiceError, normalize_phone
+from app.outreach.whatsapp_client import (
+    WhatsAppServiceClient,
+    WhatsAppServiceError,
+    normalize_phone,
+)
 
 router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
@@ -55,14 +59,17 @@ async def logout(ctx: Annotated[AuthContext, Depends(current_context)]):
 
 @router.patch("/patients/{patient_id}")
 async def update_patient_phone(
-    patient_id: uuid.UUID, body: WhatsAppPhoneUpdate,
+    patient_id: uuid.UUID,
+    body: WhatsAppPhoneUpdate,
     ctx: Annotated[AuthContext, Depends(current_context)],
 ):
     patient = await authorized_patient(ctx, patient_id)
     if ctx.user.role not in {Role.DIRECTOR, Role.MANAGER, Role.DOCTOR}:
         raise AppError("FORBIDDEN", "You do not have permission for this action.", 403)
     try:
-        patient.whatsapp_phone = normalize_phone(body.whatsapp_phone) if body.whatsapp_phone else None
+        patient.whatsapp_phone = (
+            normalize_phone(body.whatsapp_phone) if body.whatsapp_phone else None
+        )
     except ValueError as exc:
         raise AppError("INVALID_WHATSAPP_PHONE", str(exc), 422) from exc
     await ctx.session.commit()
@@ -76,8 +83,10 @@ async def patient_outreach(
     await authorized_patient(ctx, patient_id)
     rows = (
         await ctx.session.scalars(
-            select(WhatsAppOutreach).where(WhatsAppOutreach.patient_id == patient_id)
-            .order_by(WhatsAppOutreach.created_at.desc()).limit(50)
+            select(WhatsAppOutreach)
+            .where(WhatsAppOutreach.patient_id == patient_id)
+            .order_by(WhatsAppOutreach.created_at.desc())
+            .limit(50)
         )
     ).all()
     return {"items": [model_dict(row) for row in rows]}
@@ -85,7 +94,8 @@ async def patient_outreach(
 
 @router.post("/patients/{patient_id}/test", status_code=202)
 async def send_test(
-    patient_id: uuid.UUID, body: TestSendRequest,
+    patient_id: uuid.UUID,
+    body: TestSendRequest,
     ctx: Annotated[AuthContext, Depends(current_context)],
 ):
     patient = await authorized_patient(ctx, patient_id)
@@ -93,19 +103,29 @@ async def send_test(
         raise AppError("WHATSAPP_PHONE_REQUIRED", "Save the patient's WhatsApp number first.", 409)
     analysis, finding = await latest_eligible_finding(ctx.session, patient.id)
     if analysis is None or finding is None:
-        raise AppError("NO_ELIGIBLE_FINDING", "No resolved product-visible DENTAI finding is available.", 409)
+        raise AppError(
+            "NO_ELIGIBLE_FINDING", "No resolved product-visible DENTAI finding is available.", 409
+        )
     service = client()
     row = None
     try:
         connection = await service.status(ctx.clinic.id)
         if not connection.get("connected"):
-            raise AppError("WHATSAPP_CONNECTION_REQUIRED", "Connect the clinic WhatsApp account first.", 409)
+            raise AppError(
+                "WHATSAPP_CONNECTION_REQUIRED", "Connect the clinic WhatsApp account first.", 409
+            )
         validation = await service.validate_phone(ctx.clinic.id, patient.whatsapp_phone)
         if not validation.get("registered"):
-            raise AppError("PHONE_NOT_ON_WHATSAPP", "The saved number is not registered on WhatsApp.", 422)
+            raise AppError(
+                "PHONE_NOT_ON_WHATSAPP", "The saved number is not registered on WhatsApp.", 422
+            )
         row = await build_outreach(
-            ctx.session, patient=patient, analysis=analysis, finding=finding,
-            immediate=True, include_image=body.include_image,
+            ctx.session,
+            patient=patient,
+            analysis=analysis,
+            finding=finding,
+            immediate=True,
+            include_image=body.include_image,
         )
         row.status = WhatsAppOutreachStatus.SENDING
         row.attempt_count += 1
@@ -116,8 +136,9 @@ async def send_test(
             result = (
                 await service.send_image_message(
                     ctx.clinic.id, patient.whatsapp_phone, row.message, image
-                ) if image else
-                await service.send_message(ctx.clinic.id, patient.whatsapp_phone, row.message)
+                )
+                if image
+                else await service.send_message(ctx.clinic.id, patient.whatsapp_phone, row.message)
             )
         else:
             result = await service.send_message(ctx.clinic.id, patient.whatsapp_phone, row.message)

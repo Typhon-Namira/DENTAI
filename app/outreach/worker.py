@@ -1,4 +1,5 @@
 """Run due DENTAI WhatsApp reminders with python -m app.outreach.worker."""
+
 import asyncio
 import os
 import socket
@@ -11,7 +12,12 @@ from app.clinic_resolution.service import resolver
 from app.core.config import get_settings
 from app.database.control_models import ClinicRegistry
 from app.database.models import (
-    AIAnalysis, DentalFinding, Patient, WhatsAppOutreach, WhatsAppOutreachStatus, XRay,
+    AIAnalysis,
+    DentalFinding,
+    Patient,
+    WhatsAppOutreach,
+    WhatsAppOutreachStatus,
+    XRay,
 )
 from app.database.sessions import ControlSession
 from app.outreach.images import finding_crop
@@ -21,14 +27,17 @@ from app.outreach.whatsapp_client import WhatsAppServiceClient, WhatsAppServiceE
 async def claim_due(session, worker_id: str):
     now = datetime.now(UTC)
     row = await session.scalar(
-        select(WhatsAppOutreach).where(
-            WhatsAppOutreach.status.in_([
-                WhatsAppOutreachStatus.SCHEDULED, WhatsAppOutreachStatus.QUEUED
-            ]),
+        select(WhatsAppOutreach)
+        .where(
+            WhatsAppOutreach.status.in_(
+                [WhatsAppOutreachStatus.SCHEDULED, WhatsAppOutreachStatus.QUEUED]
+            ),
             WhatsAppOutreach.scheduled_send_at <= now,
             or_(WhatsAppOutreach.retry_at.is_(None), WhatsAppOutreach.retry_at <= now),
-        ).order_by(WhatsAppOutreach.scheduled_send_at)
-        .with_for_update(skip_locked=True).limit(1)
+        )
+        .order_by(WhatsAppOutreach.scheduled_send_at)
+        .with_for_update(skip_locked=True)
+        .limit(1)
     )
     if row:
         row.status = WhatsAppOutreachStatus.SENDING
@@ -39,8 +48,9 @@ async def claim_due(session, worker_id: str):
     return row
 
 
-async def process_due(session, clinic_id, worker_id: str,
-                      service: WhatsAppServiceClient | None = None) -> bool:
+async def process_due(
+    session, clinic_id, worker_id: str, service: WhatsAppServiceClient | None = None
+) -> bool:
     row = await claim_due(session, worker_id)
     if row is None:
         return False
@@ -64,13 +74,12 @@ async def process_due(session, clinic_id, worker_id: str,
             result = (
                 await service.send_image_message(
                     clinic_id, patient.whatsapp_phone, row.message, image
-                ) if image else
-                await service.send_message(clinic_id, patient.whatsapp_phone, row.message)
+                )
+                if image
+                else await service.send_message(clinic_id, patient.whatsapp_phone, row.message)
             )
         else:
-            result = await service.send_message(
-                clinic_id, patient.whatsapp_phone, row.message
-            )
+            result = await service.send_message(clinic_id, patient.whatsapp_phone, row.message)
         row.status = WhatsAppOutreachStatus.SENT
         row.provider_message_id = result.get("message_id")
         row.sent_at = datetime.now(UTC)
@@ -84,9 +93,7 @@ async def process_due(session, clinic_id, worker_id: str,
             )
         elif row.attempt_count < settings.whatsapp_max_attempts:
             row.status = WhatsAppOutreachStatus.SCHEDULED
-            row.retry_at = datetime.now(UTC) + timedelta(
-                minutes=2 ** min(row.attempt_count, 6)
-            )
+            row.retry_at = datetime.now(UTC) + timedelta(minutes=2 ** min(row.attempt_count, 6))
         else:
             row.status = WhatsAppOutreachStatus.FAILED
             row.failed_at = datetime.now(UTC)
@@ -96,9 +103,7 @@ async def process_due(session, clinic_id, worker_id: str,
 
 async def run() -> None:
     settings = get_settings()
-    worker_id = os.getenv(
-        "WHATSAPP_WORKER_ID", f"{socket.gethostname()}-{uuid.uuid4().hex[:12]}"
-    )
+    worker_id = os.getenv("WHATSAPP_WORKER_ID", f"{socket.gethostname()}-{uuid.uuid4().hex[:12]}")
     while True:
         did_work = False
         async with ControlSession() as control:
@@ -110,9 +115,7 @@ async def run() -> None:
             for registry in clinics:
                 clinic = await resolver.by_id(control, registry.id)
                 async with resolver.session_factory(clinic)() as session:
-                    did_work = (
-                        await process_due(session, clinic.id, worker_id) or did_work
-                    )
+                    did_work = await process_due(session, clinic.id, worker_id) or did_work
         if not did_work:
             await asyncio.sleep(settings.whatsapp_worker_poll_seconds)
 

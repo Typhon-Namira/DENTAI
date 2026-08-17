@@ -44,7 +44,10 @@ def test_finding_types_use_policy_specific_windows():
     assert caries.recommended_window == "1–3 months"
     assert root_canal.recommended_window == "3–6 months"
     assert filling.recommended_window == "6–12 months"
-    assert len({caries.target_followup_at, root_canal.target_followup_at, filling.target_followup_at}) == 3
+    assert (
+        len({caries.target_followup_at, root_canal.target_followup_at, filling.target_followup_at})
+        == 3
+    )
 
 
 def test_review_required_uses_existing_urgent_policy():
@@ -71,6 +74,7 @@ def test_armenian_fallback_contains_exact_date_and_no_model_score():
 async def test_groq_unavailable_falls_back_without_changing_target(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "")
     from app.core.config import get_settings
+
     get_settings.cache_clear()
     value = timing("DEEP_CARIES")
     message = await armenian_message(value)

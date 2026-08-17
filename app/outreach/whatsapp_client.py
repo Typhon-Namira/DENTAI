@@ -48,8 +48,12 @@ class WhatsAppServiceClient:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         try:
-            async with httpx.AsyncClient(timeout=get_settings().whatsapp_service_timeout_seconds) as client:
-                response = await client.request(method, f"{self.base_url}{path}", headers=headers, **kwargs)
+            async with httpx.AsyncClient(
+                timeout=get_settings().whatsapp_service_timeout_seconds
+            ) as client:
+                response = await client.request(
+                    method, f"{self.base_url}{path}", headers=headers, **kwargs
+                )
         except httpx.TimeoutException as exc:
             raise WhatsAppServiceError("WHATSAPP_SERVICE_TIMEOUT") from exc
         except httpx.TransportError as exc:
@@ -63,22 +67,54 @@ class WhatsAppServiceClient:
         return response.json()
 
     async def status(self, clinic_id: uuid.UUID) -> dict:
-        return await self._request("GET", "/whatsapp/status", params={"account_id": clinic_account_id(clinic_id)})
+        return await self._request(
+            "GET", "/whatsapp/status", params={"account_id": clinic_account_id(clinic_id)}
+        )
 
     async def qr(self, clinic_id: uuid.UUID) -> dict:
-        return await self._request("GET", "/whatsapp/qr", params={"account_id": clinic_account_id(clinic_id)})
+        return await self._request(
+            "GET", "/whatsapp/qr", params={"account_id": clinic_account_id(clinic_id)}
+        )
 
     async def logout(self, clinic_id: uuid.UUID) -> dict:
-        return await self._request("POST", "/whatsapp/logout", json={"account_id": clinic_account_id(clinic_id)})
+        return await self._request(
+            "POST", "/whatsapp/logout", json={"account_id": clinic_account_id(clinic_id)}
+        )
 
     async def validate_phone(self, clinic_id: uuid.UUID, phone: str) -> dict:
-        return await self._request("GET", "/whatsapp/validate", params={"account_id": clinic_account_id(clinic_id), "phone": normalize_phone(phone)})
+        return await self._request(
+            "GET",
+            "/whatsapp/validate",
+            params={"account_id": clinic_account_id(clinic_id), "phone": normalize_phone(phone)},
+        )
 
     async def send_message(self, clinic_id: uuid.UUID, phone: str, message: str) -> dict:
-        return await self._request("POST", "/whatsapp/send", json={"account_id": clinic_account_id(clinic_id), "phone": normalize_phone(phone), "message": message})
+        return await self._request(
+            "POST",
+            "/whatsapp/send",
+            json={
+                "account_id": clinic_account_id(clinic_id),
+                "phone": normalize_phone(phone),
+                "message": message,
+            },
+        )
 
-    async def send_image_message(self, clinic_id: uuid.UUID, phone: str, message: str, image: bytes, mime_type: str = "image/jpeg") -> dict:
-        return await self._request("POST", "/whatsapp/send", json={
-            "account_id": clinic_account_id(clinic_id), "phone": normalize_phone(phone), "message": message,
-            "image_base64": base64.b64encode(image).decode(), "image_mime_type": mime_type,
-        })
+    async def send_image_message(
+        self,
+        clinic_id: uuid.UUID,
+        phone: str,
+        message: str,
+        image: bytes,
+        mime_type: str = "image/jpeg",
+    ) -> dict:
+        return await self._request(
+            "POST",
+            "/whatsapp/send",
+            json={
+                "account_id": clinic_account_id(clinic_id),
+                "phone": normalize_phone(phone),
+                "message": message,
+                "image_base64": base64.b64encode(image).decode(),
+                "image_mime_type": mime_type,
+            },
+        )

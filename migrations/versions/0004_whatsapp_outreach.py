@@ -21,7 +21,12 @@ def upgrade():
     if not has_column("patients", "whatsapp_phone"):
         op.add_column("patients", sa.Column("whatsapp_phone", sa.String(40)))
     status = sa.Enum(
-        "QUEUED", "SCHEDULED", "SENDING", "SENT", "FAILED", "CANCELLED",
+        "QUEUED",
+        "SCHEDULED",
+        "SENDING",
+        "SENT",
+        "FAILED",
+        "CANCELLED",
         name="whatsappoutreachstatus",
     )
     status.create(op.get_bind(), checkfirst=True)
@@ -56,7 +61,9 @@ def upgrade():
         sa.Column("failed_at", sa.DateTime(timezone=True)),
     )
     op.create_index("ix_whatsapp_outreach_patient_id", "whatsapp_outreach", ["patient_id"])
-    op.create_index("ix_whatsapp_outreach_due", "whatsapp_outreach", ["status", "scheduled_send_at", "retry_at"])
+    op.create_index(
+        "ix_whatsapp_outreach_due", "whatsapp_outreach", ["status", "scheduled_send_at", "retry_at"]
+    )
 
 
 def downgrade():

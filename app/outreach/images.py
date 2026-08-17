@@ -18,8 +18,10 @@ async def finding_crop(xray: XRay, finding: DentalFinding) -> bytes | None:
     image = Image.open(BytesIO(data)).convert("RGB")
     pad_x, pad_y = (right - left) * 0.15, (bottom - top) * 0.15
     crop_box = (
-        max(0, int(left - pad_x)), max(0, int(top - pad_y)),
-        min(image.width, int(right + pad_x)), min(image.height, int(bottom + pad_y)),
+        max(0, int(left - pad_x)),
+        max(0, int(top - pad_y)),
+        min(image.width, int(right + pad_x)),
+        min(image.height, int(bottom + pad_y)),
     )
     if crop_box[2] <= crop_box[0] or crop_box[3] <= crop_box[1]:
         return None
