@@ -12,6 +12,16 @@ export type BoundingBox = [number, number, number, number];
 export type PanoramicSide = "LEFT" | "RIGHT";
 export type BoundingBoxSource = "VISION_EVIDENCE" | "FINDING_PROVENANCE";
 
+export const MODEL_SCORE_DISPLAY_THRESHOLD = 0.60;
+
+export function isFindingProductVisible(finding: DentalFinding): boolean {
+  return (
+    typeof finding.confidence === "number" &&
+    Number.isFinite(finding.confidence) &&
+    finding.confidence >= MODEL_SCORE_DISPLAY_THRESHOLD
+  );
+}
+
 export interface ToothFindingGroup {
   key: string;
   toothCode: string | null;

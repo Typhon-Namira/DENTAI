@@ -11,7 +11,9 @@ import {
   extractVisionToothBoxes,
   filterFindings,
   groupFindingsByTooth,
+  isFindingProductVisible,
   isStandardPanoramicSideConsistent,
+  MODEL_SCORE_DISPLAY_THRESHOLD,
   normalizeBoundingBoxToImage,
   resolveSelectedGroupKey,
   xrayForAnalysis
@@ -21,7 +23,8 @@ function finding(
   id: string,
   toothCode: string | null,
   status: DentalFinding["review_status"],
-  boundingBox?: unknown
+  boundingBox?: unknown,
+  confidence: number | null = 0.8732
 ): DentalFinding {
   return {
     id,
@@ -31,7 +34,7 @@ function finding(
     finding_type: "FILLING",
     description: "Model-generated finding",
     source: "AI",
-    confidence: 0.8732,
+    confidence,
     provenance: boundingBox === undefined ? null : { bounding_box: boundingBox as never },
     review_status: status,
     confirmed_by: null,
@@ -145,5 +148,64 @@ describe("OPG finding utilities", () => {
     expect(filterFindings(findings, "PENDING").map((item) => item.id)).toEqual(["a"]);
     expect(filterFindings(findings, "CONFIRMED").map((item) => item.id)).toEqual(["b"]);
     expect(filterFindings(findings, "REJECTED").map((item) => item.id)).toEqual(["c"]);
+  });
+
+  it("includes the exact threshold and higher finite scores in the product view", () => {
+    expect(MODEL_SCORE_DISPLAY_THRESHOLD).toBe(0.60);
+    expect(isFindingProductVisible(finding("at", "11", "PENDING", undefined, 0.60)))
+      .toBe(true);
+    expect(isFindingProductVisible(finding("above", "12", "PENDING", undefined, 0.6001)))
+      .toBe(true);
+  });
+
+  it("excludes below-threshold, null, non-finite, and malformed scores", () => {
+    expect(isFindingProductVisible(finding("below", "11", "PENDING", undefined, 0.5999)))
+      .toBe(false);
+    expect(isFindingProductVisible(finding("low", "12", "PENDING", undefined, 0.3207)))
+      .toBe(false);
+    expect(isFindingProductVisible(finding("null", "13", "PENDING", undefined, null)))
+      .toBe(false);
+    expect(isFindingProductVisible(finding("nan", "14", "PENDING", undefined, Number.NaN)))
+      .toBe(false);
+    expect(isFindingProductVisible({
+      ...finding("malformed", "15", "PENDING"),
+      confidence: "0.9000" as unknown as number
+    })).toBe(false);
+  });
+
+  it("does not create a tooth group or canonical overlay for a hidden tooth 44 finding", () => {
+    const findings = [
+      finding("tooth-44", "44", "PENDING", [1500, 500, 1600, 800], 0.3206733167171478),
+      finding("tooth-47", "47", "PENDING", [100, 400, 240, 760], 0.6287)
+    ];
+    const productVisible = findings.filter(isFindingProductVisible);
+    const visionBoxes = extractVisionToothBoxes(structuredTeeth([
+      { fdi: "44", box: [220, 500, 340, 820] },
+      { fdi: "47", box: [100, 400, 240, 760] }
+    ]));
+    const groups = groupFindingsByTooth(productVisible, visionBoxes);
+
+    expect(groups.map((group) => group.toothCode)).toEqual(["47"]);
+    expect(groups.some((group) => group.toothCode === "44")).toBe(false);
+  });
+
+  it("applies review-status filters after product visibility thresholding", () => {
+    const findings = [
+      finding("visible-pending", "11", "PENDING", undefined, 0.60),
+      finding("hidden-pending", "12", "PENDING", undefined, 0.5999),
+      finding("visible-confirmed", "13", "CONFIRMED", undefined, 0.9231),
+      finding("hidden-rejected", "14", "REJECTED", undefined, 0.3207)
+    ];
+    const productVisible = findings.filter(isFindingProductVisible);
+
+    expect(filterFindings(productVisible, "ALL").map((item) => item.id)).toEqual([
+      "visible-pending",
+      "visible-confirmed"
+    ]);
+    expect(filterFindings(productVisible, "PENDING").map((item) => item.id))
+      .toEqual(["visible-pending"]);
+    expect(filterFindings(productVisible, "CONFIRMED").map((item) => item.id))
+      .toEqual(["visible-confirmed"]);
+    expect(filterFindings(productVisible, "REJECTED")).toEqual([]);
   });
 });
