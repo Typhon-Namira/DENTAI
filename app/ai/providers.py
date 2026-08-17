@@ -140,6 +140,11 @@ class DENTAIRealOPGProvider(DentalAIProvider):
                     description=(
                         f"DENTAI Unified V5 candidate finding for tooth {tooth['fdi']}; "
                         "dentist review required."
+                        if tooth["fdi"] is not None
+                        else (
+                            "DENTAI Unified V5 candidate finding in an unresolved tooth "
+                            "region; dentist review required."
+                        )
                     ),
                     tooth_fdi=tooth["fdi"],
                     raw_score=confidence,
@@ -164,6 +169,18 @@ class DENTAIRealOPGProvider(DentalAIProvider):
                         "bounding_box": list(item.bounding_box or ()),
                         "review_required": review,
                         "review_reasons": tooth["review_reasons"],
+                        "raw_fdi": tooth["raw_fdi"],
+                        "fdi_confidence": tooth["fdi_confidence"],
+                        "fdi_was_changed": tooth["fdi_was_changed"],
+                        "duplicate_cleanup_applied": tooth["duplicate_cleanup_applied"],
+                        "fdi_review_required": tooth["fdi_review_required"],
+                        "tooth_detection_instance_id": tooth["tooth_detection"]["instance_id"],
+                        "quadrant_candidates": tooth.get("quadrant_candidates", []),
+                        "resolved_quadrant": tooth.get("resolved_quadrant"),
+                        "side_constraint_applied": tooth.get("side_constraint_applied", False),
+                        "side_constraint_overrode_raw_quadrant": tooth.get(
+                            "side_constraint_overrode_raw_quadrant", False
+                        ),
                     },
                 })
             teeth.append(
