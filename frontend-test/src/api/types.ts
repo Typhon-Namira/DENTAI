@@ -222,13 +222,21 @@ export interface WhatsAppConnection {
 }
 
 export type WhatsAppOutreachStatus =
-  | "QUEUED" | "SCHEDULED" | "SENDING" | "SENT" | "FAILED" | "CANCELLED";
+  | "QUEUED"
+  | "SCHEDULED"
+  | "CLAIMED"
+  | "SENDING"
+  | "SEND_UNKNOWN"
+  | "SENT"
+  | "FAILED"
+  | "CANCELLED";
 
 export interface WhatsAppOutreach {
   id: string;
   patient_id: string;
   analysis_id: string;
   finding_id: string | null;
+  source_finding_ids: string[];
   tooth_fdi: string;
   finding_type: string;
   recommended_window: string;
