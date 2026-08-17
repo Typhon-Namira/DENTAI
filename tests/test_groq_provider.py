@@ -486,7 +486,6 @@ def test_groq_payload_excludes_image_patient_and_raw_fdi_data():
     assert "source_image_id" not in payload_text
 
 
-
 @pytest.mark.asyncio
 async def test_authentication_failure_is_not_retried_per_tooth():
     class AuthenticationFailureProvider:
