@@ -1,9 +1,12 @@
 import json
 import math
+
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 PRODUCT_MODEL_SCORE_THRESHOLD = 0.60
+
+
 class StrictGroqModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
