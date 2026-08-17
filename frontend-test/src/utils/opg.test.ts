@@ -168,7 +168,7 @@ describe("OPG finding utilities", () => {
 
   it("groups multiple findings from one unresolved detector instance", () => {
     const sharedRegion = [240, 380, 337, 505] as [number, number, number, number];
-    const findings = [
+    const findings: DentalFinding[] = [
       {
         ...finding("filling", null, "PENDING", sharedRegion),
         finding_type: "FILLING",
