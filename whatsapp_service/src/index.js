@@ -11,6 +11,7 @@ const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 export const SESSION_ROOT = path.resolve(process.env.WHATSAPP_SESSION_DIR || "/app/data/whatsapp_sessions");
 const INTERNAL_TOKEN = process.env.WHATSAPP_SERVICE_TOKEN || "";
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const QR_WAIT_MS = Number(process.env.WHATSAPP_QR_WAIT_MS || 12000);
 
 export const cleanPhone = (value) => String(value || "").replace(/\D/g, "");
 export function jidForPhone(value) {
@@ -67,16 +68,23 @@ export function createService(deps = {}) {
     entry.socket = socket;
     socket.ev.on("creds.update", saveCreds);
     socket.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
-      if (qr) { entry.qrDataUrl = await qrToDataURL(qr); entry.connection = "qr"; }
+      if (qr) {
+        entry.qrDataUrl = await qrToDataURL(qr);
+        entry.connection = "qr";
+        logger.info({ event: "whatsapp_qr_generated", account: safeId });
+      }
       if (connection === "open") {
-        entry.connection = "open"; entry.qrDataUrl = null;
+        entry.connection = "open";
+        entry.qrDataUrl = null;
         entry.phone = socket.user?.id?.split(":")[0]?.split("@")[0] || null;
+        logger.info({ event: "whatsapp_connected", account: safeId });
       }
       if (connection === "close") {
         const statusCode = new Boom(lastDisconnect?.error).output.statusCode;
         entry.socket = null;
         if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-          entry.connection = "logged_out"; entry.qrDataUrl = null;
+          entry.connection = "logged_out";
+          entry.qrDataUrl = null;
           await rm(sessionDir, { recursive: true, force: true });
         } else {
           entry.connection = "disconnected";
@@ -92,16 +100,36 @@ export function createService(deps = {}) {
     const accountId = normalizeAccountId(req.query.account_id || req.body?.account_id);
     return { accountId, entry: await startClient(accountId) };
   }
+  async function waitForQr(accountId, timeoutMs = QR_WAIT_MS) {
+    const safeId = normalizeAccountId(accountId);
+    const entry = await startClient(safeId);
+    const startedAt = Date.now();
+    while (!entry.qrDataUrl && entry.connection !== "open" && Date.now() - startedAt < timeoutMs) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    return entry;
+  }
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
   app.use("/whatsapp", authorized);
   app.get("/whatsapp/status", async (req, res) => {
-    try { const { entry } = await entryFor(req); res.json({ connected: entry.connection === "open", connection: entry.connection, sender: maskPhone(entry.phone) }); }
-    catch (error) { res.status(400).json({ error: error.message }); }
+    try {
+      const { entry } = await entryFor(req);
+      res.json({ connected: entry.connection === "open", connection: entry.connection, sender: maskPhone(entry.phone) });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
   });
   app.get("/whatsapp/qr", async (req, res) => {
-    try { const { entry } = await entryFor(req); res.json({ connected: entry.connection === "open", connection: entry.connection, qr: entry.qrDataUrl }); }
-    catch (error) { res.status(400).json({ error: error.message }); }
+    try {
+      const accountId = normalizeAccountId(req.query.account_id);
+      const entry = await waitForQr(accountId);
+      const payload = { connected: entry.connection === "open", connection: entry.connection, qr: entry.qrDataUrl };
+      if (!payload.connected && !payload.qr) return res.status(202).json(payload);
+      return res.json(payload);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
   });
   app.post("/whatsapp/logout", async (req, res) => {
     try {
@@ -110,7 +138,9 @@ export function createService(deps = {}) {
       states.delete(accountId);
       await rm(sessionDirFor(accountId, sessionRoot), { recursive: true, force: true });
       res.json({ connected: false, connection: "logged_out" });
-    } catch (error) { res.status(400).json({ error: error.message }); }
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
   });
   app.get("/whatsapp/validate", async (req, res) => {
     try {
@@ -119,7 +149,9 @@ export function createService(deps = {}) {
       const jid = jidForPhone(req.query.phone);
       const [result] = await entry.socket.onWhatsApp(jid);
       res.json({ registered: Boolean(result?.exists), jid: result?.exists ? jid : null });
-    } catch (error) { res.status(400).json({ error: error.message }); }
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
   });
   app.post("/whatsapp/send", async (req, res) => {
     try {
@@ -150,8 +182,8 @@ export function createService(deps = {}) {
 }
 const isEntryPoint = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 if (isEntryPoint) {
-  if (!INTERNAL_TOKEN) throw new Error("WHATSAPP_SERVICE_TOKEN is required");
   const { app } = createService();
-  const port = Number(process.env.PORT || 3001);
-  app.listen(port, "0.0.0.0", () => logger.info({ event: "whatsapp_service_started", port }));
+  const port = Number(process.env.WHATSAPP_SERVICE_PORT || process.env.PORT || 3001);
+  const host = INTERNAL_TOKEN ? "0.0.0.0" : "127.0.0.1";
+  app.listen(port, host, () => logger.info({ event: "whatsapp_service_started", host, port }));
 }
