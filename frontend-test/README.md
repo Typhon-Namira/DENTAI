@@ -1,43 +1,58 @@
 # DENTAI Internal Product Test Frontend
 
-An isolated React + TypeScript + Vite interface for the first real end-to-end DENTAI product test. It uses the existing backend contracts and does not change backend behavior.
+An isolated React + TypeScript + Vite interface for the first real end-to-end DENTAI product test. It uses the existing backend contracts and is built into the existing DENTAI production image.
 
-## Start
+## Production deployment
+
+The frontend and FastAPI backend are served by the same existing DENTAI Railway service and public URL. There is no separate frontend service or frontend domain.
+
+The current test environment URL is:
+
+https://dentai-production-13d1.up.railway.app
+
+This URL is documentation for the current environment, not a hardcoded application dependency. The same image can run under another domain.
+
+In production:
+
+- `/` serves the built DENTAI frontend;
+- `/health` and `/ready` remain FastAPI health endpoints;
+- `/api/v1/*` remains the existing FastAPI API;
+- frontend API requests are same-origin;
+- `VITE_DENTAI_API_BASE_URL` is built as empty;
+- `DENTAI_PROXY_TARGET` is not used or required;
+- no production CORS change is needed for frontend-to-backend requests.
+
+The root Dockerfile builds the Vite application in a Node stage, copies only `dist/` into the final Python image at `/app/frontend-dist`, and continues to run Uvicorn as PID 1. Node and `node_modules` are not present in the runtime image.
+
+## Local Vite development
+
+Install, build, and start the frontend with:
 
 ```bash
 npm install
+npm run build
 npm run dev
 ```
 
-Open the Vite URL shown in the terminal (normally `http://localhost:5173`).
+Open the Vite URL shown in the terminal, normally `http://localhost:5173`.
 
-Create a production build with:
-
-```bash
-npm run build
-```
-
-## API configuration
-
-Copy `.env.example` to `.env.local`. For the preferred Railway-backed local test, use:
+To test the deployed Railway backend from a local browser without changing production CORS, create `.env.local`:
 
 ```dotenv
 VITE_DENTAI_API_BASE_URL=
-DENTAI_PROXY_TARGET=https://your-dentai-production-domain.example
+DENTAI_PROXY_TARGET=https://dentai-production-13d1.up.railway.app
 ```
 
-Keep `VITE_DENTAI_API_BASE_URL` empty. Browser requests then remain same-origin to Vite at `/api`, `/health`, and `/ready`; the Vite development server proxies them to `DENTAI_PROXY_TARGET`. This tests a remote Railway backend from a local browser without adding localhost to production CORS.
+Keep `VITE_DENTAI_API_BASE_URL` empty. Browser requests remain same-origin to Vite at `/api`, `/health`, and `/ready`; the local Vite development server proxies them to `DENTAI_PROXY_TARGET`.
 
-`DENTAI_PROXY_TARGET` is read only by the Vite development server and is not included in the browser bundle. The backend origin is not a secret. Do not include credentials, tokens, database URLs, or other secrets in either variable.
+`DENTAI_PROXY_TARGET` is read only by the local Vite development server and is not included in the browser bundle. The backend origin is not a secret. Do not include credentials, tokens, database URLs, or other secrets in either variable.
 
-When `DENTAI_PROXY_TARGET` is absent, the proxy falls back to `http://localhost:8000`.
-
-A direct browser-to-backend setup is also available by setting `VITE_DENTAI_API_BASE_URL` to the backend origin, without `/api/v1`, but that requires the backend CORS policy to allow the frontend origin.
+When `DENTAI_PROXY_TARGET` is absent, the local proxy falls back to `http://localhost:8000`.
 
 ## First product test
 
-1. Confirm the remote backend and AI worker are running.
-2. Start this frontend and confirm **Health: healthy** and **Ready: ready**.
+1. Confirm the DENTAI web service and AI worker are running.
+2. Open the frontend and confirm **Health: healthy** and **Ready: ready**.
 3. Sign in with the registered clinic slug, username or email, and password.
 4. Confirm the signed-in user, role, clinic ID, and branch scope.
 5. Choose an accessible patient.
@@ -47,7 +62,7 @@ A direct browser-to-backend setup is also available by setting `VITE_DENTAI_API_
 9. Inspect the Product View and expandable Raw JSON result.
 10. If signed in as a Doctor, explicitly confirm or reject each pending finding and submit the clinician review decisions.
 
-The interface never auto-confirms a finding. Confidence is displayed as the exact numeric value returned by the backend, without rescaling. It displays the required warning:
+The interface never auto-confirms a finding. Confidence is displayed as the exact numeric value returned by the backend, without rescaling.
 
 > AI-assisted clinical decision support. Findings require clinician review.
 
@@ -64,8 +79,6 @@ The target environment needs:
 - configured object storage for uploads;
 - the asynchronous AI worker running;
 - the frozen DENTAI V5 runtime artifacts and production configuration available to that worker.
-
-The proxy target must expose `/health`, `/ready`, and the existing `/api/v1` routes.
 
 ## Privacy and security
 

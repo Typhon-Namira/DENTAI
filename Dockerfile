@@ -1,3 +1,11 @@
+FROM node:22-slim AS frontend-build
+WORKDIR /frontend
+COPY frontend-test/package.json ./
+RUN npm install --no-audit --no-fund
+COPY frontend-test ./
+ENV VITE_DENTAI_API_BASE_URL=""
+RUN npm run build
+
 FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
@@ -14,6 +22,7 @@ COPY artifacts/production ./artifacts/production
 COPY migrations ./migrations
 COPY scripts ./scripts
 COPY alembic.ini README.md ./
+COPY --from=frontend-build /frontend/dist ./frontend-dist
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
 USER appuser
 EXPOSE 8000
