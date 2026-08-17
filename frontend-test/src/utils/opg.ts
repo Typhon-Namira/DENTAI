@@ -105,6 +105,21 @@ export function extractVisionToothBoxes(
   return extractVisionToothGeometry(structuredResult).boxes;
 }
 
+export function findingGroupKey(finding: DentalFinding): string {
+  if (finding.tooth_code) return "tooth:" + finding.tooth_code;
+
+  const instanceId = finding.provenance?.tooth_detection_instance_id;
+  if (
+    typeof instanceId === "number" &&
+    Number.isInteger(instanceId) &&
+    instanceId >= 0
+  ) {
+    return "unresolved-instance:" + instanceId;
+  }
+
+  return "unassigned:" + finding.id;
+}
+
 export function groupFindingsByTooth(
   findings: DentalFinding[],
   visionBoxes: Map<string, BoundingBox> = new Map(),
@@ -113,7 +128,7 @@ export function groupFindingsByTooth(
   const grouped = new Map<string, DentalFinding[]>();
 
   for (const finding of findings) {
-    const key = finding.tooth_code ? "tooth:" + finding.tooth_code : "unassigned:" + finding.id;
+    const key = findingGroupKey(finding);
     grouped.set(key, [...(grouped.get(key) ?? []), finding]);
   }
 

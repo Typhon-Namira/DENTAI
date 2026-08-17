@@ -62,7 +62,7 @@ class VisionFinding(BaseModel):
 
 
 class ToothObservation(BaseModel):
-    fdi: str = Field(pattern=r"^[1-4][1-8]$")
+    fdi: str | None = Field(default=None, pattern=r"^[1-4][1-8]$")
     presence: str
     confidence: float | None = Field(default=None, ge=0, le=1)
     findings: list[VisionFinding] = Field(default_factory=list)

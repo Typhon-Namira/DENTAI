@@ -251,7 +251,9 @@ export function OPGAnalysisViewer({
           <div className="opg-caption">
             <span>{xray?.original_filename ?? "No X-ray available"}</span>
             <span>
-              {projectedGroups.filter((group) => group.projectedBoundingBox).length} tooth regions shown
+              {projectedGroups.filter(
+                (group) => group.projectedBoundingBox && group.toothCode
+              ).length} tooth regions shown
             </span>
           </div>
           {debugOpg && imageSize && (
@@ -294,7 +296,7 @@ export function OPGAnalysisViewer({
               <div className="selected-tooth-heading">
                 <div>
                   <p className="eyebrow">Selected tooth</p>
-                  <h2>{selectedGroup.toothCode ?? "Unassigned finding"}</h2>
+                  <h2>{selectedGroup.toothCode ?? "Unresolved tooth region"}</h2>
                 </div>
                 <span className="count-badge">{selectedGroup.findings.length}</span>
               </div>
@@ -304,6 +306,13 @@ export function OPGAnalysisViewer({
                   <span key={finding.id}>{humanizeFindingType(finding.finding_type)}</span>
                 ))}
               </div>
+
+              {!selectedGroup.toothCode && (
+                <p className="overlay-note">
+                  Tooth-number assignment: Requires clinician verification. No raw FDI
+                  candidate is presented as the final tooth number.
+                </p>
+              )}
 
               {selectedGroup.geometryAmbiguous && (
                 <p className="overlay-note">
@@ -414,6 +423,30 @@ export function OPGAnalysisViewer({
                               ? JSON.stringify(technical.bounding_box)
                               : "Not provided"}</dd>
                           </div>
+                          <div><dt>Raw candidate FDI</dt><dd>{detailValue(technical.raw_fdi)}</dd></div>
+                          <div><dt>FDI confidence</dt><dd>{detailValue(technical.fdi_confidence)}</dd></div>
+                          <div>
+                            <dt>FDI review required</dt>
+                            <dd>{detailValue(technical.fdi_review_required)}</dd>
+                          </div>
+                          <div>
+                            <dt>Detector instance</dt>
+                            <dd>{detailValue(technical.tooth_detection_instance_id)}</dd>
+                          </div>
+                          <div>
+                            <dt>Quadrant candidates</dt>
+                            <dd>{technical.quadrant_candidates.length
+                              ? technical.quadrant_candidates.join(", ")
+                              : "Not provided"}</dd>
+                          </div>
+                          <div>
+                            <dt>Resolved quadrant</dt>
+                            <dd>{detailValue(technical.resolved_quadrant)}</dd>
+                          </div>
+                          <div>
+                            <dt>Side constraint applied</dt>
+                            <dd>{detailValue(technical.side_constraint_applied)}</dd>
+                          </div>
                         </dl>
                       </details>
                     </article>
@@ -425,6 +458,12 @@ export function OPGAnalysisViewer({
         </aside>
       </div>
 
+      {projectedGroups.some((group) => !group.toothCode) && (
+        <p className="overlay-note">
+          Unresolved tooth regions remain available in the finding panel. Their raw FDI
+          candidates are not rendered as labelled overlays.
+        </p>
+      )}
       {projectedGroups.some((group) => group.geometryAmbiguous) && (
         <p className="overlay-note">
           Duplicate canonical FDI regions were detected. Ambiguous overlays are withheld

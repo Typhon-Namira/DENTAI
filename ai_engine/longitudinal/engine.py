@@ -28,8 +28,12 @@ class LongitudinalDentalEngine:
         self, prior: OPGAnalysisResult, current: OPGAnalysisResult
     ) -> list[LongitudinalChange]:
         def keyed(result: OPGAnalysisResult):
+            # Unresolved regions have no stable tooth identity across panoramic
+            # acquisitions and must not participate in tooth-specific matching.
             return {
-                (finding.tooth_fdi, finding.finding_type): finding for finding in result.findings()
+                (finding.tooth_fdi, finding.finding_type): finding
+                for finding in result.findings()
+                if finding.tooth_fdi is not None
             }
 
         old, new = keyed(prior), keyed(current)

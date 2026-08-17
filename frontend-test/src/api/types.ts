@@ -65,8 +65,18 @@ export interface XRay {
 }
 
 export interface VisionEvidenceTooth {
-  fdi?: string | number;
+  fdi?: string | number | null;
+  raw_fdi?: string;
+  fdi_confidence?: number;
+  fdi_was_changed?: boolean;
+  duplicate_cleanup_applied?: boolean;
+  fdi_review_required?: boolean;
+  quadrant_candidates?: string[];
+  resolved_quadrant?: string | null;
+  side_constraint_applied?: boolean;
+  side_constraint_overrode_raw_quadrant?: boolean;
   tooth_detection?: {
+    instance_id?: number;
     bbox_xyxy?: unknown;
   };
 }
@@ -147,6 +157,16 @@ export interface FindingProvenance {
   uncertainty_reason?: string | null;
   review_required?: boolean;
   review_reasons?: string[];
+  raw_fdi?: string;
+  fdi_confidence?: number;
+  fdi_was_changed?: boolean;
+  duplicate_cleanup_applied?: boolean;
+  fdi_review_required?: boolean;
+  tooth_detection_instance_id?: number;
+  quadrant_candidates?: string[];
+  resolved_quadrant?: string | null;
+  side_constraint_applied?: boolean;
+  side_constraint_overrode_raw_quadrant?: boolean;
 }
 
 export interface DentalFinding {

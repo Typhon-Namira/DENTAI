@@ -10,6 +10,7 @@ import type {
 import {
   extractVisionToothGeometry,
   filterFindings,
+  findingGroupKey,
   findingModelScore,
   formatModelScore,
   groupFindingsByTooth,
@@ -123,9 +124,7 @@ export function AnalysisResults({
 
   function inspectFinding(finding: DentalFinding) {
     setFilter("ALL");
-    setSelectedGroupKey(
-      finding.tooth_code ? "tooth:" + finding.tooth_code : "unassigned:" + finding.id
-    );
+    setSelectedGroupKey(findingGroupKey(finding));
   }
 
   return (
@@ -261,7 +260,7 @@ export function AnalysisResults({
                 onClick={() => setSelectedGroupKey(group.key)}
                 onMouseEnter={() => setSelectedGroupKey(group.key)}
               >
-                <span className="tooth-code">{group.toothCode ?? "Unassigned"}</span>
+                <span className="tooth-code">{group.toothCode ?? "Unresolved tooth region"}</span>
                 <span className="group-findings">
                   <strong>{group.findings.map((finding) =>
                     finding.finding_type.replaceAll("_", " ")
@@ -299,7 +298,7 @@ export function AnalysisResults({
                   onMouseEnter={() => inspectFinding(finding)}
                 >
                   <button type="button" onClick={() => inspectFinding(finding)}>
-                    <span className="tooth-code">{finding.tooth_code ?? "—"}</span>
+                    <span className="tooth-code">{finding.tooth_code ?? "Unresolved region"}</span>
                     <span>
                       <strong>{finding.finding_type.replaceAll("_", " ")}</strong>
                       <small>{finding.description}</small>

@@ -81,6 +81,10 @@ def build_product_finding_evidence(findings: list[dict]) -> list[GroqFindingEvid
     """Build deidentified narrative input without mutating DENTAI findings."""
     evidence: list[GroqFindingEvidence] = []
     for finding in findings:
+        tooth_code = finding.get("tooth_code")
+        if tooth_code is None:
+            # Groq remains tooth-specific and must never promote raw_fdi to authority.
+            continue
         score = finding.get("confidence")
         if (
             isinstance(score, bool)
@@ -100,7 +104,7 @@ def build_product_finding_evidence(findings: list[dict]) -> list[GroqFindingEvid
         evidence.append(
             GroqFindingEvidence(
                 evidence_id=f"finding_{len(evidence)}",
-                tooth_fdi=finding["tooth_code"],
+                tooth_fdi=tooth_code,
                 finding_type=finding["finding_type"],
                 model_score=score,
                 review_required=review_required,
