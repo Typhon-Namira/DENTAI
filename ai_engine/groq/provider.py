@@ -1,3 +1,4 @@
+import asyncio
 import json
 import math
 
@@ -6,6 +7,8 @@ import structlog
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 PRODUCT_MODEL_SCORE_THRESHOLD = 0.60
+MAX_GROQ_TEETH_PER_BATCH = 3
+MAX_GROQ_CONCURRENCY = 2
 logger = structlog.get_logger(__name__)
 
 
@@ -224,32 +227,177 @@ def safe_failure_reason(error: Exception) -> str:
     return "unexpected_error"
 
 
+def group_evidence_by_tooth(
+    evidence: list[GroqFindingEvidence],
+) -> list[list[GroqFindingEvidence]]:
+    grouped: dict[str, list[GroqFindingEvidence]] = {}
+    for item in evidence:
+        grouped.setdefault(item.tooth_fdi, []).append(item)
+    return list(grouped.values())
+
+
+def batch_tooth_evidence(
+    tooth_groups: list[list[GroqFindingEvidence]],
+) -> list[list[GroqFindingEvidence]]:
+    return [
+        [item for group in tooth_groups[index : index + MAX_GROQ_TEETH_PER_BATCH] for item in group]
+        for index in range(0, len(tooth_groups), MAX_GROQ_TEETH_PER_BATCH)
+    ]
+
+
+def _auth_failure(error: Exception) -> bool:
+    return isinstance(error, httpx.HTTPStatusError) and error.response.status_code in {401, 403}
+
+
+def _unique_strings(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(value for value in values if value))
+
+
+async def _attempt_summary(
+    provider: GroqClinicalSummaryProvider,
+    evidence: list[GroqFindingEvidence],
+    semaphore: asyncio.Semaphore,
+    *,
+    retry_mode: str,
+) -> tuple[GroqClinicalSummary | None, Exception | None]:
+    try:
+        async with semaphore:
+            return await provider.summarize(evidence), None
+    except Exception as error:
+        logger.warning(
+            "groq_clinical_summary_batch_unavailable",
+            exception_class=type(error).__name__,
+            reason=safe_failure_reason(error),
+            batch_tooth_count=len({item.tooth_fdi for item in evidence}),
+            evidence_count=len(evidence),
+            model=getattr(provider, "model", "unknown"),
+            retry_mode=retry_mode,
+            tooth_fdis=sorted({item.tooth_fdi for item in evidence}),
+        )
+        return None, error
+
+
+async def _render_batch(
+    provider: GroqClinicalSummaryProvider,
+    evidence: list[GroqFindingEvidence],
+    semaphore: asyncio.Semaphore,
+) -> tuple[list[GroqClinicalSummary], list[str]]:
+    tooth_groups = group_evidence_by_tooth(evidence)
+    tooth_fdis = [group[0].tooth_fdi for group in tooth_groups]
+    summary, error = await _attempt_summary(
+        provider,
+        evidence,
+        semaphore,
+        retry_mode="batch",
+    )
+    if summary is not None:
+        return [summary], []
+
+    if len(tooth_groups) == 1 or error is None or _auth_failure(error):
+        return [], tooth_fdis
+
+    retries = await asyncio.gather(
+        *(
+            _attempt_summary(
+                provider,
+                group,
+                semaphore,
+                retry_mode="single_tooth",
+            )
+            for group in tooth_groups
+        )
+    )
+    successful: list[GroqClinicalSummary] = []
+    failed: list[str] = []
+    for group, (retry_summary, _) in zip(tooth_groups, retries, strict=True):
+        if retry_summary is None:
+            failed.append(group[0].tooth_fdi)
+        else:
+            successful.append(retry_summary)
+    return successful, failed
+
+
+def _aggregate_summaries(
+    summaries: list[GroqClinicalSummary],
+    evidence: list[GroqFindingEvidence],
+    failed_tooth_fdis: list[str],
+) -> dict:
+    explanations = [
+        explanation for summary in summaries for explanation in summary.tooth_explanations
+    ]
+    successful_teeth = {explanation.tooth_fdi for explanation in explanations}
+    eligible_teeth = {item.tooth_fdi for item in evidence}
+    failed_teeth = sorted((eligible_teeth - successful_teeth) | set(failed_tooth_fdis))
+
+    if not successful_teeth:
+        status = "UNAVAILABLE"
+    elif successful_teeth == eligible_teeth:
+        status = "AVAILABLE"
+        failed_teeth = []
+    else:
+        status = "PARTIAL"
+
+    result = {
+        "status": status,
+        "doctor_summary": " ".join(
+            _unique_strings([summary.doctor_summary for summary in summaries])
+        ),
+        "tooth_explanations": [explanation.model_dump(mode="json") for explanation in explanations],
+        "important_changes": _unique_strings(
+            [item for summary in summaries for item in summary.important_changes]
+        ),
+        "monitoring_points": _unique_strings(
+            [item for summary in summaries for item in summary.monitoring_points]
+        ),
+        "questions_for_doctor": _unique_strings(
+            [item for summary in summaries for item in summary.questions_for_doctor]
+        ),
+        "patient_message_draft": " ".join(
+            _unique_strings([summary.patient_message_draft for summary in summaries])
+        ),
+        "canonical_evidence": {
+            key: item.model_dump(mode="json")
+            for key, item in canonical_evidence_map(evidence).items()
+        },
+    }
+    if failed_teeth:
+        result["failed_tooth_fdis"] = failed_teeth
+    return result
+
+
 async def summarize_product_findings(
     provider: GroqClinicalSummaryProvider | None,
     findings: list[dict],
 ) -> dict | None:
-    """Keep narrative generation optional and isolated from DENTAI completion."""
+    """Render deidentified DENTAI evidence in bounded, independently validated batches."""
     if provider is None:
         return None
 
-    evidence: list[GroqFindingEvidence] = []
     try:
         evidence = build_product_finding_evidence(findings)
-        if not evidence:
-            return None
-        summary = await provider.summarize(evidence)
-        result = summary.model_dump(mode="json")
-        result["canonical_evidence"] = {
-            key: item.model_dump(mode="json")
-            for key, item in canonical_evidence_map(evidence).items()
-        }
-        return result
     except Exception as error:
         logger.warning(
-            "groq_clinical_summary_unavailable",
+            "groq_clinical_summary_batch_unavailable",
             exception_class=type(error).__name__,
             reason=safe_failure_reason(error),
-            evidence_count=len(evidence),
+            batch_tooth_count=0,
+            evidence_count=0,
             model=getattr(provider, "model", "unknown"),
+            retry_mode="batch",
+            tooth_fdis=[],
         )
         return {"status": "UNAVAILABLE"}
+
+    if not evidence:
+        return None
+
+    batches = batch_tooth_evidence(group_evidence_by_tooth(evidence))
+    semaphore = asyncio.Semaphore(MAX_GROQ_CONCURRENCY)
+    rendered = await asyncio.gather(
+        *(_render_batch(provider, batch, semaphore) for batch in batches)
+    )
+    summaries = [summary for batch_summaries, _ in rendered for summary in batch_summaries]
+    failed_tooth_fdis = [
+        tooth_fdi for _, batch_failures in rendered for tooth_fdi in batch_failures
+    ]
+    return _aggregate_summaries(summaries, evidence, failed_tooth_fdis)

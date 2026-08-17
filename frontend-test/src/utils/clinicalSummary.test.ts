@@ -5,9 +5,11 @@ import type {
   GroqFindingEvidence
 } from "../api/types";
 import {
+  clinicalSummaryPresentation,
   explanationForGroup,
   modelScoreLanguage,
   parseClinicalSummary,
+  PARTIAL_CLINICAL_SUMMARY_NOTICE,
   reviewStatusLanguage,
   technicalDetailsForFinding
 } from "./clinicalSummary";
@@ -72,6 +74,7 @@ function summary(items: GroqFindingEvidence[]): GroqClinicalSummary {
     byTooth.set(item.tooth_fdi, [...(byTooth.get(item.tooth_fdi) ?? []), item.evidence_id]);
   }
   return {
+    status: "AVAILABLE",
     doctor_summary: "AI-assisted explanation of supplied DENTAI evidence.",
     tooth_explanations: Array.from(byTooth, ([toothFdi, evidenceIds]) => ({
       tooth_fdi: toothFdi,
@@ -84,7 +87,8 @@ function summary(items: GroqFindingEvidence[]): GroqClinicalSummary {
     monitoring_points: [],
     questions_for_doctor: [],
     patient_message_draft: "",
-    canonical_evidence: Object.fromEntries(items.map((item) => [item.evidence_id, item]))
+    canonical_evidence: Object.fromEntries(items.map((item) => [item.evidence_id, item])),
+    failed_tooth_fdis: []
   };
 }
 
@@ -92,6 +96,56 @@ describe("clinical summary utilities", () => {
   it("falls back when clinical_summary is missing or Groq is unavailable", () => {
     expect(parseClinicalSummary(undefined)).toBeNull();
     expect(parseClinicalSummary({ status: "UNAVAILABLE" })).toBeNull();
+  });
+
+  it("keeps AVAILABLE summaries complete without a partial warning", () => {
+    const candidate = summary([
+      evidence("finding_0", "37", "FILLING", 0.8945)
+    ]);
+    candidate.patient_message_draft = "Optional complete-coverage draft.";
+    const parsed = parseClinicalSummary(candidate);
+    const presentation = clinicalSummaryPresentation(parsed);
+
+    expect(presentation.showPanel).toBe(true);
+    expect(presentation.showPartialWarning).toBe(false);
+    expect(presentation.partialWarning).toBeNull();
+    expect(presentation.showPatientMessage).toBe(true);
+  });
+
+  it("shows a clear PARTIAL warning and hides the patient message draft", () => {
+    const candidate = summary([
+      evidence("finding_0", "37", "FILLING", 0.8945),
+      evidence("finding_1", "47", "FILLING", 0.81)
+    ]);
+    candidate.status = "PARTIAL";
+    candidate.failed_tooth_fdis = ["47"];
+    candidate.patient_message_draft = "This incomplete draft must remain hidden.";
+    candidate.tooth_explanations = candidate.tooth_explanations.filter(
+      (item) => item.tooth_fdi === "37"
+    );
+    const parsed = parseClinicalSummary(candidate);
+    const presentation = clinicalSummaryPresentation(parsed);
+
+    expect(presentation.showPanel).toBe(true);
+    expect(presentation.showPartialWarning).toBe(true);
+    expect(presentation.partialWarning).toBe(PARTIAL_CLINICAL_SUMMARY_NOTICE);
+    expect(presentation.partialWarning).toContain(
+      "Findings without a validated AI-assisted explanation"
+    );
+    expect(presentation.showPatientMessage).toBe(false);
+  });
+
+  it("does not render a Groq summary panel for UNAVAILABLE summaries", () => {
+    const parsed = parseClinicalSummary({ status: "UNAVAILABLE" });
+    const presentation = clinicalSummaryPresentation(parsed);
+
+    expect(parsed).toBeNull();
+    expect(presentation).toEqual({
+      showPanel: false,
+      showPartialWarning: false,
+      partialWarning: null,
+      showPatientMessage: false
+    });
   });
 
   it("matches one evidence ID to canonical DENTAI data", () => {
@@ -133,29 +187,77 @@ describe("clinical summary utilities", () => {
     }
   );
 
-  it("rejects unknown, duplicate, omitted, or wrong-tooth evidence IDs", () => {
-    const base = summary([
-      evidence("finding_0", "37", "FILLING", 0.8945),
-      evidence("finding_1", "47", "FILLING", 0.6951)
-    ]);
-    const invalid = [
-      { ...base, tooth_explanations: [
-        { ...base.tooth_explanations[0], evidence_ids: ["finding_99"] },
-        base.tooth_explanations[1]
-      ] },
-      { ...base, tooth_explanations: [
-        base.tooth_explanations[0],
-        { ...base.tooth_explanations[1], evidence_ids: ["finding_0"] }
-      ] },
-      { ...base, tooth_explanations: [base.tooth_explanations[0]] },
-      { ...base, tooth_explanations: [
-        { ...base.tooth_explanations[0], evidence_ids: ["finding_1"] },
-        { ...base.tooth_explanations[1], evidence_ids: ["finding_0"] }
-      ] }
-    ];
-    for (const candidate of invalid) {
-      expect(parseClinicalSummary(candidate)).toBeNull();
+  it("keeps tooth 46 explanation when tooth 44 is missing from a partial summary", () => {
+    const tooth44 = evidence("finding_0", "44", "FILLING", 0.80);
+    const tooth46 = evidence("finding_1", "46", "CROWN", 0.91);
+    const candidate = summary([tooth44, tooth46]);
+    candidate.status = "PARTIAL";
+    candidate.failed_tooth_fdis = ["44"];
+    candidate.tooth_explanations = candidate.tooth_explanations.filter(
+      (item) => item.tooth_fdi === "46"
+    );
+
+    const parsed = parseClinicalSummary(candidate);
+    const group44 = groupFindingsByTooth([
+      finding("a", "44", "FILLING", 0.80)
+    ])[0];
+    const group46 = groupFindingsByTooth([
+      finding("b", "46", "CROWN", 0.91)
+    ])[0];
+
+    expect(parsed?.status).toBe("PARTIAL");
+    expect(explanationForGroup(parsed, group46)?.tooth_fdi).toBe("46");
+    expect(explanationForGroup(parsed, group44)).toBeNull();
+  });
+
+  it.each(["unknown", "duplicate", "wrong_tooth", "missing"] as const)(
+    "fails closed for malformed tooth 44 %s binding without corrupting tooth 46",
+    (mutation) => {
+      const items = [
+        evidence("finding_0", "44", "FILLING", 0.80),
+        evidence("finding_1", "44", "CROWN", 0.82),
+        evidence("finding_2", "46", "FILLING", 0.91)
+      ];
+      const candidate = summary(items);
+      const tooth44 = candidate.tooth_explanations.find(
+        (item) => item.tooth_fdi === "44"
+      )!;
+      if (mutation === "unknown") tooth44.evidence_ids = ["finding_99", "finding_1"];
+      if (mutation === "duplicate") tooth44.evidence_ids = ["finding_0", "finding_0"];
+      if (mutation === "wrong_tooth") tooth44.tooth_fdi = "47";
+      if (mutation === "missing") tooth44.evidence_ids = ["finding_0"];
+
+      const parsed = parseClinicalSummary(candidate);
+      const group44 = groupFindingsByTooth([
+        finding("a", "44", "FILLING", 0.80),
+        finding("b", "44", "CROWN", 0.82)
+      ])[0];
+      const group46 = groupFindingsByTooth([
+        finding("c", "46", "FILLING", 0.91)
+      ])[0];
+
+      expect(parsed?.status).toBe("PARTIAL");
+      expect(explanationForGroup(parsed, group44)).toBeNull();
+      expect(explanationForGroup(parsed, group46)?.tooth_fdi).toBe("46");
     }
+  );
+
+  it("parses AVAILABLE, PARTIAL, and UNAVAILABLE shapes safely", () => {
+    const item37 = evidence("finding_0", "37", "FILLING", 0.89);
+    const available = summary([item37]);
+    expect(parseClinicalSummary(available)?.status).toBe("AVAILABLE");
+
+    const partial = summary([
+      item37,
+      evidence("finding_1", "47", "FILLING", 0.81)
+    ]);
+    partial.status = "PARTIAL";
+    partial.failed_tooth_fdis = ["47"];
+    partial.tooth_explanations = partial.tooth_explanations.filter(
+      (item) => item.tooth_fdi === "37"
+    );
+    expect(parseClinicalSummary(partial)?.status).toBe("PARTIAL");
+    expect(parseClinicalSummary({ status: "UNAVAILABLE" })).toBeNull();
   });
 
   it("does not trust narrative IDs when canonical DENTAI values differ", () => {

@@ -136,7 +136,7 @@ describe("OPG finding utilities", () => {
     ).toBe(false);
   });
 
-  it("keeps an unresolved finding visible without fabricating an FDI overlay", () => {
+  it("keeps unresolved evidence groupable only for raw or debug inspection", () => {
     const unresolved = {
       ...finding("unresolved", null, "PENDING", [240.56, 381.01, 336.86, 504.73]),
       provenance: {
@@ -378,6 +378,33 @@ describe("OPG finding utilities", () => {
 
     expect(groups.map((group) => group.toothCode)).toEqual(["47"]);
     expect(groups.some((group) => group.toothCode === "44")).toBe(false);
+  });
+
+  it("hides unresolved and invalid-FDI findings from every product-derived collection", () => {
+    const unresolved = {
+      ...finding("unresolved", null, "PENDING", [240, 380, 337, 505], 0.95),
+      provenance: {
+        bounding_box: [240, 380, 337, 505] as [number, number, number, number],
+        raw_fdi: "37",
+        tooth_detection_instance_id: 7
+      }
+    };
+    const invalidFdi = finding("invalid", "00", "PENDING", [300, 380, 397, 505], 0.95);
+    const resolved = finding("resolved", "47", "PENDING", [100, 380, 200, 505], 0.80);
+    const rawFindings = [unresolved, invalidFdi, resolved];
+
+    const productVisible = rawFindings.filter(isFindingProductVisible);
+    const groups = groupFindingsByTooth(productVisible);
+    const pendingControls = filterFindings(productVisible, "PENDING");
+
+    expect(rawFindings).toHaveLength(3);
+    expect(unresolved.provenance.raw_fdi).toBe("37");
+    expect(productVisible.map((item) => item.id)).toEqual(["resolved"]);
+    expect(groups.map((group) => group.toothCode)).toEqual(["47"]);
+    expect(groups.filter((group) => group.boundingBox)).toHaveLength(1);
+    expect(pendingControls.map((item) => item.id)).toEqual(["resolved"]);
+    expect(isFindingProductVisible(unresolved)).toBe(false);
+    expect(isFindingProductVisible(invalidFdi)).toBe(false);
   });
 
   it("applies review-status filters after product visibility thresholding", () => {

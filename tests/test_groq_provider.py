@@ -5,12 +5,16 @@ import pytest
 
 import ai_engine.groq.provider as groq_module
 from ai_engine.groq.provider import (
+    MAX_GROQ_CONCURRENCY,
+    MAX_GROQ_TEETH_PER_BATCH,
     GroqClinicalSummary,
     GroqEvidenceBindingError,
     GroqFindingEvidence,
     GroqToothExplanation,
+    batch_tooth_evidence,
     build_groq_request_payload,
     build_product_finding_evidence,
+    group_evidence_by_tooth,
     safe_failure_reason,
     summarize_product_findings,
     validate_summary_against_evidence,
@@ -211,15 +215,19 @@ async def test_groq_failure_logs_safe_diagnostics_and_returns_unavailable(monkey
 
     monkeypatch.setattr(groq_module, "logger", CapturingLogger())
     result = await summarize_product_findings(UnavailableProvider(), [raw_finding()])
-    assert result == {"status": "UNAVAILABLE"}
+    assert result["status"] == "UNAVAILABLE"
+    assert result["failed_tooth_fdis"] == ["37"]
     assert events == [
         (
-            "groq_clinical_summary_unavailable",
+            "groq_clinical_summary_batch_unavailable",
             {
                 "exception_class": "TimeoutError",
                 "reason": "timeout",
+                "batch_tooth_count": 1,
                 "evidence_count": 1,
                 "model": "openai/gpt-oss-20b",
+                "retry_mode": "batch",
+                "tooth_fdis": ["37"],
             },
         )
     ]
@@ -266,3 +274,261 @@ async def test_mixed_resolved_and_unresolved_findings_keep_groq_summary_availabl
     assert result["doctor_summary"]
     assert result.get("status") != "UNAVAILABLE"
     assert set(result["canonical_evidence"]) == {"finding_0"}
+
+
+class RecordingProvider:
+    model = "openai/gpt-oss-20b"
+
+    def __init__(
+        self,
+        *,
+        fail_batches: set[frozenset[str]] | None = None,
+        fail_single_teeth: set[str] | None = None,
+        invalid_batches: dict[frozenset[str], str] | None = None,
+    ):
+        self.fail_batches = fail_batches or set()
+        self.fail_single_teeth = fail_single_teeth or set()
+        self.invalid_batches = invalid_batches or {}
+        self.calls: list[list[GroqFindingEvidence]] = []
+        self.active = 0
+        self.max_active = 0
+
+    async def summarize(
+        self,
+        received: list[GroqFindingEvidence],
+    ) -> GroqClinicalSummary:
+        self.calls.append(received)
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        try:
+            teeth = frozenset(item.tooth_fdi for item in received)
+            if teeth in self.fail_batches or (
+                len(teeth) == 1 and next(iter(teeth)) in self.fail_single_teeth
+            ):
+                raise TimeoutError("narrative content must not be logged")
+
+            summary = valid_summary(received)
+            mutation = self.invalid_batches.get(teeth)
+            if mutation == "unknown":
+                summary.tooth_explanations[0].evidence_ids[0] = "finding_999"
+            elif mutation == "duplicate":
+                summary.tooth_explanations[0].evidence_ids.append(
+                    summary.tooth_explanations[0].evidence_ids[0]
+                )
+            elif mutation == "wrong_tooth":
+                summary.tooth_explanations[0].tooth_fdi = "48"
+            elif mutation == "missing":
+                summary.tooth_explanations[0].evidence_ids.pop()
+            return validate_summary_against_evidence(summary, received)
+        finally:
+            self.active -= 1
+
+
+def findings_for_teeth(*teeth: str) -> list[dict]:
+    return [raw_finding(tooth, "FILLING", 0.70 + index / 100) for index, tooth in enumerate(teeth)]
+
+
+@pytest.mark.asyncio
+async def test_one_to_three_teeth_use_one_batch():
+    provider = RecordingProvider()
+    result = await summarize_product_findings(
+        provider,
+        findings_for_teeth("16", "24", "36"),
+    )
+
+    assert MAX_GROQ_TEETH_PER_BATCH == 3
+    assert len(provider.calls) == 1
+    assert {item.tooth_fdi for item in provider.calls[0]} == {"16", "24", "36"}
+    assert result["status"] == "AVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_large_analysis_creates_bounded_multi_tooth_batches():
+    provider = RecordingProvider()
+    teeth = ("16", "24", "26", "27", "35", "46", "47")
+    result = await summarize_product_findings(provider, findings_for_teeth(*teeth))
+
+    assert [len({item.tooth_fdi for item in call}) for call in provider.calls] == [3, 3, 1]
+    assert result["status"] == "AVAILABLE"
+    assert {item["tooth_fdi"] for item in result["tooth_explanations"]} == set(teeth)
+    assert MAX_GROQ_CONCURRENCY == 2
+    assert provider.max_active <= MAX_GROQ_CONCURRENCY
+
+
+@pytest.mark.asyncio
+async def test_failed_batch_retries_teeth_and_preserves_partial_success():
+    provider = RecordingProvider(
+        fail_batches={frozenset({"27", "35", "44"})},
+        fail_single_teeth={"35"},
+    )
+    teeth = ("16", "24", "26", "27", "35", "44", "46", "47")
+    result = await summarize_product_findings(provider, findings_for_teeth(*teeth))
+
+    explained = {item["tooth_fdi"] for item in result["tooth_explanations"]}
+    assert result["status"] == "PARTIAL"
+    assert result["failed_tooth_fdis"] == ["35"]
+    assert explained == set(teeth) - {"35"}
+    assert [item.tooth_fdi for call in provider.calls for item in call].count("35") == 2
+
+
+@pytest.mark.asyncio
+async def test_all_batches_fail_without_losing_canonical_evidence():
+    class AlwaysUnavailable:
+        model = "openai/gpt-oss-20b"
+
+        async def summarize(self, _received):
+            raise TimeoutError("unavailable")
+
+    result = await summarize_product_findings(
+        AlwaysUnavailable(),
+        findings_for_teeth("16", "24", "36", "37"),
+    )
+
+    assert result["status"] == "UNAVAILABLE"
+    assert result["tooth_explanations"] == []
+    assert result["failed_tooth_fdis"] == ["16", "24", "36", "37"]
+    assert len(result["canonical_evidence"]) == 4
+
+
+@pytest.mark.asyncio
+async def test_multi_tooth_failure_can_recover_completely_with_single_tooth_retries():
+    provider = RecordingProvider(
+        fail_batches={frozenset({"16", "24", "36"})},
+    )
+    result = await summarize_product_findings(
+        provider,
+        findings_for_teeth("16", "24", "36"),
+    )
+
+    assert result["status"] == "AVAILABLE"
+    assert len(provider.calls) == 4
+    assert all(len({item.tooth_fdi for item in call}) == 1 for call in provider.calls[1:])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mutation", ["unknown", "duplicate", "wrong_tooth", "missing"])
+async def test_invalid_batch_isolated_and_only_failed_single_tooth_falls_back(
+    mutation: str,
+):
+    invalid_batch = frozenset({"16", "24", "36"})
+    provider = RecordingProvider(
+        invalid_batches={
+            invalid_batch: mutation,
+            frozenset({"24"}): mutation,
+        }
+    )
+    result = await summarize_product_findings(
+        provider,
+        findings_for_teeth("16", "24", "36", "46"),
+    )
+
+    assert result["status"] == "PARTIAL"
+    assert result["failed_tooth_fdis"] == ["24"]
+    assert {item["tooth_fdi"] for item in result["tooth_explanations"]} == {
+        "16",
+        "36",
+        "46",
+    }
+
+
+def test_batching_keeps_all_findings_for_one_tooth_together():
+    evidence = build_product_finding_evidence(
+        [
+            raw_finding("16", "CROWN", 0.92),
+            raw_finding("16", "ROOT_CANAL_TREATMENT", 0.81),
+            *findings_for_teeth("24", "36", "37"),
+        ]
+    )
+    batches = batch_tooth_evidence(group_evidence_by_tooth(evidence))
+
+    tooth_16_batches = [batch for batch in batches if any(item.tooth_fdi == "16" for item in batch)]
+    assert len(tooth_16_batches) == 1
+    assert [item.finding_type for item in tooth_16_batches[0] if item.tooth_fdi == "16"] == [
+        "CROWN",
+        "ROOT_CANAL_TREATMENT",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_unresolved_and_low_score_findings_do_not_create_batches_or_failures():
+    unresolved = raw_finding(None, "DEEP_CARIES", 0.95)
+    unresolved["provenance"]["raw_fdi"] = "37"
+    low_score = raw_finding("44", "FILLING", 0.59)
+    provider = RecordingProvider()
+
+    result = await summarize_product_findings(
+        provider,
+        [unresolved, low_score, raw_finding("47", "FILLING", 0.80)],
+    )
+
+    assert result["status"] == "AVAILABLE"
+    assert len(provider.calls) == 1
+    assert [item.tooth_fdi for item in provider.calls[0]] == ["47"]
+    assert set(result["canonical_evidence"]) == {"finding_0"}
+    assert unresolved["provenance"]["raw_fdi"] == "37"
+
+
+def test_groq_payload_excludes_image_patient_and_raw_fdi_data():
+    finding = raw_finding("47", "FILLING", 0.80)
+    finding["patient_name"] = "must not leave DENTAI"
+    finding["image_url"] = "https://storage.invalid/opg"
+    finding["provenance"]["raw_fdi"] = "37"
+    evidence = build_product_finding_evidence([finding])
+    payload_text = build_groq_request_payload(
+        "openai/gpt-oss-20b",
+        evidence,
+    )["messages"][1]["content"]
+
+    assert "patient_name" not in payload_text
+    assert "image_url" not in payload_text
+    assert "raw_fdi" not in payload_text
+    assert "bounding_box" not in payload_text
+    assert "source_image_id" not in payload_text
+
+
+@pytest.mark.asyncio
+async def test_authentication_failure_is_not_retried_per_tooth():
+    class AuthenticationFailureProvider:
+        model = "openai/gpt-oss-20b"
+
+        def __init__(self):
+            self.calls = 0
+
+        async def summarize(self, _received):
+            self.calls += 1
+            request = groq_module.httpx.Request("POST", "https://api.groq.com")
+            response = groq_module.httpx.Response(401, request=request)
+            raise groq_module.httpx.HTTPStatusError(
+                "unauthorized",
+                request=request,
+                response=response,
+            )
+
+    provider = AuthenticationFailureProvider()
+    result = await summarize_product_findings(
+        provider,
+        findings_for_teeth("16", "24", "36"),
+    )
+
+    assert result["status"] == "UNAVAILABLE"
+    assert provider.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_production_sized_fixture_no_longer_uses_one_whole_analysis_request():
+    provider = RecordingProvider()
+    findings = production_findings()
+    before = deepcopy(findings)
+
+    result = await summarize_product_findings(provider, findings)
+
+    assert result["status"] == "AVAILABLE"
+    assert [len({item.tooth_fdi for item in call}) for call in provider.calls] == [3, 2]
+    assert {item["tooth_fdi"] for item in result["tooth_explanations"]} == {
+        "16",
+        "24",
+        "36",
+        "37",
+        "47",
+    }
+    assert findings == before

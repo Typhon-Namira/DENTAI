@@ -9,6 +9,7 @@ on:
       - "app/ai/providers.py"
       - "app/core/config.py"
       - "tests/test_groq_provider.py"
+      - "tests/test_ai_provider_unresolved_fdi.py"
       - ".github/workflows/groq-clinical-language.yml"
   workflow_dispatch:
 
@@ -37,5 +38,8 @@ jobs:
       - name: Lint Groq provider
         run: uv run ruff check ai_engine/groq/provider.py tests/test_groq_provider.py
 
-      - name: Run Groq clinical-language tests
-        run: uv run pytest tests/test_groq_provider.py
+      - name: Run Groq and AI provider tests
+        run: |
+          uv run pytest \
+            tests/test_groq_provider.py \
+            tests/test_ai_provider_unresolved_fdi.py

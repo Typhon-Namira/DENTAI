@@ -19,7 +19,10 @@ import {
   resolveSelectedGroupKey,
   type FindingFilter
 } from "../utils/opg";
-import { parseClinicalSummary } from "../utils/clinicalSummary";
+import {
+  clinicalSummaryPresentation,
+  parseClinicalSummary
+} from "../utils/clinicalSummary";
 import { OPGAnalysisViewer } from "./OPGAnalysisViewer";
 import { StatusBadge } from "./StatusBadge";
 
@@ -53,6 +56,7 @@ export function AnalysisResults({
     () => parseClinicalSummary(analysis?.structured_result?.clinical_summary),
     [analysis?.structured_result]
   );
+  const summaryPresentation = clinicalSummaryPresentation(clinicalSummary);
   const productVisibleFindings = useMemo(
     () => findings.filter(isFindingProductVisible),
     [findings]
@@ -158,7 +162,7 @@ export function AnalysisResults({
         )}
       </div>
 
-      {clinicalSummary && (
+      {summaryPresentation.showPanel && clinicalSummary && (
         <section className="card clinical-summary-panel">
           <div className="section-heading">
             <div>
@@ -170,6 +174,11 @@ export function AnalysisResults({
             AI-assisted explanatory text based only on DENTAI structured evidence.
             This is not a diagnosis and requires clinician review.
           </p>
+          {summaryPresentation.showPartialWarning && (
+            <p className="clinical-summary-disclaimer partial-coverage-notice" role="status">
+              {summaryPresentation.partialWarning}
+            </p>
+          )}
           <p className="doctor-summary">{clinicalSummary.doctor_summary}</p>
           <div className="clinical-summary-lists">
             {clinicalSummary.important_changes.length > 0 && (
@@ -197,7 +206,7 @@ export function AnalysisResults({
               </div>
             )}
           </div>
-          {clinicalSummary.patient_message_draft && (
+          {summaryPresentation.showPatientMessage && (
             <details className="patient-message-draft">
               <summary>Optional patient message draft</summary>
               <p>{clinicalSummary.patient_message_draft}</p>
@@ -260,7 +269,7 @@ export function AnalysisResults({
                 onClick={() => setSelectedGroupKey(group.key)}
                 onMouseEnter={() => setSelectedGroupKey(group.key)}
               >
-                <span className="tooth-code">{group.toothCode ?? "Unresolved tooth region"}</span>
+                <span className="tooth-code">{group.toothCode ?? "Finding region"}</span>
                 <span className="group-findings">
                   <strong>{group.findings.map((finding) =>
                     finding.finding_type.replaceAll("_", " ")
@@ -298,7 +307,7 @@ export function AnalysisResults({
                   onMouseEnter={() => inspectFinding(finding)}
                 >
                   <button type="button" onClick={() => inspectFinding(finding)}>
-                    <span className="tooth-code">{finding.tooth_code ?? "Unresolved region"}</span>
+                    <span className="tooth-code">{finding.tooth_code ?? "Finding region"}</span>
                     <span>
                       <strong>{finding.finding_type.replaceAll("_", " ")}</strong>
                       <small>{finding.description}</small>

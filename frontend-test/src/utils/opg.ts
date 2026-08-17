@@ -14,8 +14,13 @@ export type BoundingBoxSource = "VISION_EVIDENCE" | "FINDING_PROVENANCE";
 
 export const MODEL_SCORE_DISPLAY_THRESHOLD = 0.60;
 
+export function isResolvedFdi(value: unknown): value is string {
+  return typeof value === "string" && /^[1-4][1-8]$/.test(value);
+}
+
 export function isFindingProductVisible(finding: DentalFinding): boolean {
   return (
+    isResolvedFdi(finding.tooth_code) &&
     typeof finding.confidence === "number" &&
     Number.isFinite(finding.confidence) &&
     finding.confidence >= MODEL_SCORE_DISPLAY_THRESHOLD
