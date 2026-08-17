@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     def split_origins(cls, value: object) -> object:
         return value.split(",") if isinstance(value, str) else value
 
+    @staticmethod
+    def _is_loopback_whatsapp_url(value: str | None) -> bool:
+        url = (value or "").strip().lower()
+        return url.startswith("http://127.0.0.1:") or url.startswith(
+            "http://localhost:"
+        ) or url.startswith("http://[::1]:")
+
     def validate_production(self) -> None:
         if self.app_env == "production":
             secrets = (
@@ -87,9 +94,13 @@ class Settings(BaseSettings):
                 raise RuntimeError("Production S3 configuration is incomplete")
             if self.ai_provider != "real_opg" and not self.allow_production_mock_ai:
                 raise RuntimeError("Production requires AI_PROVIDER=real_opg")
-            if self.whatsapp_service_url and not self.whatsapp_service_token:
+            if (
+                self.whatsapp_service_url
+                and not self.whatsapp_service_token
+                and not self._is_loopback_whatsapp_url(self.whatsapp_service_url)
+            ):
                 raise RuntimeError(
-                    "WHATSAPP_SERVICE_TOKEN is required when WhatsApp outreach is enabled"
+                    "WHATSAPP_SERVICE_TOKEN is required for a non-loopback WhatsApp service"
                 )
 
 
