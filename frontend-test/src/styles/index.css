@@ -651,3 +651,25 @@ dd { color: var(--ink); font-size: .82rem; font-weight: 720; margin: 0; overflow
 }
 
 .group-statuses { display: flex; flex-wrap: wrap; gap: .25rem; justify-content: flex-end; }
+
+.opg-debug-panel {
+  background: #031116;
+  border: 1px solid #31535d;
+  border-radius: 10px;
+  color: #b9d6d9;
+  display: grid;
+  font-size: .68rem;
+  gap: .35rem;
+  margin-top: .65rem;
+  max-height: 210px;
+  overflow: auto;
+  padding: .75rem;
+}
+.opg-debug-panel strong { color: #7fd6d5; }
+.opg-debug-panel code {
+  border-top: 1px solid #183840;
+  color: #d9efef;
+  overflow-wrap: anywhere;
+  padding-top: .35rem;
+  white-space: pre-wrap;
+}

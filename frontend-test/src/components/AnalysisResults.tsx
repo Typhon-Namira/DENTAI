@@ -8,6 +8,7 @@ import type {
   XRay
 } from "../api/types";
 import {
+  extractVisionToothBoxes,
   filterFindings,
   findingModelScore,
   formatModelScore,
@@ -48,9 +49,13 @@ export function AnalysisResults({
     () => filterFindings(findings, filter),
     [findings, filter]
   );
+  const visionBoxes = useMemo(
+    () => extractVisionToothBoxes(analysis?.structured_result ?? null),
+    [analysis?.structured_result]
+  );
   const groups = useMemo(
-    () => groupFindingsByTooth(filteredFindings),
-    [filteredFindings]
+    () => groupFindingsByTooth(filteredFindings, visionBoxes),
+    [filteredFindings, visionBoxes]
   );
   const pending = useMemo(
     () => findings.filter((finding) => finding.review_status === "PENDING"),

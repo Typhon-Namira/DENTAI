@@ -1,5 +1,6 @@
 import type {
   AIAnalysis,
+  AIAnalysisStructuredResult,
   DentalFinding,
   FindingProvenance,
   FindingReview,
@@ -8,18 +9,25 @@ import type {
 
 export type FindingFilter = "ALL" | FindingReview;
 export type BoundingBox = [number, number, number, number];
+export type PanoramicSide = "LEFT" | "RIGHT";
+export type BoundingBoxSource = "VISION_EVIDENCE" | "FINDING_PROVENANCE";
 
 export interface ToothFindingGroup {
   key: string;
   toothCode: string | null;
   findings: DentalFinding[];
   boundingBox: BoundingBox | null;
+  boundingBoxSource: BoundingBoxSource | null;
+  provenanceBoxes: BoundingBox[];
 }
 
 export function extractBoundingBox(
   provenance: FindingProvenance | null
 ): BoundingBox | null {
-  const value = provenance?.bounding_box;
+  return parseBoundingBox(provenance?.bounding_box);
+}
+
+export function parseBoundingBox(value: unknown): BoundingBox | null {
   if (!Array.isArray(value) || value.length !== 4) return null;
   if (!value.every((coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate))) {
     return null;
@@ -39,7 +47,40 @@ function unionBoundingBoxes(boxes: BoundingBox[]): BoundingBox | null {
   ];
 }
 
-export function groupFindingsByTooth(findings: DentalFinding[]): ToothFindingGroup[] {
+export function extractVisionToothBoxes(
+  structuredResult: AIAnalysisStructuredResult | null
+): Map<string, BoundingBox> {
+  const boxesByTooth = new Map<string, BoundingBox[]>();
+  const teeth = structuredResult?.vision_evidence?.teeth;
+  if (!Array.isArray(teeth)) return new Map();
+
+  for (const value of teeth) {
+    if (!value || typeof value !== "object") continue;
+    const tooth = value as {
+      fdi?: unknown;
+      tooth_detection?: { bbox_xyxy?: unknown };
+    };
+    const toothCode =
+      typeof tooth.fdi === "string" || typeof tooth.fdi === "number"
+        ? String(tooth.fdi)
+        : null;
+    const box = parseBoundingBox(tooth.tooth_detection?.bbox_xyxy);
+    if (!toothCode || !box) continue;
+    boxesByTooth.set(toothCode, [...(boxesByTooth.get(toothCode) ?? []), box]);
+  }
+
+  const result = new Map<string, BoundingBox>();
+  for (const [toothCode, boxes] of boxesByTooth) {
+    const union = unionBoundingBoxes(boxes);
+    if (union) result.set(toothCode, union);
+  }
+  return result;
+}
+
+export function groupFindingsByTooth(
+  findings: DentalFinding[],
+  visionBoxes: Map<string, BoundingBox> = new Map()
+): ToothFindingGroup[] {
   const grouped = new Map<string, DentalFinding[]>();
 
   for (const finding of findings) {
@@ -48,20 +89,80 @@ export function groupFindingsByTooth(findings: DentalFinding[]): ToothFindingGro
   }
 
   return Array.from(grouped, ([key, groupedFindings]) => {
-    const boxes = groupedFindings
+    const toothCode = groupedFindings[0]?.tooth_code ?? null;
+    const provenanceBoxes = groupedFindings
       .map((finding) => extractBoundingBox(finding.provenance))
       .filter((box): box is BoundingBox => box !== null);
+    const visionBox = toothCode ? visionBoxes.get(toothCode) ?? null : null;
+    const boundingBoxSource: BoundingBoxSource | null = visionBox
+      ? "VISION_EVIDENCE"
+      : provenanceBoxes.length
+        ? "FINDING_PROVENANCE"
+        : null;
     return {
       key,
-      toothCode: groupedFindings[0]?.tooth_code ?? null,
+      toothCode,
       findings: groupedFindings,
-      boundingBox: unionBoundingBoxes(boxes)
+      boundingBox: visionBox ?? unionBoundingBoxes(provenanceBoxes),
+      boundingBoxSource,
+      provenanceBoxes
     };
   }).sort((left, right) =>
     (left.toothCode ?? left.key).localeCompare(right.toothCode ?? right.key, undefined, {
       numeric: true
     })
   );
+}
+
+export function normalizeBoundingBoxToImage(
+  box: BoundingBox,
+  imageWidth: number,
+  imageHeight: number
+): BoundingBox | null {
+  if (imageWidth <= 0 || imageHeight <= 0) return null;
+  const normalized = box.every((coordinate) => coordinate >= 0 && coordinate <= 1);
+  const projected: BoundingBox = normalized
+    ? [
+        box[0] * imageWidth,
+        box[1] * imageHeight,
+        box[2] * imageWidth,
+        box[3] * imageHeight
+      ]
+    : box;
+  if (
+    projected[0] < 0 ||
+    projected[1] < 0 ||
+    projected[2] > imageWidth ||
+    projected[3] > imageHeight
+  ) {
+    return null;
+  }
+  return projected;
+}
+
+export function expectedPanoramicSide(toothCode: string): PanoramicSide | null {
+  const quadrant = toothCode.charAt(0);
+  if (quadrant === "1" || quadrant === "4") return "LEFT";
+  if (quadrant === "2" || quadrant === "3") return "RIGHT";
+  return null;
+}
+
+export function observedImageSide(
+  box: BoundingBox,
+  imageWidth: number
+): PanoramicSide | null {
+  if (imageWidth <= 0) return null;
+  return (box[0] + box[2]) / 2 < imageWidth / 2 ? "LEFT" : "RIGHT";
+}
+
+export function isStandardPanoramicSideConsistent(
+  toothCode: string,
+  box: BoundingBox,
+  imageWidth: number
+): boolean | null {
+  const expected = expectedPanoramicSide(toothCode);
+  const observed = observedImageSide(box, imageWidth);
+  return expected && observed ? expected === observed : null;
 }
 
 export function filterFindings(
