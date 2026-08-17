@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { api, errorMessage } from "../api/client";
-import type { XRay } from "../api/types";
+import type { GroqClinicalSummary, ReviewDecision, XRay } from "../api/types";
 import {
   findingModelScore,
   formatModelScore,
@@ -10,6 +10,12 @@ import {
   type FindingFilter,
   type ToothFindingGroup
 } from "../utils/opg";
+import {
+  explanationForGroup,
+  humanizeFindingType,
+  reviewStatusLanguage,
+  technicalDetailsForFinding
+} from "../utils/clinicalSummary";
 import { StatusBadge } from "./StatusBadge";
 
 const DISPLAYABLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -23,8 +29,12 @@ const FILTERS: Array<{ value: FindingFilter; label: string }> = [
 interface OPGAnalysisViewerProps {
   xray: XRay | null;
   groups: ToothFindingGroup[];
+  clinicalSummary: GroqClinicalSummary | null;
   filter: FindingFilter;
   selectedGroupKey: string | null;
+  canReview: boolean;
+  decisions: Record<string, ReviewDecision | "">;
+  onDecisionChange: (findingId: string, decision: ReviewDecision | "") => void;
   onFilterChange: (filter: FindingFilter) => void;
   onSelectedGroupChange: (key: string | null) => void;
 }
@@ -42,8 +52,12 @@ function detailValue(value: string | number | boolean | null | undefined): strin
 export function OPGAnalysisViewer({
   xray,
   groups,
+  clinicalSummary,
   filter,
   selectedGroupKey,
+  canReview,
+  decisions,
+  onDecisionChange,
   onFilterChange,
   onSelectedGroupChange
 }: OPGAnalysisViewerProps) {
@@ -56,6 +70,10 @@ export function OPGAnalysisViewer({
   const selectedGroup = useMemo(
     () => groups.find((group) => group.key === selectedGroupKey) ?? null,
     [groups, selectedGroupKey]
+  );
+  const selectedExplanation = useMemo(
+    () => explanationForGroup(clinicalSummary, selectedGroup),
+    [clinicalSummary, selectedGroup]
   );
   const activeGroupKey = hoveredGroupKey ?? selectedGroupKey;
   const displayable = xray ? DISPLAYABLE_IMAGE_TYPES.has(xray.mime_type) : false;
@@ -265,7 +283,7 @@ export function OPGAnalysisViewer({
             <div className="inspector-empty">
               <span>FDI</span>
               <h3>Select a tooth region</h3>
-              <p>Choose an overlay or finding group to inspect its model evidence.</p>
+              <p>Choose an overlay or finding group to inspect its DENTAI evidence.</p>
             </div>
           ) : (
             <>
@@ -276,51 +294,115 @@ export function OPGAnalysisViewer({
                 </div>
                 <span className="count-badge">{selectedGroup.findings.length}</span>
               </div>
+
               <div className="finding-chip-row">
                 {selectedGroup.findings.map((finding) => (
-                  <span key={finding.id}>{finding.finding_type.replaceAll("_", " ")}</span>
+                  <span key={finding.id}>{humanizeFindingType(finding.finding_type)}</span>
                 ))}
               </div>
+
+              {selectedExplanation ? (
+                <section className="clinical-tooth-explanation">
+                  <p className="eyebrow">AI-assisted explanation</p>
+                  <h3>{selectedExplanation.headline}</h3>
+                  <p>{selectedExplanation.clinical_explanation}</p>
+                  <p>{selectedExplanation.confidence_explanation}</p>
+                  <p>{selectedExplanation.review_explanation}</p>
+                </section>
+              ) : (
+                <section className="deterministic-tooth-fallback">
+                  <p className="eyebrow">DENTAI evidence</p>
+                  {selectedGroup.findings.map((finding) => (
+                    <p key={finding.id}>{finding.description}</p>
+                  ))}
+                </section>
+              )}
+
               <p className="score-helper">
                 Model score is supporting AI evidence and is not an independent diagnostic probability.
               </p>
+
               <div className="tooth-evidence-list">
                 {selectedGroup.findings.map((finding) => {
-                  const provenance = finding.provenance;
                   const score = findingModelScore(finding);
+                  const technical = technicalDetailsForFinding(finding);
                   return (
                     <article key={finding.id}>
                       <div className="evidence-heading">
-                        <strong>{finding.finding_type.replaceAll("_", " ")}</strong>
+                        <strong>{humanizeFindingType(finding.finding_type)}</strong>
                         <StatusBadge value={finding.review_status} />
                       </div>
-                      <p>{finding.description}</p>
-                      <dl>
-                        <div>
-                          <dt>Model score</dt>
-                          <dd title={score === null ? undefined : "Exact value: " + String(score)}>
-                            {formatModelScore(score)}
-                          </dd>
-                        </div>
-                        <div><dt>Review status</dt><dd>{finding.review_status}</dd></div>
-                        <div>
-                          <dt>Review required</dt>
-                          <dd>{detailValue(provenance?.review_required)}</dd>
-                        </div>
-                        <div><dt>Uncertainty</dt><dd>{detailValue(provenance?.uncertainty)}</dd></div>
-                        <div>
-                          <dt>Uncertainty reason</dt>
-                          <dd>{detailValue(provenance?.uncertainty_reason)}</dd>
-                        </div>
-                        <div>
-                          <dt>Review reasons</dt>
-                          <dd>{provenance?.review_reasons?.length
-                            ? provenance.review_reasons.join(", ")
-                            : "Not provided"}</dd>
-                        </div>
-                        <div><dt>Source model</dt><dd>{detailValue(provenance?.source_model)}</dd></div>
-                        <div><dt>Model version</dt><dd>{detailValue(provenance?.model_version)}</dd></div>
-                      </dl>
+                      <p className="live-review-language">
+                        {reviewStatusLanguage(finding.review_status)}
+                      </p>
+
+                      {canReview && finding.review_status === "PENDING" && (
+                        <label className="inline-review-decision">
+                          Clinician decision
+                          <select
+                            value={decisions[finding.id] ?? ""}
+                            onChange={(event) =>
+                              onDecisionChange(
+                                finding.id,
+                                event.target.value as ReviewDecision | ""
+                              )
+                            }
+                          >
+                            <option value="">Choose…</option>
+                            <option value="CONFIRMED">Confirm finding</option>
+                            <option value="REJECTED">Reject finding</option>
+                          </select>
+                        </label>
+                      )}
+
+                      <details className="technical-details">
+                        <summary>Technical details</summary>
+                        <dl>
+                          <div>
+                            <dt>Model score</dt>
+                            <dd title={score === null ? undefined : "Exact value: " + String(score)}>
+                              {formatModelScore(score)}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Stored confidence</dt>
+                            <dd>{detailValue(technical.confidence)}</dd>
+                          </div>
+                          <div><dt>Review status</dt><dd>{technical.review_status}</dd></div>
+                          <div>
+                            <dt>Review required</dt>
+                            <dd>{detailValue(technical.review_required)}</dd>
+                          </div>
+                          <div>
+                            <dt>Uncertainty</dt>
+                            <dd>{detailValue(technical.uncertainty)}</dd>
+                          </div>
+                          <div>
+                            <dt>Uncertainty reason</dt>
+                            <dd>{detailValue(technical.uncertainty_reason)}</dd>
+                          </div>
+                          <div>
+                            <dt>Review reasons</dt>
+                            <dd>{technical.review_reasons.length
+                              ? technical.review_reasons.join(", ")
+                              : "Not provided"}</dd>
+                          </div>
+                          <div>
+                            <dt>Source model</dt>
+                            <dd>{detailValue(technical.source_model)}</dd>
+                          </div>
+                          <div>
+                            <dt>Model version</dt>
+                            <dd>{detailValue(technical.model_version)}</dd>
+                          </div>
+                          <div>
+                            <dt>Bounding box</dt>
+                            <dd>{technical.bounding_box
+                              ? JSON.stringify(technical.bounding_box)
+                              : "Not provided"}</dd>
+                          </div>
+                        </dl>
+                      </details>
                     </article>
                   );
                 })}
