@@ -124,7 +124,6 @@ export interface ReviewPayload {
     finding_id: string;
     decision: ReviewDecision;
   }>;
-  clinical_notes?: string | null;
 }
 
 export interface ApiErrorBody {

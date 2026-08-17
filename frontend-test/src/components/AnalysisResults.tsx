@@ -20,19 +20,17 @@ function displayDate(value: string | null): string {
 }
 
 function confidence(value: number | null): string {
-  return value === null ? "Not provided" : Math.round(value * 100) + "%";
+  return value === null ? "Not provided" : String(value);
 }
 
 export function AnalysisResults({ analysis, findings, role, onReviewed }: AnalysisResultsProps) {
   const [decisions, setDecisions] = useState<Record<string, ReviewDecision | "">>({});
-  const [notes, setNotes] = useState("");
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewDone, setReviewDone] = useState("");
 
   useEffect(() => {
     setDecisions({});
-    setNotes("");
     setReviewError("");
     setReviewDone("");
   }, [analysis?.id]);
@@ -63,10 +61,9 @@ export function AnalysisResults({ analysis, findings, role, onReviewed }: Analys
         decisions: pending.map((finding) => ({
           finding_id: finding.id,
           decision: decisions[finding.id] as ReviewDecision
-        })),
-        clinical_notes: notes.trim() || null
+        }))
       });
-      setReviewDone("Review saved.");
+      setReviewDone("Review decisions submitted.");
       await onReviewed();
     } catch (reason) {
       setReviewError(errorMessage(reason));
@@ -164,15 +161,6 @@ export function AnalysisResults({ analysis, findings, role, onReviewed }: Analys
 
         {role === "DOCTOR" && pending.length > 0 && (
           <div className="review-panel">
-            <label>
-              Clinical notes (optional)
-              <textarea
-                rows={3}
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Add context for this clinician review"
-              />
-            </label>
             <p className="muted">
               Select an explicit decision for every pending finding. Nothing is auto-confirmed.
             </p>
