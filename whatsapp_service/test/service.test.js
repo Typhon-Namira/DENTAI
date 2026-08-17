@@ -49,7 +49,8 @@ test("QR update is converted to a data URL in the clinic session", async () => {
   assert.equal(sessionDirFor(A, root).endsWith(A), true);
 });
 test("connected fake validates and sends with provider message id", async () => {
-  const deps = fakes();
+  const root = await mkdtemp(path.join(os.tmpdir(), "dentai-wa-"));
+  const deps = { ...fakes(), sessionRoot: root };
   const service = createService(deps);
   const entry = await service.startClient(A);
   deps.sockets[0].user = { id: "37499111222:1@s.whatsapp.net" };

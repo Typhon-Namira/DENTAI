@@ -1,0 +1,26 @@
+name: Format WhatsApp outreach
+on:
+  push:
+    branches: ["codex/baileys-whatsapp-outreach"]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/baileys-whatsapp-outreach
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: uv run ruff check --fix app/outreach tests/test_whatsapp_outreach.py migrations/versions/0004_whatsapp_outreach.py
+      - run: uv run ruff format app/outreach tests/test_whatsapp_outreach.py migrations/versions/0004_whatsapp_outreach.py
+      - name: Commit formatter result
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/outreach tests/test_whatsapp_outreach.py migrations/versions/0004_whatsapp_outreach.py
+          git commit -m "style: format WhatsApp outreach code"
+          git push
