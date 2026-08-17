@@ -177,10 +177,7 @@ def test_over_capacity_rows_keep_raw_trace_and_null_ambiguous_final_fdi() -> Non
 
 def test_production_inspired_30_detection_fixture_has_safe_final_fdi() -> None:
     rows = []
-    rows.extend(
-        resolver_row(f"1{index}", 600 - index * 45)
-        for index in range(1, 9)
-    )
+    rows.extend(resolver_row(f"1{index}", 600 - index * 45) for index in range(1, 9))
     rows.extend(
         resolver_row(
             "37" if index == 7 else f"4{index}",
@@ -189,10 +186,7 @@ def test_production_inspired_30_detection_fixture_has_safe_final_fdi() -> None:
         )
         for index in range(1, 8)
     )
-    rows.extend(
-        resolver_row(f"2{index}", 600 + index * 45)
-        for index in range(1, 8)
-    )
+    rows.extend(resolver_row(f"2{index}", 600 + index * 45) for index in range(1, 8))
     rows.extend(
         resolver_row(
             "47" if index == 7 else f"3{index}",
