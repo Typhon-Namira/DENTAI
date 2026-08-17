@@ -26,13 +26,9 @@ def _finding(
         raw_score=0.87,
         calibrated_confidence=0.84,
         uncertainty=(
-            UncertaintyLevel.LOW_CONFIDENCE
-            if unresolved
-            else UncertaintyLevel.MODERATE_CONFIDENCE
+            UncertaintyLevel.LOW_CONFIDENCE if unresolved else UncertaintyLevel.MODERATE_CONFIDENCE
         ),
-        uncertainty_reason=(
-            "FDI_LOW_CONFIDENCE_OR_UNRESOLVED" if unresolved else None
-        ),
+        uncertainty_reason=("FDI_LOW_CONFIDENCE_OR_UNRESOLVED" if unresolved else None),
         bounding_box=(10.0, 20.0, 40.0, 60.0),
         source_model="DENTAI Unified V5",
         model_version="dentai-unified-v5",
@@ -95,9 +91,7 @@ def test_resolved_findings_keep_existing_new_stable_resolved_semantics():
     )
 
     changes = LongitudinalDentalEngine().compare(prior, current)
-    states = {
-        (change.tooth_fdi, change.finding_type): change.state for change in changes
-    }
+    states = {(change.tooth_fdi, change.finding_type): change.state for change in changes}
 
     assert states == {
         ("36", "FILLING"): ChangeState.STABLE,
