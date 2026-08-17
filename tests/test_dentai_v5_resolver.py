@@ -109,16 +109,8 @@ def test_over_capacity_duplicate_fdi_detections_are_preserved_but_unresolved() -
 
     assert len(resolved) == 10
     assert duplicated
-    assert all(
-        row["unresolved"]
-        for row in resolved
-        if row["resolved"] in duplicated
-    )
-    assert not any(
-        not row["unresolved"]
-        for row in resolved
-        if row["resolved"] in duplicated
-    )
+    assert all(row["unresolved"] for row in resolved if row["resolved"] in duplicated)
+    assert not any(not row["unresolved"] for row in resolved if row["resolved"] in duplicated)
 
 
 def test_duplicate_cleanup_only_uses_an_unambiguous_ordered_missing_slot() -> None:
