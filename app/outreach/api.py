@@ -164,4 +164,6 @@ async def send_test(
                 row.safe_error = exc.code
             row.failed_at = datetime.now(UTC)
             await ctx.session.commit()
+            if dispatch_started:
+                return model_dict(row)
         raise AppError(exc.code, "WhatsApp message could not be sent.", exc.status_code) from exc
