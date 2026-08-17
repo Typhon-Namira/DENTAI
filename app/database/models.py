@@ -48,7 +48,9 @@ class FindingReview(StrEnum):
 class WhatsAppOutreachStatus(StrEnum):
     QUEUED = "QUEUED"
     SCHEDULED = "SCHEDULED"
+    CLAIMED = "CLAIMED"
     SENDING = "SENDING"
+    SEND_UNKNOWN = "SEND_UNKNOWN"
     SENT = "SENT"
     FAILED = "FAILED"
     CANCELLED = "CANCELLED"
@@ -209,9 +211,10 @@ class WhatsAppOutreach(UUIDMixin, Base):
     patient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("patients.id"), index=True)
     analysis_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ai_analyses.id"), index=True)
     finding_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("dental_findings.id"))
+    source_finding_ids: Mapped[list] = mapped_column(JSON, default=list)
     followup_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("followups.id"))
     tooth_fdi: Mapped[str] = mapped_column(String(20))
-    finding_type: Mapped[str] = mapped_column(String(100))
+    finding_type: Mapped[str] = mapped_column(String(500))
     recommended_window: Mapped[str] = mapped_column(String(80))
     target_followup_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     scheduled_send_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
@@ -231,6 +234,7 @@ class WhatsAppOutreach(UUIDMixin, Base):
     safe_error: Mapped[str | None] = mapped_column(String(120))
     worker_id: Mapped[str | None] = mapped_column(String(160))
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    dispatch_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
