@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     groq_model: str = "openai/gpt-oss-20b"
     groq_timeout_seconds: int = 20
     allow_production_mock_ai: bool = False
+    whatsapp_service_url: str | None = None
+    whatsapp_service_token: str | None = None
+    whatsapp_service_timeout_seconds: int = 20
+    whatsapp_session_dir: Path = Path("/app/data/whatsapp_sessions")
+    whatsapp_followup_timezone: str = "Asia/Yerevan"
+    whatsapp_reminder_lead_days: int = 7
+    whatsapp_send_hour: int = 10
+    whatsapp_worker_poll_seconds: float = 5.0
+    whatsapp_connection_retry_seconds: int = 60
+    whatsapp_max_attempts: int = 5
 
     @field_validator("cors_allowed_origins", mode="before")
     @classmethod
@@ -76,6 +86,10 @@ class Settings(BaseSettings):
                 raise RuntimeError("Production S3 configuration is incomplete")
             if self.ai_provider != "real_opg" and not self.allow_production_mock_ai:
                 raise RuntimeError("Production requires AI_PROVIDER=real_opg")
+            if self.whatsapp_service_url and not self.whatsapp_service_token:
+                raise RuntimeError(
+                    "WHATSAPP_SERVICE_TOKEN is required when WhatsApp outreach is enabled"
+                )
 
 
 @lru_cache

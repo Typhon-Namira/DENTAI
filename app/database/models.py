@@ -45,6 +45,15 @@ class FindingReview(StrEnum):
     REJECTED = "REJECTED"
 
 
+class WhatsAppOutreachStatus(StrEnum):
+    QUEUED = "QUEUED"
+    SCHEDULED = "SCHEDULED"
+    SENDING = "SENDING"
+    SENT = "SENT"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
 class Branch(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "branches"
     name: Mapped[str] = mapped_column(String(160))
@@ -107,6 +116,7 @@ class Patient(UUIDMixin, TimestampMixin, Base):
     date_of_birth: Mapped[date | None] = mapped_column(Date)
     sex: Mapped[str | None] = mapped_column(String(30))
     phone: Mapped[str | None] = mapped_column(String(40))
+    whatsapp_phone: Mapped[str | None] = mapped_column(String(40))
     email: Mapped[str | None] = mapped_column(String(320))
     branch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("branches.id"), index=True)
     status: Mapped[str] = mapped_column(String(30), default="ACTIVE")
@@ -192,6 +202,38 @@ class DentalFinding(UUIDMixin, Base):
     confirmed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class WhatsAppOutreach(UUIDMixin, Base):
+    __tablename__ = "whatsapp_outreach"
+    patient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("patients.id"), index=True)
+    analysis_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ai_analyses.id"), index=True)
+    finding_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("dental_findings.id"))
+    followup_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("followups.id"))
+    tooth_fdi: Mapped[str] = mapped_column(String(20))
+    finding_type: Mapped[str] = mapped_column(String(100))
+    recommended_window: Mapped[str] = mapped_column(String(80))
+    target_followup_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    scheduled_send_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    message: Mapped[str] = mapped_column(Text)
+    language: Mapped[str] = mapped_column(String(16), default="hy-AM")
+    status: Mapped[WhatsAppOutreachStatus] = mapped_column(
+        Enum(WhatsAppOutreachStatus), default=WhatsAppOutreachStatus.SCHEDULED, index=True
+    )
+    provider_message_id: Mapped[str | None] = mapped_column(String(200))
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    timing_reason: Mapped[str] = mapped_column(Text)
+    timing_policy_rule_id: Mapped[str] = mapped_column(String(500))
+    timing_policy_version: Mapped[str] = mapped_column(String(40))
+    clinic_timezone: Mapped[str] = mapped_column(String(80), default="Asia/Yerevan")
+    include_image: Mapped[bool] = mapped_column(Boolean, default=False)
+    safe_error: Mapped[str | None] = mapped_column(String(120))
+    worker_id: Mapped[str | None] = mapped_column(String(160))
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ToothRecord(UUIDMixin, Base):

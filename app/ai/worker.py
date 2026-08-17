@@ -16,6 +16,7 @@ from app.database.control_models import ClinicRegistry
 from app.database.models import AIAnalysis, AIStatus, DentalFinding, FindingReview, XRay
 from app.database.sessions import ControlSession
 from app.storage.providers import storage_provider
+from app.outreach.service import schedule_analysis_outreach
 
 
 async def _heartbeat_loop(session_factory, analysis_id, worker_id, interval):
@@ -56,16 +57,19 @@ async def process_one(session, session_factory, worker_id: str) -> bool:
             result.structured_result,
         )
         job.status, job.completed_at, job.error_code = AIStatus.COMPLETED, datetime.now(UTC), None
+        created_findings = []
         for item in result.findings:
-            session.add(
-                DentalFinding(
-                    patient_id=job.patient_id,
-                    analysis_id=job.id,
-                    source="AI",
-                    review_status=FindingReview.PENDING,
-                    **item,
-                )
+            finding = DentalFinding(
+                patient_id=job.patient_id,
+                analysis_id=job.id,
+                source="AI",
+                review_status=FindingReview.PENDING,
+                **item,
             )
+            session.add(finding)
+            created_findings.append(finding)
+        await session.flush()
+        await schedule_analysis_outreach(session, job, created_findings)
         await session.commit()
     except Exception as exc:
         await session.rollback()

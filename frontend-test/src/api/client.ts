@@ -4,12 +4,15 @@ import type {
   CurrentUser,
   HealthResponse,
   LoginRequest,
+  Patient,
   PatientPage,
   PatientProfile,
   ReviewPayload,
   TokenPair,
   XRay,
-  XRayDownloadResponse
+  XRayDownloadResponse,
+  WhatsAppConnection,
+  WhatsAppOutreach
 } from "./types";
 
 const rawBaseUrl = import.meta.env.VITE_DENTAI_API_BASE_URL?.trim() ?? "";
@@ -172,6 +175,38 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ xray_id: xrayId })
     });
+  },
+
+  whatsappStatus() {
+    return request<WhatsAppConnection>("/api/v1/whatsapp/status");
+  },
+
+  whatsappQr() {
+    return request<WhatsAppConnection>("/api/v1/whatsapp/qr");
+  },
+
+  whatsappLogout() {
+    return request<WhatsAppConnection>("/api/v1/whatsapp/logout", { method: "POST" });
+  },
+
+  savePatientWhatsApp(patientId: string, whatsappPhone: string | null) {
+    return request<Patient>("/api/v1/whatsapp/patients/" + encodeURIComponent(patientId), {
+      method: "PATCH",
+      body: JSON.stringify({ whatsapp_phone: whatsappPhone })
+    });
+  },
+
+  sendWhatsAppTest(patientId: string, includeImage: boolean) {
+    return request<WhatsAppOutreach>(
+      "/api/v1/whatsapp/patients/" + encodeURIComponent(patientId) + "/test",
+      { method: "POST", body: JSON.stringify({ include_image: includeImage }) }
+    );
+  },
+
+  patientWhatsAppOutreach(patientId: string) {
+    return request<{ items: WhatsAppOutreach[] }>(
+      "/api/v1/whatsapp/patients/" + encodeURIComponent(patientId) + "/outreach"
+    );
   },
 
   reviewAnalysis(analysisId: string, body: ReviewPayload) {

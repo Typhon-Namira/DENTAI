@@ -91,3 +91,11 @@ The target environment needs:
 ## Privacy and security
 
 Authentication tokens are held only in `sessionStorage` and are removed on logout. Passwords, tokens, patient records, and X-ray bytes are never logged. Medical records and image bytes are kept only in React/browser memory for the active page; they are not stored in `localStorage`. The project contains no analytics, telemetry, external fonts, or third-party upload integration.
+
+## WhatsApp monitoring test
+
+The product test UI includes a tenant-scoped **WhatsApp Outreach** card. Save the real patient's E.164 WhatsApp number (for the current `DENTAI-TEST-001` test, `+37493156663`), connect the clinic phone by scanning the Baileys QR, then use **Send WhatsApp test now**. The button uses the real FastAPI → private Node/Baileys pipeline; it is not simulated.
+
+The QR modal polls approximately every three seconds and closes automatically when the clinic session opens. Scheduled reminders show the exact recommended clinic check and the earlier WhatsApp send time in the browser's locale. Optional finding crops are off by default; the full OPG is never sent automatically.
+
+The Node service is a separate private Railway service. See `whatsapp_service/README.md`. Its auth session must use a persistent Railway volume; the browser never calls it directly.

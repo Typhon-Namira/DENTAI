@@ -1,0 +1,52 @@
+name: WhatsApp outreach
+
+on:
+  pull_request:
+    paths:
+      - "whatsapp_service/**"
+      - "app/outreach/**"
+      - "app/database/models.py"
+      - "app/core/config.py"
+      - "app/ai/worker.py"
+      - "app/main.py"
+      - "migrations/versions/0004_whatsapp_outreach.py"
+      - "frontend-test/**"
+      - ".github/workflows/whatsapp-outreach.yml"
+  push:
+    branches: ["codex/baileys-whatsapp-outreach"]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: uv run pytest tests/test_whatsapp_outreach.py
+      - run: uv run ruff check app/outreach tests/test_whatsapp_outreach.py migrations/versions/0004_whatsapp_outreach.py
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+        working-directory: whatsapp_service
+      - run: npm test
+        working-directory: whatsapp_service
+      - run: docker build -t dentai-whatsapp-test whatsapp_service
+  frontend-and-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+        working-directory: frontend-test
+      - run: npm test
+        working-directory: frontend-test
+      - run: npm run build
+        working-directory: frontend-test
+      - run: docker build -t dentai-integration-test .

@@ -12,6 +12,7 @@ import { BackendChecks } from "./components/BackendChecks";
 import { LoginCard } from "./components/LoginCard";
 import { StatusBadge } from "./components/StatusBadge";
 import { XrayUpload } from "./components/XrayUpload";
+import { WhatsAppOutreachCard } from "./components/WhatsAppOutreachCard";
 import { xrayForAnalysis } from "./utils/opg";
 
 const POLL_INTERVAL_MS = 2_000;
@@ -319,6 +320,14 @@ export default function App() {
 
             {workspaceError && <div className="error-panel" role="alert">{workspaceError}</div>}
             {loading && <div className="loading-bar" aria-label="Loading" />}
+
+            <WhatsAppOutreachCard
+              patient={profile.patient}
+              onPatientUpdated={(patient) => {
+                setProfile((current) => current ? { ...current, patient } : current);
+                setPatients((current) => current.map((item) => item.id === patient.id ? patient : item));
+              }}
+            />
 
             <XrayUpload patientId={profile.patient.id} onUploaded={uploaded} />
 
