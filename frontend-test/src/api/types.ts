@@ -102,7 +102,10 @@ export interface GroqToothExplanation {
   review_explanation: string;
 }
 
+export type GroqClinicalSummaryStatus = "AVAILABLE" | "PARTIAL";
+
 export interface GroqClinicalSummary {
+  status: GroqClinicalSummaryStatus;
   doctor_summary: string;
   tooth_explanations: GroqToothExplanation[];
   important_changes: string[];
@@ -110,6 +113,7 @@ export interface GroqClinicalSummary {
   questions_for_doctor: string[];
   patient_message_draft: string;
   canonical_evidence: Record<string, GroqFindingEvidence>;
+  failed_tooth_fdis: string[];
 }
 
 export interface AIAnalysisStructuredResult {
