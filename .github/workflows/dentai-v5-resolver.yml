@@ -6,7 +6,10 @@ on:
       - main
     paths:
       - "ai_engine/inference/dentai_unified_v5_onnx.py"
+      - "ai_engine/schemas.py"
+      - "app/ai/providers.py"
       - "tests/test_dentai_v5_resolver.py"
+      - "tests/test_ai_provider_unresolved_fdi.py"
       - ".github/workflows/dentai-v5-resolver.yml"
   workflow_dispatch:
 
@@ -30,4 +33,7 @@ jobs:
         run: uv sync --frozen --extra dev
 
       - name: Run DENTAI V5 resolver tests
-        run: uv run pytest tests/test_dentai_v5_resolver.py
+        run: |
+          uv run pytest \
+            tests/test_dentai_v5_resolver.py \
+            tests/test_ai_provider_unresolved_fdi.py
