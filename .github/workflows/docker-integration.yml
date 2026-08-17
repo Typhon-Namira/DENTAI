@@ -9,6 +9,8 @@ on:
       - ".dockerignore"
       - "app/main.py"
       - "frontend-test/**"
+      - "whatsapp_service/**"
+      - "scripts/start_railway.sh"
       - ".github/workflows/docker-integration.yml"
   workflow_dispatch:
 
@@ -25,7 +27,12 @@ jobs:
       - name: Build production image
         run: docker build -t dentai-integration-test .
 
-      - name: Verify frontend runtime files and Python-only image
+      - name: Verify frontend and embedded WhatsApp runtime files
         run: |
           docker run --rm --entrypoint sh dentai-integration-test -c \
-            'test -f /app/frontend-dist/index.html && test -d /app/frontend-dist/assets && ! command -v node'
+            'test -f /app/frontend-dist/index.html && \
+             test -d /app/frontend-dist/assets && \
+             command -v node && \
+             test -d /app/whatsapp_service/node_modules && \
+             sh -n /app/scripts/start_railway.sh && \
+             node --input-type=module -e "import(\"./whatsapp_service/src/index.js\").then(() => console.log(\"embedded whatsapp import ok\"))"'

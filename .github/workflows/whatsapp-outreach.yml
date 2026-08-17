@@ -13,6 +13,8 @@ on:
       - "migrations/versions/0003_ai_job_queue.py"
       - "migrations/versions/0004_whatsapp_outreach.py"
       - "frontend-test/**"
+      - "Dockerfile"
+      - "scripts/start_railway.sh"
       - ".github/workflows/whatsapp-outreach.yml"
   push:
     branches: ["codex/baileys-whatsapp-outreach"]
@@ -80,3 +82,10 @@ jobs:
       - run: npm run build
         working-directory: frontend-test
       - run: docker build -t dentai-integration-test .
+      - name: Verify embedded WhatsApp runtime
+        run: >-
+          docker run --rm --entrypoint sh dentai-integration-test -c
+          'node --version &&
+          sh -n /app/scripts/start_railway.sh &&
+          test -d /app/whatsapp_service/node_modules &&
+          node --input-type=module -e "import(\"./whatsapp_service/src/index.js\").then(() => console.log(\"embedded whatsapp import ok\"))"'

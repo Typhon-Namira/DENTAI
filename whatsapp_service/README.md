@@ -2,14 +2,26 @@
 
 Internal clinic-scoped WhatsApp transport using Baileys QR authentication. It does not use Meta Cloud API, WABA, Twilio, or provider access tokens.
 
-Railway:
+## Default DENTAI deployment
 
-- Create a separate private service named `DENTAI-WHATSAPP` using this directory and Dockerfile.
-- Mount a persistent volume at `/app/data`.
-- Set `WHATSAPP_SESSION_DIR=/app/data/whatsapp_sessions`.
-- Set the same strong `WHATSAPP_SERVICE_TOKEN` on the Node service and DENTAI API/worker.
-- Set `WHATSAPP_SERVICE_URL` on the DENTAI API/worker to the Railway private URL.
+The production DENTAI web image embeds this Node/Baileys service in the same container, matching the deployment pattern used by `Typhon-Namira/scrap`.
 
-`useMultiFileAuthState()` credentials are isolated under deterministic `clinic_<uuid>` directories. Session files are never returned by the API.
+`scripts/start_railway.sh` starts the WhatsApp service on loopback port `3001` and then starts FastAPI. When `WHATSAPP_SERVICE_URL` is not set, the script supplies:
 
-Baileys is pinned to 6.7.22 rather than the reference repository's vulnerable 6.7.9. This is the minimum patched 6.7.x release named by GHSA-qvv5-jq5g-4cgg and retains the same makeWASocket/useMultiFileAuthState architecture.
+`http://127.0.0.1:3001`
+
+No separate Railway `DENTAI-WHATSAPP` service and no `WHATSAPP_SERVICE_TOKEN` are required for this default loopback mode.
+
+Sessions use:
+
+`/app/data/whatsapp_sessions/clinic_<clinic_uuid_hex>`
+
+The QR payload comes directly from Baileys `connection.update` and is converted with `qrcode.toDataURL()`. The frontend polls the authenticated FastAPI QR endpoint until the QR is available or the account is connected.
+
+For persistent login across container replacement, mount persistent storage at `/app/data` on the DENTAI web service. Without a volume, QR login still works but a new deployment can require reconnecting WhatsApp.
+
+## Optional external mode
+
+The standalone `whatsapp_service/Dockerfile` remains available for deployments that explicitly disable the embedded process. External/non-loopback mode should use a strong shared `WHATSAPP_SERVICE_TOKEN` and an explicit `WHATSAPP_SERVICE_URL`.
+
+Baileys is pinned to 6.7.22 rather than the reference repository's vulnerable 6.7.9. This retains the same `makeWASocket()` / `useMultiFileAuthState()` QR architecture while using the patched compatible 6.7.x release.
