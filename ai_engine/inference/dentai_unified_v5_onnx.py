@@ -72,12 +72,18 @@ def detect(s,pre,im,min_size,max_size):
  b,sc,l=s.run(None,{'image':x});b=b.astype(float);b[:,[0,2]]*=W/nw;b[:,[1,3]]*=H/nh;b[:,[0,2]]=b[:,[0,2]].clip(0,W);b[:,[1,3]]=b[:,[1,3]].clip(0,H);return b,sc,l
 def fdi_probs(s,im,b):
  W,H=im.size;x1,y1,x2,y2=map(float,b);sp=np.array([[(x1+x2)/2/W,(y1+y2)/2/H,(x2-x1)/W,(y2-y1)/H]],np.float32);return softmax(s.run(None,{'image':crop(im,b,.35,12,224),'spatial':sp})[0])[0]
-def resolve(rows):
+def bbox_center_x(bbox):return(float(bbox[0])+float(bbox[2]))/2
+def expected_viewer_side(fdi):return'LEFT'if str(fdi)[:1]in'14'else'RIGHT'
+def fdi_side_consistent(fdi,bbox,image_width):
+ if not fdi or image_width is None or image_width<=0:return True
+ observed='LEFT'if bbox_center_x(bbox)<image_width/2 else'RIGHT'
+ return observed==expected_viewer_side(fdi)
+def resolve(rows,image_width=None):
  groups=defaultdict(list)
  for x in rows:groups[max(QUADS,key=lambda q:sum(float(x['probs'][FDI_IDX[c]]) for c in QUADS[q]))].append(x)
  out=[]
  for q in '1234':
-  teeth=sorted(groups[q],key=lambda x:(x['bbox'][0]+x['bbox'][2])/2,reverse=q in '13');labels=QUADS[q];n,m=len(teeth),8;inf=1e9;dp=[[inf]*(m+1)for _ in range(n+1)];par=[[None]*(m+1)for _ in range(n+1)];dp[0][0]=0
+  teeth=sorted(groups[q],key=lambda x:bbox_center_x(x['bbox']),reverse=q in '14');labels=QUADS[q];n,m=len(teeth),8;inf=1e9;dp=[[inf]*(m+1)for _ in range(n+1)];par=[[None]*(m+1)for _ in range(n+1)];dp[0][0]=0
   for i in range(n+1):
    for j in range(m+1):
     cur=dp[i][j]
@@ -95,16 +101,25 @@ def resolve(rows):
    if act=='a':a[pi]=labels[pj]
    elif act=='d':a[pi]=None
    i,j=pi,pj
-  for i,x in enumerate(teeth):out.append({**x,'resolved':a.get(i) or x['raw'],'unresolved':a.get(i) is None})
- # duplicate-only V3.1 cleanup
+  for i,x in enumerate(teeth):out.append({**x,'resolved':a.get(i)or x['raw'],'unresolved':a.get(i)is None})
+ # Duplicate-only V3.1 cleanup. Geometry may repair a duplicate only when one
+ # missing slot is unambiguous between its ordered neighbours. Otherwise every
+ # duplicate detection is preserved and marked for FDI review.
  for q in '1234':
-  g=[x for x in out if x['resolved'].startswith(q)];cnt=Counter(x['resolved'] for x in g);missing=[x for x in QUADS[q] if x not in cnt];ordered=sorted(g,key=lambda x:(x['bbox'][0]+x['bbox'][2])/2,reverse=q in '13')
-  for dup,n in cnt.items():
-   if n<2:continue
-   members=[x for x in g if x['resolved']==dup];keeper=max(members,key=lambda x:x['raw_conf'])
-   for x in members:
-    if x is keeper or not missing:continue
-    rank=ordered.index(x);pos=rank*7/(len(ordered)-1) if len(ordered)>1 else 0;c=min(missing,key=lambda z:abs(int(z[1])-1-pos));x['resolved']=c;x['cleanup']=True;missing.remove(c)
+  g=[x for x in out if x['resolved'].startswith(q)];ordered=sorted(g,key=lambda x:bbox_center_x(x['bbox']),reverse=q in '14');cnt=Counter(x['resolved']for x in g);missing=[x for x in QUADS[q]if x not in cnt]
+  if len(ordered)<=8:
+   for dup,n in cnt.items():
+    if n<2:continue
+    members=[x for x in ordered if x['resolved']==dup];keeper=max(members,key=lambda x:x['raw_conf'])
+    for x in members:
+     if x is keeper:continue
+     rank=ordered.index(x);previous=[int(y['resolved'][1])for y in ordered[:rank]if y is not x and y['resolved']!=dup];following=[int(y['resolved'][1])for y in ordered[rank+1:]if y is not x and y['resolved']!=dup];low=max(previous)if previous else 0;high=min(following)if following else 9;candidates=[z for z in missing if low<int(z[1])<high]
+     if len(candidates)==1:x['resolved']=candidates[0];x['cleanup']=True;missing.remove(candidates[0])
+  remaining=Counter(x['resolved']for x in g)
+  for x in g:
+   if remaining[x['resolved']]>1:x['unresolved']=True
+ for x in out:
+  if not fdi_side_consistent(x['resolved'],x['bbox'],image_width):x['unresolved']=True
  return out
 def iou(a,b):
  ix=max(0,min(a[2],b[2])-max(a[0],b[0]));iy=max(0,min(a[3],b[3])-max(a[1],b[1]));inter=ix*iy;aa=max(0,a[2]-a[0])*max(0,a[3]-a[1]);bb=max(0,b[2]-b[0])*max(0,b[3]-b[1]);return inter/(aa+bb-inter) if aa+bb>inter else 0,inter/bb if bb else 0
@@ -131,7 +146,7 @@ class Engine:
   for i,(box,score,label)in enumerate(zip(b,sc,l)):
    if score<.5 or int(label)!=1:continue
    p=fdi_probs(self.s['fdi'],im,box);rows.append({'id':i,'bbox':box.tolist(),'probs':p,'raw':FDI[int(p.argmax())],'raw_conf':float(p.max()),'score':float(score)})
-  rr=resolve(rows);teeth=[]
+  rr=resolve(rows,W);teeth=[]
   for x in rr:
    box=x['bbox'];gp,gc,gps=classify(self.s['gate'],crop(im,box,.35,16,224),GATE);sp,ssc,sps=classify(self.s['status'],crop(im,box,.45,18,256),STATUS)
    teeth.append({'tooth_detection':{'instance_id':x['id'],'bbox_xyxy':[round(v,2)for v in box],'confidence':x['score']},'fdi':x['resolved'],'fdi_confidence':x['raw_conf'],'raw_fdi':x['raw'],'fdi_was_changed':x['raw']!=x['resolved'],'duplicate_cleanup_applied':bool(x.get('cleanup')),'fdi_review_required':x['unresolved']or x['raw_conf']<.7,'status_gate':{'prediction':gp,'effective_prediction':'NON_HEALTHY'if gps['NON_HEALTHY']>=.3 else'HEALTHY','confidence':gc,'probabilities':gps,'non_healthy_probability':gps['NON_HEALTHY'],'abnormal_threshold':.3},'status_v2':{'prediction':sp,'confidence':ssc,'probabilities':sps}})
