@@ -64,6 +64,20 @@ export interface XRay {
   uploaded_at: string;
 }
 
+export interface VisionEvidenceTooth {
+  fdi?: string | number;
+  tooth_detection?: {
+    bbox_xyxy?: unknown;
+  };
+}
+
+export interface AIAnalysisStructuredResult {
+  [key: string]: unknown;
+  vision_evidence?: {
+    teeth?: unknown;
+  };
+}
+
 export interface AIAnalysis {
   id: string;
   patient_id: string;
@@ -85,7 +99,7 @@ export interface AIAnalysis {
   claimed_at: string | null;
   heartbeat_at: string | null;
   retry_at: string | null;
-  structured_result: Record<string, unknown> | null;
+  structured_result: AIAnalysisStructuredResult | null;
   review_status: ReviewStatus;
   reviewed_by: string | null;
   reviewed_at: string | null;

@@ -4,6 +4,9 @@ import type { XRay } from "../api/types";
 import {
   findingModelScore,
   formatModelScore,
+  isStandardPanoramicSideConsistent,
+  normalizeBoundingBoxToImage,
+  observedImageSide,
   type FindingFilter,
   type ToothFindingGroup
 } from "../utils/opg";
@@ -56,6 +59,17 @@ export function OPGAnalysisViewer({
   );
   const activeGroupKey = hoveredGroupKey ?? selectedGroupKey;
   const displayable = xray ? DISPLAYABLE_IMAGE_TYPES.has(xray.mime_type) : false;
+  const debugOpg = new URLSearchParams(window.location.search).get("debugOpg") === "1";
+  const projectedGroups = useMemo(
+    () => groups.map((group) => ({
+      ...group,
+      projectedBoundingBox:
+        group.boundingBox && imageSize
+          ? normalizeBoundingBoxToImage(group.boundingBox, imageSize.width, imageSize.height)
+          : null
+    })),
+    [groups, imageSize]
+  );
 
   useEffect(() => {
     let active = true;
@@ -172,9 +186,9 @@ export function OPGAnalysisViewer({
                   preserveAspectRatio="xMidYMid meet"
                   aria-label="DENTAI tooth detection overlay"
                 >
-                  {groups.map((group) => {
-                    if (!group.boundingBox || !group.toothCode) return null;
-                    const [x1, y1, x2, y2] = group.boundingBox;
+                  {projectedGroups.map((group) => {
+                    if (!group.projectedBoundingBox || !group.toothCode) return null;
+                    const [x1, y1, x2, y2] = group.projectedBoundingBox;
                     const active = activeGroupKey === group.key;
                     const strokeWidth = Math.max(2, imageSize.width / 900);
                     const fontSize = Math.max(18, imageSize.width / 85);
@@ -217,8 +231,33 @@ export function OPGAnalysisViewer({
           )}
           <div className="opg-caption">
             <span>{xray?.original_filename ?? "No X-ray available"}</span>
-            <span>{groups.filter((group) => group.boundingBox).length} tooth regions shown</span>
+            <span>
+              {projectedGroups.filter((group) => group.projectedBoundingBox).length} tooth regions shown
+            </span>
           </div>
+          {debugOpg && imageSize && (
+            <div className="opg-debug-panel">
+              <strong>OPG coordinate debug</strong>
+              <span>Image: {imageSize.width} × {imageSize.height}</span>
+              {projectedGroups.map((group) => (
+                <code key={group.key}>
+                  {group.toothCode ?? group.key} · source={group.boundingBoxSource ?? "NONE"}
+                  {" · raw="}{JSON.stringify(group.boundingBox)}
+                  {" · projected="}{JSON.stringify(group.projectedBoundingBox)}
+                  {group.toothCode && group.projectedBoundingBox
+                    ? " · side=" + observedImageSide(
+                        group.projectedBoundingBox,
+                        imageSize.width
+                      ) + " · standard=" + String(isStandardPanoramicSideConsistent(
+                        group.toothCode,
+                        group.projectedBoundingBox,
+                        imageSize.width
+                      ))
+                    : ""}
+                </code>
+              ))}
+            </div>
+          )}
         </div>
 
         <aside className="tooth-inspector" aria-live="polite">
@@ -291,7 +330,7 @@ export function OPGAnalysisViewer({
         </aside>
       </div>
 
-      {groups.some((group) => !group.boundingBox) && (
+      {projectedGroups.some((group) => !group.projectedBoundingBox) && (
         <p className="overlay-note">
           Findings without a valid bounding box remain available in the finding panel.
         </p>

@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import type { AIAnalysis, DentalFinding, XRay } from "../api/types";
+import type {
+  AIAnalysis,
+  AIAnalysisStructuredResult,
+  DentalFinding,
+  XRay
+} from "../api/types";
 import {
+  expectedPanoramicSide,
   extractBoundingBox,
+  extractVisionToothBoxes,
   filterFindings,
   groupFindingsByTooth,
+  isStandardPanoramicSideConsistent,
+  normalizeBoundingBoxToImage,
   resolveSelectedGroupKey,
   xrayForAnalysis
 } from "./opg";
@@ -31,28 +40,84 @@ function finding(
   };
 }
 
+function structuredTeeth(
+  teeth: Array<{ fdi: string; box: unknown }>
+): AIAnalysisStructuredResult {
+  return {
+    vision_evidence: {
+      teeth: teeth.map((tooth) => ({
+        fdi: tooth.fdi,
+        tooth_detection: { bbox_xyxy: tooth.box }
+      }))
+    }
+  };
+}
+
 describe("OPG finding utilities", () => {
-  it("groups multiple findings for one tooth into one overlay region", () => {
+  it("groups multiple findings for one tooth and unions only that tooth's fallback boxes", () => {
     const groups = groupFindingsByTooth([
-      finding("a", "36", "PENDING", [10, 20, 50, 80]),
-      finding("b", "36", "PENDING", [12, 18, 48, 82]),
-      finding("c", "11", "CONFIRMED", [100, 20, 130, 70])
+      finding("a", "36", "PENDING", [1100, 20, 1150, 80]),
+      finding("b", "36", "PENDING", [1112, 18, 1148, 82]),
+      finding("c", "44", "CONFIRMED", [100, 20, 130, 70])
     ]);
     const tooth36 = groups.find((group) => group.toothCode === "36");
     expect(tooth36?.findings).toHaveLength(2);
-    expect(tooth36?.boundingBox).toEqual([10, 18, 50, 82]);
+    expect(tooth36?.boundingBox).toEqual([1100, 18, 1150, 82]);
+    expect(tooth36?.boundingBoxSource).toBe("FINDING_PROVENANCE");
   });
 
-  it("extracts valid xyxy bounding boxes", () => {
+  it("extracts valid xyxy bounding boxes and ignores malformed boxes", () => {
     expect(extractBoundingBox({ bounding_box: [1, 2, 30, 40] })).toEqual([1, 2, 30, 40]);
-  });
-
-  it("ignores malformed bounding boxes without hiding the finding", () => {
     expect(extractBoundingBox({ bounding_box: [1, 2, 3] as never })).toBeNull();
     expect(extractBoundingBox({ bounding_box: [5, 5, 2, 2] })).toBeNull();
-    const groups = groupFindingsByTooth([finding("a", "36", "PENDING", ["x", 2, 3, 4])]);
+    const groups = groupFindingsByTooth([finding("a", "44", "PENDING", ["x", 2, 3, 4])]);
     expect(groups[0]?.findings).toHaveLength(1);
     expect(groups[0]?.boundingBox).toBeNull();
+  });
+
+  it("normalizes fractional boxes and preserves valid original-image pixel boxes", () => {
+    expect(normalizeBoundingBoxToImage([0.1, 0.2, 0.3, 0.4], 2000, 1000))
+      .toEqual([200, 200, 600, 400]);
+    expect(normalizeBoundingBoxToImage([100, 200, 300, 400], 2000, 1000))
+      .toEqual([100, 200, 300, 400]);
+    expect(normalizeBoundingBoxToImage([100, 200, 2300, 400], 2000, 1000)).toBeNull();
+  });
+
+  it("uses canonical vision evidence for tooth 44 instead of a wrong-side provenance box", () => {
+    const findings = [
+      finding("a", "44", "PENDING", [1500, 500, 1600, 800]),
+      finding("b", "44", "PENDING", [1510, 510, 1610, 810])
+    ];
+    const visionBoxes = extractVisionToothBoxes(
+      structuredTeeth([{ fdi: "44", box: [220, 500, 340, 820] }])
+    );
+    const tooth44 = groupFindingsByTooth(findings, visionBoxes)[0];
+    expect(tooth44?.boundingBox).toEqual([220, 500, 340, 820]);
+    expect(tooth44?.boundingBoxSource).toBe("VISION_EVIDENCE");
+    expect(isStandardPanoramicSideConsistent("44", tooth44!.boundingBox!, 2000)).toBe(true);
+  });
+
+  it("does not reuse another tooth's canonical region", () => {
+    const visionBoxes = extractVisionToothBoxes(
+      structuredTeeth([{ fdi: "47", box: [100, 400, 240, 760] }])
+    );
+    const tooth44 = groupFindingsByTooth(
+      [finding("a", "44", "PENDING", [260, 430, 350, 750])],
+      visionBoxes
+    )[0];
+    expect(tooth44?.boundingBox).toEqual([260, 430, 350, 750]);
+    expect(tooth44?.boundingBoxSource).toBe("FINDING_PROVENANCE");
+  });
+
+  it("documents standard panoramic orientation without transforming real boxes", () => {
+    expect(expectedPanoramicSide("44")).toBe("LEFT");
+    expect(expectedPanoramicSide("47")).toBe("LEFT");
+    expect(expectedPanoramicSide("16")).toBe("LEFT");
+    expect(expectedPanoramicSide("36")).toBe("RIGHT");
+    expect(expectedPanoramicSide("37")).toBe("RIGHT");
+    expect(expectedPanoramicSide("24")).toBe("RIGHT");
+    expect(isStandardPanoramicSideConsistent("47", [100, 10, 200, 200], 2000)).toBe(true);
+    expect(isStandardPanoramicSideConsistent("36", [1500, 10, 1600, 200], 2000)).toBe(true);
   });
 
   it("keeps a valid selected tooth and resets missing selections deterministically", () => {
@@ -65,10 +130,7 @@ describe("OPG finding utilities", () => {
   });
 
   it("uses the historical analysis xray_id rather than current selection", () => {
-    const xrays = [
-      { id: "current" },
-      { id: "historical" }
-    ] as XRay[];
+    const xrays = [{ id: "current" }, { id: "historical" }] as XRay[];
     const analysis = { xray_id: "historical" } as AIAnalysis;
     expect(xrayForAnalysis(analysis, xrays)?.id).toBe("historical");
   });
