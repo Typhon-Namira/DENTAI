@@ -1,0 +1,33 @@
+name: DENTAI V5 resolver
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "ai_engine/inference/dentai_unified_v5_onnx.py"
+      - "tests/test_dentai_v5_resolver.py"
+      - ".github/workflows/dentai-v5-resolver.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.3"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run DENTAI V5 resolver tests
+        run: uv run pytest tests/test_dentai_v5_resolver.py
