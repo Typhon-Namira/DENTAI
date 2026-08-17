@@ -9,6 +9,7 @@ import {
   expectedPanoramicSide,
   extractBoundingBox,
   extractVisionToothBoxes,
+  extractVisionToothGeometry,
   filterFindings,
   groupFindingsByTooth,
   isFindingProductVisible,
@@ -98,6 +99,41 @@ describe("OPG finding utilities", () => {
     expect(tooth44?.boundingBox).toEqual([220, 500, 340, 820]);
     expect(tooth44?.boundingBoxSource).toBe("VISION_EVIDENCE");
     expect(isStandardPanoramicSideConsistent("44", tooth44!.boundingBox!, 2000)).toBe(true);
+  });
+
+  it("withholds duplicate canonical FDI 34 regions instead of unioning distant boxes", () => {
+    const geometry = extractVisionToothGeometry(structuredTeeth([
+      { fdi: "34", box: [180, 360, 280, 520] },
+      { fdi: "34", box: [820, 350, 930, 525] }
+    ]));
+
+    expect(geometry.boxes.has("34")).toBe(false);
+    expect(geometry.ambiguousToothCodes.has("34")).toBe(true);
+
+    const group = groupFindingsByTooth(
+      [
+        finding("a", "34", "PENDING", [180, 360, 280, 520]),
+        finding("b", "34", "PENDING", [820, 350, 930, 525])
+      ],
+      geometry.boxes,
+      geometry.ambiguousToothCodes
+    )[0];
+
+    expect(group?.findings).toHaveLength(2);
+    expect(group?.provenanceBoxes).toHaveLength(2);
+    expect(group?.geometryAmbiguous).toBe(true);
+    expect(group?.boundingBox).toBeNull();
+    expect(group?.boundingBoxSource).toBeNull();
+  });
+
+  it("rejects the observed FDI 38 box as side-inconsistent at 1200px width", () => {
+    expect(
+      isStandardPanoramicSideConsistent(
+        "38",
+        [240.56, 381.01, 336.86, 504.73],
+        1200
+      )
+    ).toBe(false);
   });
 
   it("does not reuse another tooth's canonical region", () => {

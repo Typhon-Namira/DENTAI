@@ -8,7 +8,7 @@ import type {
   XRay
 } from "../api/types";
 import {
-  extractVisionToothBoxes,
+  extractVisionToothGeometry,
   filterFindings,
   findingModelScore,
   formatModelScore,
@@ -60,13 +60,17 @@ export function AnalysisResults({
     () => filterFindings(productVisibleFindings, filter),
     [productVisibleFindings, filter]
   );
-  const visionBoxes = useMemo(
-    () => extractVisionToothBoxes(analysis?.structured_result ?? null),
+  const visionGeometry = useMemo(
+    () => extractVisionToothGeometry(analysis?.structured_result ?? null),
     [analysis?.structured_result]
   );
   const groups = useMemo(
-    () => groupFindingsByTooth(filteredFindings, visionBoxes),
-    [filteredFindings, visionBoxes]
+    () => groupFindingsByTooth(
+      filteredFindings,
+      visionGeometry.boxes,
+      visionGeometry.ambiguousToothCodes
+    ),
+    [filteredFindings, visionGeometry]
   );
   const pending = useMemo(
     () => productVisibleFindings.filter((finding) => finding.review_status === "PENDING"),

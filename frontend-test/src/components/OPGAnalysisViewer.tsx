@@ -261,6 +261,9 @@ export function OPGAnalysisViewer({
               {projectedGroups.map((group) => (
                 <code key={group.key}>
                   {group.toothCode ?? group.key} · source={group.boundingBoxSource ?? "NONE"}
+                  {" · canonical="}{group.geometryAmbiguous
+                    ? "AMBIGUOUS_DUPLICATE_FDI"
+                    : "UNAMBIGUOUS"}
                   {" · raw="}{JSON.stringify(group.boundingBox)}
                   {" · projected="}{JSON.stringify(group.projectedBoundingBox)}
                   {group.toothCode && group.projectedBoundingBox
@@ -301,6 +304,13 @@ export function OPGAnalysisViewer({
                   <span key={finding.id}>{humanizeFindingType(finding.finding_type)}</span>
                 ))}
               </div>
+
+              {selectedGroup.geometryAmbiguous && (
+                <p className="overlay-note">
+                  Canonical overlay withheld: multiple detected tooth regions share this FDI
+                  label. The findings remain available for clinician review.
+                </p>
+              )}
 
               {selectedExplanation ? (
                 <section className="clinical-tooth-explanation">
@@ -415,7 +425,15 @@ export function OPGAnalysisViewer({
         </aside>
       </div>
 
-      {projectedGroups.some((group) => !group.projectedBoundingBox) && (
+      {projectedGroups.some((group) => group.geometryAmbiguous) && (
+        <p className="overlay-note">
+          Duplicate canonical FDI regions were detected. Ambiguous overlays are withheld
+          instead of combining separate tooth detections.
+        </p>
+      )}
+      {projectedGroups.some(
+        (group) => !group.projectedBoundingBox && !group.geometryAmbiguous
+      ) && (
         <p className="overlay-note">
           Findings without a valid bounding box remain available in the finding panel.
         </p>
