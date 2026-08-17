@@ -63,7 +63,8 @@ claims, or interpretations that are absent from the supplied DENTAI evidence.
 Create exactly one tooth_explanations item for each distinct tooth_fdi. Copy every
 finding evidence object for that tooth into its evidence list without changing any
 field. Do not omit, duplicate, merge, or invent evidence. Do not interpret model_score
-as an independent diagnostic probability. Translate internal enum and reason-code names into plain language instead of repeating raw code tokens. Dentist review remains required.
+as an independent diagnostic probability. Translate internal enum and reason-code names
+into plain language instead of repeating raw code tokens. Dentist review remains required.
 Return only the requested structured JSON."""
 
 
