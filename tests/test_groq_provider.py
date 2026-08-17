@@ -492,3 +492,52 @@ def test_groq_payload_excludes_image_patient_and_raw_fdi_data():
     assert "raw_fdi" not in payload_text
     assert "bounding_box" not in payload_text
     assert "source_image_id" not in payload_text
+
+
+
+@pytest.mark.asyncio
+async def test_authentication_failure_is_not_retried_per_tooth():
+    class AuthenticationFailureProvider:
+        model = "openai/gpt-oss-20b"
+
+        def __init__(self):
+            self.calls = 0
+
+        async def summarize(self, _received):
+            self.calls += 1
+            request = groq_module.httpx.Request("POST", "https://api.groq.com")
+            response = groq_module.httpx.Response(401, request=request)
+            raise groq_module.httpx.HTTPStatusError(
+                "unauthorized",
+                request=request,
+                response=response,
+            )
+
+    provider = AuthenticationFailureProvider()
+    result = await summarize_product_findings(
+        provider,
+        findings_for_teeth("16", "24", "36"),
+    )
+
+    assert result["status"] == "UNAVAILABLE"
+    assert provider.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_production_sized_fixture_no_longer_uses_one_whole_analysis_request():
+    provider = RecordingProvider()
+    findings = production_findings()
+    before = deepcopy(findings)
+
+    result = await summarize_product_findings(provider, findings)
+
+    assert result["status"] == "AVAILABLE"
+    assert [len({item.tooth_fdi for item in call}) for call in provider.calls] == [3, 2]
+    assert {item["tooth_fdi"] for item in result["tooth_explanations"]} == {
+        "16",
+        "24",
+        "36",
+        "37",
+        "47",
+    }
+    assert findings == before
