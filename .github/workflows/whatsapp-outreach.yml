@@ -9,6 +9,8 @@ on:
       - "app/core/config.py"
       - "app/ai/worker.py"
       - "app/main.py"
+      - "migrations/env.py"
+      - "migrations/versions/0003_ai_job_queue.py"
       - "migrations/versions/0004_whatsapp_outreach.py"
       - "frontend-test/**"
       - ".github/workflows/whatsapp-outreach.yml"
@@ -36,6 +38,8 @@ jobs:
           app/database/models.py
           app/main.py
           tests/test_whatsapp_outreach.py
+          migrations/env.py
+          migrations/versions/0003_ai_job_queue.py
           migrations/versions/0004_whatsapp_outreach.py
   node:
     runs-on: ubuntu-latest
