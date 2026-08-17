@@ -1,0 +1,31 @@
+name: Docker integration build
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "app/main.py"
+      - "frontend-test/**"
+      - ".github/workflows/docker-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build -t dentai-integration-test .
+
+      - name: Verify frontend runtime files and Python-only image
+        run: |
+          docker run --rm --entrypoint sh dentai-integration-test -c \
+            'test -f /app/frontend-dist/index.html && test -d /app/frontend-dist/assets && ! command -v node'

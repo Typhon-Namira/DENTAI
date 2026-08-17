@@ -15,3 +15,6 @@ storage
 tests
 work-*
 docs
+frontend-test/node_modules
+frontend-test/dist
+frontend-test/.env*

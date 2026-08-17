@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.v1 import (
@@ -70,3 +72,8 @@ async def ready():
     async with ControlSession() as db:
         await db.execute(text("SELECT 1"))
     return {"status": "ready"}
+
+
+frontend_dist = Path("/app/frontend-dist")
+if frontend_dist.is_dir():
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
