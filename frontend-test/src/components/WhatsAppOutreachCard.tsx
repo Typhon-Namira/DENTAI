@@ -28,6 +28,7 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
   const [qr, setQr] = useState<string | null>(null);
   const [includeImage, setIncludeImage] = useState(false);
   const [result, setResult] = useState<WhatsAppOutreach | null>(null);
+  const [deliveryState, setDeliveryState] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
@@ -44,6 +45,7 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
   useEffect(() => {
     setPhone(patient.whatsapp_phone ?? "");
     setResult(null);
+    setDeliveryState("");
   }, [patient.id, patient.whatsapp_phone]);
 
   useEffect(() => {
@@ -106,9 +108,15 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
     setBusy("send");
     setError("");
     setResult(null);
+    setDeliveryState("QUEUED");
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    setDeliveryState("SENDING");
     try {
-      setResult(await api.sendWhatsAppTest(patient.id, includeImage));
+      const next = await api.sendWhatsAppTest(patient.id, includeImage);
+      setResult(next);
+      setDeliveryState(next.status);
     } catch (reason) {
+      setDeliveryState("FAILED");
       setError(errorMessage(reason));
     } finally {
       setBusy("");
@@ -167,6 +175,11 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
           {busy === "send" ? "Sending…" : "Send WhatsApp test now"}
         </button>
       </div>
+      {deliveryState && (
+        <p className="whatsapp-delivery-state" role="status">
+          Delivery: <strong>{formatOutreachStatus(deliveryState)}</strong>
+        </p>
+      )}
       <p className="muted">Finding image is optional and off by default. The full OPG is never sent automatically.</p>
       {error && <div className="error-panel" role="alert">{error}</div>}
       {result && (

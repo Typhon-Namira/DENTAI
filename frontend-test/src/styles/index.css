@@ -803,3 +803,5 @@ dd { color: var(--ink); font-size: .82rem; font-weight: 720; margin: 0; overflow
   .whatsapp-grid, .whatsapp-phone-row { grid-template-columns: 1fr; }
   .whatsapp-phone-row .button { width: 100%; }
 }
+
+.whatsapp-delivery-state { background: #eef6f6; border-radius: 9px; color: var(--teal-dark); margin: 0; padding: .65rem .8rem; width: fit-content; }

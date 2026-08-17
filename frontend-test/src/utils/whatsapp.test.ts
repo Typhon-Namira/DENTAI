@@ -16,7 +16,9 @@ describe("WhatsApp UI state", () => {
 
   it("masks contact numbers and formats delivery states", () => {
     expect(maskPhone("+37493156663")).toBe("+***663");
+    expect(formatOutreachStatus("QUEUED")).toBe("Queued");
     expect(formatOutreachStatus("SENDING")).toBe("Sending");
     expect(formatOutreachStatus("SENT")).toBe("Sent");
+    expect(formatOutreachStatus("FAILED")).toBe("Failed");
   });
 });
