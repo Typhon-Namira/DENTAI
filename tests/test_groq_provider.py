@@ -242,9 +242,7 @@ def test_unresolved_product_finding_is_excluded_from_tooth_specific_evidence() -
 
     evidence = build_product_finding_evidence([resolved, unresolved])
 
-    assert [(item.evidence_id, item.tooth_fdi) for item in evidence] == [
-        ("finding_0", "37")
-    ]
+    assert [(item.evidence_id, item.tooth_fdi) for item in evidence] == [("finding_0", "37")]
     assert unresolved["tooth_code"] is None
     assert unresolved["confidence"] == 0.9516
 
