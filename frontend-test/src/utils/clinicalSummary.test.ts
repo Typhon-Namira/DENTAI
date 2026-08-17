@@ -15,7 +15,7 @@ import { groupFindingsByTooth } from "./opg";
 
 function finding(
   id: string,
-  toothCode: string,
+  toothCode: string | null,
   findingType: string,
   score: number,
   reviewStatus: DentalFinding["review_status"] = "PENDING"
@@ -198,7 +198,42 @@ describe("clinical summary utilities", () => {
       review_reasons: ["FDI_LOW_CONFIDENCE_OR_UNRESOLVED"],
       source_model: "DENTAI Unified V5",
       model_version: "dentai-unified-v5",
-      bounding_box: [10, 20, 30, 40]
+      bounding_box: [10, 20, 30, 40],
+      raw_fdi: null,
+      fdi_confidence: null,
+      fdi_was_changed: null,
+      duplicate_cleanup_applied: null,
+      fdi_review_required: null,
+      tooth_detection_instance_id: null,
+      quadrant_candidates: [],
+      resolved_quadrant: null,
+      side_constraint_applied: null,
+      side_constraint_overrode_raw_quadrant: null
     });
+  });
+
+  it("keeps raw FDI only in technical details for an unresolved region", () => {
+    const unresolved = finding("u", null, "FILLING", 0.8945);
+    unresolved.provenance = {
+      ...unresolved.provenance,
+      raw_fdi: "37",
+      fdi_confidence: 0.94,
+      fdi_was_changed: true,
+      fdi_review_required: true,
+      tooth_detection_instance_id: 7,
+      quadrant_candidates: ["1", "4"],
+      resolved_quadrant: "4",
+      side_constraint_applied: true,
+      side_constraint_overrode_raw_quadrant: true
+    };
+
+    const group = groupFindingsByTooth([unresolved])[0];
+    const technical = technicalDetailsForFinding(unresolved);
+
+    expect(group.toothCode).toBeNull();
+    expect(explanationForGroup(null, group)).toBeNull();
+    expect(technical.raw_fdi).toBe("37");
+    expect(technical.fdi_review_required).toBe(true);
+    expect(technical.side_constraint_overrode_raw_quadrant).toBe(true);
   });
 });
