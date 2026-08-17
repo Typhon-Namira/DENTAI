@@ -96,7 +96,12 @@ def ensure_outreach_columns() -> None:
     if not has_column("whatsapp_outreach", "source_finding_ids"):
         op.add_column(
             "whatsapp_outreach",
-            sa.Column("source_finding_ids", sa.JSON(), nullable=False, server_default=sa.text("'[]'")),
+            sa.Column(
+                "source_finding_ids",
+                sa.JSON(),
+                nullable=False,
+                server_default=sa.text("'[]'"),
+            ),
         )
     if not has_column("whatsapp_outreach", "dispatch_started_at"):
         op.add_column(
