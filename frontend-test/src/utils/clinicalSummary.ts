@@ -240,7 +240,21 @@ export function technicalDetailsForFinding(finding: DentalFinding) {
     review_reasons: finding.provenance?.review_reasons ?? [],
     source_model: finding.provenance?.source_model ?? null,
     model_version: finding.provenance?.model_version ?? null,
-    bounding_box: finding.provenance?.bounding_box ?? null
+    bounding_box: finding.provenance?.bounding_box ?? null,
+    raw_fdi: finding.provenance?.raw_fdi ?? null,
+    fdi_confidence: finding.provenance?.fdi_confidence ?? null,
+    fdi_was_changed: finding.provenance?.fdi_was_changed ?? null,
+    duplicate_cleanup_applied:
+      finding.provenance?.duplicate_cleanup_applied ?? null,
+    fdi_review_required: finding.provenance?.fdi_review_required ?? null,
+    tooth_detection_instance_id:
+      finding.provenance?.tooth_detection_instance_id ?? null,
+    quadrant_candidates: finding.provenance?.quadrant_candidates ?? [],
+    resolved_quadrant: finding.provenance?.resolved_quadrant ?? null,
+    side_constraint_applied:
+      finding.provenance?.side_constraint_applied ?? null,
+    side_constraint_overrode_raw_quadrant:
+      finding.provenance?.side_constraint_overrode_raw_quadrant ?? null
   };
 }
 
