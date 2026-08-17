@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     whatsapp_send_hour: int = 10
     whatsapp_worker_poll_seconds: float = 5.0
     whatsapp_connection_retry_seconds: int = 60
+    whatsapp_claim_timeout_seconds: int = 300
     whatsapp_max_attempts: int = 5
 
     @field_validator("cors_allowed_origins", mode="before")
