@@ -15,8 +15,8 @@ from app.core.config import get_settings
 from app.database.control_models import ClinicRegistry
 from app.database.models import AIAnalysis, AIStatus, DentalFinding, FindingReview, XRay
 from app.database.sessions import ControlSession
-from app.storage.providers import storage_provider
 from app.outreach.service import schedule_analysis_outreach
+from app.storage.providers import storage_provider
 
 
 async def _heartbeat_loop(session_factory, analysis_id, worker_id, interval):
