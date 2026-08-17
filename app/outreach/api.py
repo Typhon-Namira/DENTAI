@@ -108,6 +108,7 @@ async def send_test(
         )
     service = client()
     row = None
+    dispatch_started = False
     try:
         connection = await service.status(ctx.clinic.id)
         if not connection.get("connected"):
@@ -129,7 +130,10 @@ async def send_test(
         )
         row.status = WhatsAppOutreachStatus.SENDING
         row.attempt_count += 1
+        row.claimed_at = datetime.now(UTC)
+        row.dispatch_started_at = datetime.now(UTC)
         await ctx.session.commit()
+        dispatch_started = True
         if body.include_image:
             xray = await ctx.session.get(XRay, analysis.xray_id)
             image = await finding_crop(xray, finding) if xray else None
@@ -145,14 +149,19 @@ async def send_test(
         row.status = WhatsAppOutreachStatus.SENT
         row.provider_message_id = result.get("message_id")
         row.sent_at = datetime.now(UTC)
+        row.safe_error = None
         await ctx.session.commit()
         return model_dict(row)
     except AppError:
         raise
     except WhatsAppServiceError as exc:
         if row is not None:
-            row.status = WhatsAppOutreachStatus.FAILED
-            row.safe_error = exc.code
+            if dispatch_started:
+                row.status = WhatsAppOutreachStatus.SEND_UNKNOWN
+                row.safe_error = "SEND_OUTCOME_UNKNOWN"
+            else:
+                row.status = WhatsAppOutreachStatus.FAILED
+                row.safe_error = exc.code
             row.failed_at = datetime.now(UTC)
             await ctx.session.commit()
         raise AppError(exc.code, "WhatsApp message could not be sent.", exc.status_code) from exc
