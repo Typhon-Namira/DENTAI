@@ -71,11 +71,44 @@ export interface VisionEvidenceTooth {
   };
 }
 
+export interface GroqFindingEvidence {
+  evidence_id: string;
+  tooth_fdi: string;
+  finding_type: string;
+  model_score: number;
+  review_status: FindingReview;
+  review_required: boolean;
+  uncertainty: string;
+  uncertainty_reason: string | null;
+  review_reasons: string[];
+  source_model: string;
+  model_version: string;
+}
+
+export interface GroqToothExplanation {
+  tooth_fdi: string;
+  evidence: GroqFindingEvidence[];
+  headline: string;
+  clinical_explanation: string;
+  confidence_explanation: string;
+  review_explanation: string;
+}
+
+export interface GroqClinicalSummary {
+  doctor_summary: string;
+  tooth_explanations: GroqToothExplanation[];
+  important_changes: string[];
+  monitoring_points: string[];
+  questions_for_doctor: string[];
+  patient_message_draft: string;
+}
+
 export interface AIAnalysisStructuredResult {
   [key: string]: unknown;
   vision_evidence?: {
     teeth?: unknown;
   };
+  clinical_summary?: unknown;
 }
 
 export interface AIAnalysis {

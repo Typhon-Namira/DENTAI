@@ -18,6 +18,7 @@ import {
   resolveSelectedGroupKey,
   type FindingFilter
 } from "../utils/opg";
+import { parseClinicalSummary } from "../utils/clinicalSummary";
 import { OPGAnalysisViewer } from "./OPGAnalysisViewer";
 import { StatusBadge } from "./StatusBadge";
 
@@ -47,6 +48,10 @@ export function AnalysisResults({
   const [filter, setFilter] = useState<FindingFilter>("ALL");
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
 
+  const clinicalSummary = useMemo(
+    () => parseClinicalSummary(analysis?.structured_result?.clinical_summary),
+    [analysis?.structured_result]
+  );
   const productVisibleFindings = useMemo(
     () => findings.filter(isFindingProductVisible),
     [findings]
@@ -150,11 +155,65 @@ export function AnalysisResults({
         )}
       </div>
 
+      {clinicalSummary && (
+        <section className="card clinical-summary-panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">AI-assisted clinical summary</p>
+              <h3>DENTAI evidence in clinical language</h3>
+            </div>
+          </div>
+          <p className="clinical-summary-disclaimer">
+            AI-assisted explanatory text based only on DENTAI structured evidence.
+            This is not a diagnosis and requires clinician review.
+          </p>
+          <p className="doctor-summary">{clinicalSummary.doctor_summary}</p>
+          <div className="clinical-summary-lists">
+            {clinicalSummary.important_changes.length > 0 && (
+              <div>
+                <h4>Important changes</h4>
+                <ul>{clinicalSummary.important_changes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}</ul>
+              </div>
+            )}
+            {clinicalSummary.monitoring_points.length > 0 && (
+              <div>
+                <h4>Monitoring points</h4>
+                <ul>{clinicalSummary.monitoring_points.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}</ul>
+              </div>
+            )}
+            {clinicalSummary.questions_for_doctor.length > 0 && (
+              <div>
+                <h4>Questions for the doctor</h4>
+                <ul>{clinicalSummary.questions_for_doctor.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}</ul>
+              </div>
+            )}
+          </div>
+          {clinicalSummary.patient_message_draft && (
+            <details className="patient-message-draft">
+              <summary>Optional patient message draft</summary>
+              <p>{clinicalSummary.patient_message_draft}</p>
+            </details>
+          )}
+        </section>
+      )}
+
       <OPGAnalysisViewer
         xray={xray}
         groups={groups}
+        clinicalSummary={clinicalSummary}
         filter={filter}
         selectedGroupKey={selectedGroupKey}
+        canReview={role === "DOCTOR"}
+        decisions={decisions}
+        onDecisionChange={(findingId, decision) =>
+          setDecisions((current) => ({ ...current, [findingId]: decision }))
+        }
         onFilterChange={setFilter}
         onSelectedGroupChange={setSelectedGroupKey}
       />

@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-import httpx
 from pydantic import ValidationError
 
-from ai_engine.groq.provider import GroqClinicalSummaryProvider
+from ai_engine.groq.provider import (
+    GroqClinicalSummaryProvider,
+    summarize_product_findings,
+)
 from ai_engine.inference.dentai_unified_v5_onnx import Engine, FrozenArtifactError
 from ai_engine.longitudinal.engine import LongitudinalDentalEngine
 from ai_engine.quality.engine import OPGQualityEngine
@@ -200,22 +202,10 @@ class DENTAIRealOPGProvider(DentalAIProvider):
         result.prevention_recommendations = [
             item.model_dump(mode="json") for item in self.risk.predict(result.findings())
         ]
-        if self.groq:
-            try:
-                summary = await self.groq.summarize(
-                    {
-                        "patient_context": patient_context,
-                        "current_findings": [
-                            item.model_dump(mode="json") for item in result.findings()
-                        ],
-                        "changes": result.longitudinal_changes,
-                        "risk_recommendations": result.prevention_recommendations,
-                    }
-                )
-                result.clinical_summary = summary.model_dump()
-            except (httpx.HTTPError, ValidationError, KeyError, TypeError, ValueError):
-                # Narrative generation is optional and may never change vision results.
-                result.clinical_summary = {"status": "UNAVAILABLE"}
+        result.clinical_summary = await summarize_product_findings(
+            self.groq,
+            structured_findings,
+        )
         structured_result = result.model_dump(mode="json")
         # Preserve model evidence and review flags without making it a clinical conclusion.
         structured_result["vision_evidence"] = raw

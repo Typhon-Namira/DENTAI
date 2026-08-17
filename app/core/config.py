@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     ai_worker_heartbeat_seconds: float = 30.0
     ai_config_path: Path = Path("configs/ai/opg_v1.yaml")
     groq_api_key: str | None = None
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-20b"
     groq_timeout_seconds: int = 20
     allow_production_mock_ai: bool = False
 

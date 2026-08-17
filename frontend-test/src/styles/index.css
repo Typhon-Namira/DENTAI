@@ -673,3 +673,108 @@ dd { color: var(--ink); font-size: .82rem; font-weight: 720; margin: 0; overflow
   padding-top: .35rem;
   white-space: pre-wrap;
 }
+
+
+/* Evidence-bound Groq clinical-language layer */
+.clinical-summary-panel {
+  border-color: #b8d8d5;
+  background:
+    linear-gradient(135deg, rgba(228, 247, 244, .9), rgba(255, 255, 255, .98) 52%);
+}
+.clinical-summary-disclaimer {
+  color: var(--muted);
+  font-size: .82rem;
+  margin: .35rem 0 .8rem;
+}
+.doctor-summary {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 78ch;
+}
+.clinical-summary-lists {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  margin-top: 1rem;
+}
+.clinical-summary-lists > div {
+  background: rgba(255, 255, 255, .75);
+  border: 1px solid #cfe4e2;
+  border-radius: 12px;
+  padding: .8rem;
+}
+.clinical-summary-lists h4 {
+  color: var(--ink);
+  font-size: .78rem;
+  margin: 0 0 .45rem;
+  text-transform: uppercase;
+}
+.clinical-summary-lists ul {
+  color: var(--muted);
+  display: grid;
+  gap: .35rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.patient-message-draft {
+  border-top: 1px solid #cfe4e2;
+  color: var(--muted);
+  margin-top: 1rem;
+  padding-top: .8rem;
+}
+.patient-message-draft summary,
+.technical-details summary {
+  color: var(--teal-dark);
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 760;
+}
+.clinical-tooth-explanation {
+  background: #eef9f7;
+  border: 1px solid #b9ddda;
+  border-radius: 12px;
+  display: grid;
+  gap: .55rem;
+  padding: .9rem;
+}
+.clinical-tooth-explanation h3 {
+  color: var(--ink);
+  font-size: 1rem;
+  margin: 0;
+}
+.clinical-tooth-explanation p,
+.deterministic-tooth-fallback p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+.deterministic-tooth-fallback {
+  border-left: 3px solid #8db8b5;
+  display: grid;
+  gap: .45rem;
+  padding-left: .8rem;
+}
+.inline-review-decision {
+  color: var(--muted);
+  display: grid;
+  font-size: .75rem;
+  gap: .3rem;
+  margin-top: .65rem;
+}
+.inline-review-decision select {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  padding: .55rem;
+}
+.technical-details {
+  border-top: 1px solid var(--line);
+  margin-top: .7rem;
+  padding-top: .65rem;
+}
+.technical-details dl {
+  margin-top: .7rem;
+}
