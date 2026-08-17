@@ -6,6 +6,14 @@ COPY frontend-test ./
 ENV VITE_DENTAI_API_BASE_URL=""
 RUN npm run build
 
+FROM node:20-bookworm-slim AS whatsapp-deps
+WORKDIR /whatsapp_service
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY whatsapp_service/package.json ./
+RUN npm install --omit=dev --no-audit --no-fund
+
 FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
@@ -21,9 +29,15 @@ COPY config ./config
 COPY artifacts/production ./artifacts/production
 COPY migrations ./migrations
 COPY scripts ./scripts
+COPY whatsapp_service ./whatsapp_service
 COPY alembic.ini README.md ./
 COPY --from=frontend-build /frontend/dist ./frontend-dist
-RUN useradd --create-home appuser && chown -R appuser:appuser /app
+COPY --from=whatsapp-deps /usr/local/bin/node /usr/local/bin/node
+COPY --from=whatsapp-deps /whatsapp_service/node_modules ./whatsapp_service/node_modules
+RUN useradd --create-home appuser \
+    && mkdir -p /app/data/whatsapp_sessions \
+    && chmod +x /app/scripts/start_railway.sh \
+    && chown -R appuser:appuser /app
 USER appuser
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-1} --proxy-headers --forwarded-allow-ips=${FORWARDED_ALLOW_IPS:-127.0.0.1}"]
+CMD ["sh", "scripts/start_railway.sh"]
