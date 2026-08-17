@@ -1,11 +1,15 @@
 from collections import Counter
+from io import BytesIO
 
 import numpy as np
 import pytest
+from PIL import Image
 
+import ai_engine.inference.dentai_unified_v5_onnx as unified_v5
 from ai_engine.inference.dentai_unified_v5_onnx import (
     FDI,
     FDI_IDX,
+    Engine,
     bbox_center_x,
     expected_viewer_side,
     fdi_side_consistent,
@@ -126,3 +130,34 @@ def test_duplicate_cleanup_only_uses_an_unambiguous_ordered_missing_slot() -> No
     assert [row["resolved"] for row in ordered] == [f"3{i}" for i in range(1, 9)]
     assert sum(bool(row.get("cleanup")) for row in ordered) == 1
     assert len({row["resolved"] for row in ordered}) == 8
+
+
+def test_analyze_bytes_passes_opened_image_width_to_resolver(monkeypatch) -> None:
+    captured: list[tuple[int, int | None]] = []
+
+    def fake_detect(*_args):
+        return (
+            np.empty((0, 4), dtype=np.float32),
+            np.empty(0, dtype=np.float32),
+            np.empty(0, dtype=np.int64),
+        )
+
+    def fake_resolve(rows, image_width=None):
+        captured.append((len(rows), image_width))
+        return []
+
+    monkeypatch.setattr(unified_v5, "detect", fake_detect)
+    monkeypatch.setattr(unified_v5, "resolve", fake_resolve)
+
+    engine = Engine.__new__(Engine)
+    engine.s = {
+        name: object()
+        for name in ("tooth", "pre", "fdi", "gate", "status", "path", "deep", "rd", "rc")
+    }
+    image_bytes = BytesIO()
+    Image.new("RGB", (1200, 684), color="black").save(image_bytes, format="PNG")
+
+    result = engine.analyze_bytes(image_bytes.getvalue())
+
+    assert captured == [(0, 1200)]
+    assert result["summary"]["teeth"] == 0
