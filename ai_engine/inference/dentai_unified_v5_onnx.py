@@ -146,7 +146,7 @@ class Engine:
   for i,(box,score,label)in enumerate(zip(b,sc,l)):
    if score<.5 or int(label)!=1:continue
    p=fdi_probs(self.s['fdi'],im,box);rows.append({'id':i,'bbox':box.tolist(),'probs':p,'raw':FDI[int(p.argmax())],'raw_conf':float(p.max()),'score':float(score)})
-  rr=resolve(rows,W);teeth=[]
+  rr=resolve(rows,im.width);teeth=[]
   for x in rr:
    box=x['bbox'];gp,gc,gps=classify(self.s['gate'],crop(im,box,.35,16,224),GATE);sp,ssc,sps=classify(self.s['status'],crop(im,box,.45,18,256),STATUS)
    teeth.append({'tooth_detection':{'instance_id':x['id'],'bbox_xyxy':[round(v,2)for v in box],'confidence':x['score']},'fdi':x['resolved'],'fdi_confidence':x['raw_conf'],'raw_fdi':x['raw'],'fdi_was_changed':x['raw']!=x['resolved'],'duplicate_cleanup_applied':bool(x.get('cleanup')),'fdi_review_required':x['unresolved']or x['raw_conf']<.7,'status_gate':{'prediction':gp,'effective_prediction':'NON_HEALTHY'if gps['NON_HEALTHY']>=.3 else'HEALTHY','confidence':gc,'probabilities':gps,'non_healthy_probability':gps['NON_HEALTHY'],'abnormal_threshold':.3},'status_v2':{'prediction':sp,'confidence':ssc,'probabilities':sps}})
