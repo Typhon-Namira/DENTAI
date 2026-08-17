@@ -10,6 +10,7 @@ import type {
 import {
   extractVisionToothGeometry,
   filterFindings,
+  findingGroupKey,
   findingModelScore,
   formatModelScore,
   groupFindingsByTooth,
@@ -123,9 +124,7 @@ export function AnalysisResults({
 
   function inspectFinding(finding: DentalFinding) {
     setFilter("ALL");
-    setSelectedGroupKey(
-      finding.tooth_code ? "tooth:" + finding.tooth_code : "unassigned:" + finding.id
-    );
+    setSelectedGroupKey(findingGroupKey(finding));
   }
 
   return (
