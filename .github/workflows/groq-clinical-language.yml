@@ -31,5 +31,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --extra dev
 
+      - name: Check Groq provider formatting
+        run: uv run ruff format --check ai_engine/groq/provider.py tests/test_groq_provider.py
+
+      - name: Lint Groq provider
+        run: uv run ruff check ai_engine/groq/provider.py tests/test_groq_provider.py
+
       - name: Run Groq clinical-language tests
         run: uv run pytest tests/test_groq_provider.py

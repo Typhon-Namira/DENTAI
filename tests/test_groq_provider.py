@@ -101,9 +101,7 @@ def test_low_scores_are_excluded_without_mutating_raw_findings():
     ]
     before = deepcopy(findings)
     evidence = build_product_finding_evidence(findings)
-    assert [(item.evidence_id, item.tooth_fdi) for item in evidence] == [
-        ("finding_0", "37")
-    ]
+    assert [(item.evidence_id, item.tooth_fdi) for item in evidence] == [("finding_0", "37")]
     assert findings == before
 
 
