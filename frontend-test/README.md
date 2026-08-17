@@ -49,6 +49,14 @@ Keep `VITE_DENTAI_API_BASE_URL` empty. Browser requests remain same-origin to Vi
 
 When `DENTAI_PROXY_TARGET` is absent, the local proxy falls back to `http://localhost:8000`.
 
+## Interactive OPG analysis
+
+Completed DENTAI V5 analyses display the original JPEG, PNG, or WebP OPG through the existing authorized temporary-download endpoint. SVG tooth regions use the model-provided `bbox_xyxy` provenance and scale with the image's natural dimensions. Findings sharing an FDI tooth are grouped into one region.
+
+Selecting or hovering a tooth region synchronizes the evidence panel and finding group. Review-status filters affect only the presentation; they never alter backend data. Findings without a valid bounding box remain visible as text. DICOM studies currently display a file/status card and can be connected to a dedicated viewer later without changing the analysis API.
+
+Model score is presented as supporting AI evidence, not as an independent diagnostic probability. Exact findings, provenance, and structured analysis output remain available in Raw JSON.
+
 ## First product test
 
 1. Confirm the DENTAI web service and AI worker are running.

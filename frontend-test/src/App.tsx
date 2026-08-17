@@ -12,6 +12,7 @@ import { BackendChecks } from "./components/BackendChecks";
 import { LoginCard } from "./components/LoginCard";
 import { StatusBadge } from "./components/StatusBadge";
 import { XrayUpload } from "./components/XrayUpload";
+import { xrayForAnalysis } from "./utils/opg";
 
 const POLL_INTERVAL_MS = 2_000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
@@ -70,6 +71,10 @@ export default function App() {
     () => profile?.findings.filter((item) => item.analysis_id === selectedAnalysisId) ?? [],
     [profile, selectedAnalysisId]
   );
+  const analysisXray = useMemo(
+    () => xrayForAnalysis(selectedAnalysis, profile?.xrays ?? []),
+    [profile?.xrays, selectedAnalysis]
+  );
 
   async function loadPatients(signal?: AbortSignal) {
     setPatientsError("");
@@ -118,8 +123,8 @@ export default function App() {
     setLoading(true);
     loadProfile(selectedPatientId, controller.signal)
       .then((next) => {
-        setSelectedXrayId(next.xrays[0]?.id ?? "");
         const latest = next.ai_analyses[0] ?? null;
+        setSelectedXrayId(latest?.xray_id ?? next.xrays[0]?.id ?? "");
         setSelectedAnalysisId(latest?.id ?? "");
       })
       .catch((reason) => {
@@ -370,7 +375,10 @@ export default function App() {
                       className={analysis.id === selectedAnalysisId ? "selected" : ""}
                       key={analysis.id}
                       type="button"
-                      onClick={() => setSelectedAnalysisId(analysis.id)}
+                      onClick={() => {
+                        setSelectedAnalysisId(analysis.id);
+                        setSelectedXrayId(analysis.xray_id);
+                      }}
                     >
                       <span><strong>{analysis.model_name}</strong><small>{displayDate(analysis.requested_at)}</small></span>
                       <span>{analysis.model_version}</span>
@@ -383,6 +391,7 @@ export default function App() {
 
             <AnalysisResults
               analysis={selectedAnalysis}
+              xray={analysisXray}
               findings={analysisFindings}
               role={user.role}
               onReviewed={async () => { await loadProfile(profile.patient.id); }}

@@ -4,12 +4,23 @@ import type {
   AIAnalysis,
   DentalFinding,
   ReviewDecision,
-  Role
+  Role,
+  XRay
 } from "../api/types";
+import {
+  filterFindings,
+  findingModelScore,
+  formatModelScore,
+  groupFindingsByTooth,
+  resolveSelectedGroupKey,
+  type FindingFilter
+} from "../utils/opg";
+import { OPGAnalysisViewer } from "./OPGAnalysisViewer";
 import { StatusBadge } from "./StatusBadge";
 
 interface AnalysisResultsProps {
   analysis: AIAnalysis | null;
+  xray: XRay | null;
   findings: DentalFinding[];
   role: Role;
   onReviewed: () => Promise<void> | void;
@@ -19,27 +30,45 @@ function displayDate(value: string | null): string {
   return value ? new Date(value).toLocaleString() : "—";
 }
 
-function confidence(value: number | null): string {
-  return value === null ? "Not provided" : String(value);
-}
-
-export function AnalysisResults({ analysis, findings, role, onReviewed }: AnalysisResultsProps) {
+export function AnalysisResults({
+  analysis,
+  xray,
+  findings,
+  role,
+  onReviewed
+}: AnalysisResultsProps) {
   const [decisions, setDecisions] = useState<Record<string, ReviewDecision | "">>({});
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewDone, setReviewDone] = useState("");
+  const [filter, setFilter] = useState<FindingFilter>("ALL");
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    setDecisions({});
-    setReviewError("");
-    setReviewDone("");
-  }, [analysis?.id]);
-
+  const filteredFindings = useMemo(
+    () => filterFindings(findings, filter),
+    [findings, filter]
+  );
+  const groups = useMemo(
+    () => groupFindingsByTooth(filteredFindings),
+    [filteredFindings]
+  );
   const pending = useMemo(
     () => findings.filter((finding) => finding.review_status === "PENDING"),
     [findings]
   );
   const canSubmit = pending.length > 0 && pending.every((finding) => decisions[finding.id]);
+
+  useEffect(() => {
+    setDecisions({});
+    setReviewError("");
+    setReviewDone("");
+    setFilter("ALL");
+    setSelectedGroupKey(null);
+  }, [analysis?.id]);
+
+  useEffect(() => {
+    setSelectedGroupKey((current) => resolveSelectedGroupKey(groups, current));
+  }, [groups]);
 
   if (!analysis) {
     return (
@@ -72,30 +101,37 @@ export function AnalysisResults({ analysis, findings, role, onReviewed }: Analys
     }
   }
 
-  return (
-    <section className="results-stack">
-      <div className="card result-summary">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">DENTAI V5 result</p>
-            <h3>Analysis overview</h3>
-          </div>
-          <StatusBadge value={analysis.status} />
-        </div>
+  function inspectFinding(finding: DentalFinding) {
+    setFilter("ALL");
+    setSelectedGroupKey(
+      finding.tooth_code ? "tooth:" + finding.tooth_code : "unassigned:" + finding.id
+    );
+  }
 
+  return (
+    <section className="analysis-workspace">
+      <header className="analysis-hero-header">
+        <div>
+          <p className="eyebrow">DENTAI V5 analysis</p>
+          <h2>{analysis.model_name}</h2>
+          <p>
+            Original OPG with model-generated tooth regions and clinician-review evidence.
+          </p>
+        </div>
+        <StatusBadge value={analysis.status} />
+      </header>
+
+      <div className="analysis-metadata card">
         <dl className="metadata-grid">
           <div><dt>Analysis ID</dt><dd>{analysis.id}</dd></div>
           <div><dt>Provider</dt><dd>{analysis.provider}</dd></div>
-          <div><dt>Model</dt><dd>{analysis.model_name}</dd></div>
           <div><dt>Model version</dt><dd>{analysis.model_version}</dd></div>
           <div><dt>Schema version</dt><dd>{analysis.analysis_schema_version}</dd></div>
           <div><dt>Review</dt><dd>{analysis.review_status.replaceAll("_", " ")}</dd></div>
           <div><dt>Requested</dt><dd>{displayDate(analysis.requested_at)}</dd></div>
           <div><dt>Processing started</dt><dd>{displayDate(analysis.processing_started_at)}</dd></div>
           <div><dt>Completed</dt><dd>{displayDate(analysis.completed_at)}</dd></div>
-          <div><dt>Failed</dt><dd>{displayDate(analysis.failed_at)}</dd></div>
         </dl>
-
         {analysis.status === "FAILED" && (
           <div className="error-panel" role="alert">
             Analysis failed{analysis.error_code ? ": " + analysis.error_code : "."}
@@ -103,42 +139,94 @@ export function AnalysisResults({ analysis, findings, role, onReviewed }: Analys
         )}
       </div>
 
-      <div className="card">
+      <OPGAnalysisViewer
+        xray={xray}
+        groups={groups}
+        filter={filter}
+        selectedGroupKey={selectedGroupKey}
+        onFilterChange={setFilter}
+        onSelectedGroupChange={setSelectedGroupKey}
+      />
+
+      <section className="card findings-review-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Product view</p>
-            <h3>Dental findings</h3>
+            <p className="eyebrow">Findings / clinician review</p>
+            <h3>Finding groups</h3>
           </div>
-          <span className="count-badge">{findings.length}</span>
+          <span className="count-badge">{filteredFindings.length}</span>
         </div>
+        <p className="score-helper">
+          Model score is supporting AI evidence and is not an independent diagnostic probability.
+          Exact backend values remain available in Raw JSON.
+        </p>
 
-        {findings.length === 0 ? (
+        {groups.length === 0 ? (
           <div className="empty-inline">
-            {analysis.status === "COMPLETED"
-              ? "No DentalFinding records were returned for this analysis."
-              : "Findings will appear after processing completes."}
+            {findings.length === 0
+              ? analysis.status === "COMPLETED"
+                ? "No DentalFinding records were returned for this analysis."
+                : "Findings will appear after processing completes."
+              : "No findings match the selected review filter."}
           </div>
         ) : (
-          <div className="finding-list">
-            {findings.map((finding) => (
-              <article className="finding-card" key={finding.id}>
-                <div className="finding-topline">
-                  <span className="tooth-code">{finding.tooth_code || "General"}</span>
-                  <StatusBadge value={finding.review_status} />
-                </div>
-                <h4>{finding.finding_type.replaceAll("_", " ")}</h4>
-                <p>{finding.description}</p>
-                <dl className="finding-meta">
-                  <div><dt>Confidence</dt><dd>{confidence(finding.confidence)}</dd></div>
-                  <div><dt>Source</dt><dd>{finding.source}</dd></div>
-                  <div><dt>Created</dt><dd>{displayDate(finding.created_at)}</dd></div>
-                </dl>
-                {finding.review_status === "PENDING" && (
-                  <p className="review-required">Requires clinician review</p>
+          <div className="finding-group-grid">
+            {groups.map((group) => (
+              <button
+                className={"finding-group-card" + (
+                  selectedGroupKey === group.key ? " selected" : ""
                 )}
-                {role === "DOCTOR" && finding.review_status === "PENDING" && (
-                  <label className="decision-field">
-                    Review decision
+                key={group.key}
+                type="button"
+                onClick={() => setSelectedGroupKey(group.key)}
+                onMouseEnter={() => setSelectedGroupKey(group.key)}
+              >
+                <span className="tooth-code">{group.toothCode ?? "Unassigned"}</span>
+                <span className="group-findings">
+                  <strong>{group.findings.map((finding) =>
+                    finding.finding_type.replaceAll("_", " ")
+                  ).join(" · ")}</strong>
+                  <small>
+                    {group.findings.map((finding) =>
+                      formatModelScore(findingModelScore(finding))
+                    ).join(" · ")}
+                  </small>
+                </span>
+                <span className="group-statuses">
+                  {Array.from(new Set(group.findings.map((finding) => finding.review_status)))
+                    .map((status) => <StatusBadge key={status} value={status} />)}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {role === "DOCTOR" && pending.length > 0 && (
+          <div className="review-panel">
+            <div>
+              <p className="eyebrow">Required decisions</p>
+              <h3>Review every pending finding</h3>
+              <p className="muted">
+                Each pending finding requires an explicit Confirm or Reject decision.
+                Nothing is auto-confirmed.
+              </p>
+            </div>
+            <div className="clinical-review-list">
+              {pending.map((finding) => (
+                <article
+                  className="clinical-review-row"
+                  key={finding.id}
+                  onMouseEnter={() => inspectFinding(finding)}
+                >
+                  <button type="button" onClick={() => inspectFinding(finding)}>
+                    <span className="tooth-code">{finding.tooth_code ?? "—"}</span>
+                    <span>
+                      <strong>{finding.finding_type.replaceAll("_", " ")}</strong>
+                      <small>{finding.description}</small>
+                    </span>
+                  </button>
+                  <label>
+                    Decision
                     <select
                       value={decisions[finding.id] ?? ""}
                       onChange={(event) =>
@@ -148,22 +236,14 @@ export function AnalysisResults({ analysis, findings, role, onReviewed }: Analys
                         }))
                       }
                     >
-                      <option value="">Choose a decision…</option>
+                      <option value="">Choose…</option>
                       <option value="CONFIRMED">Confirm finding</option>
                       <option value="REJECTED">Reject finding</option>
                     </select>
                   </label>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-
-        {role === "DOCTOR" && pending.length > 0 && (
-          <div className="review-panel">
-            <p className="muted">
-              Select an explicit decision for every pending finding. Nothing is auto-confirmed.
-            </p>
+                </article>
+              ))}
+            </div>
             {reviewError && <div className="error-panel" role="alert">{reviewError}</div>}
             {reviewDone && <div className="success-panel" role="status">{reviewDone}</div>}
             <button
@@ -172,15 +252,15 @@ export function AnalysisResults({ analysis, findings, role, onReviewed }: Analys
               disabled={!canSubmit || reviewing}
               onClick={() => void submitReview()}
             >
-              {reviewing ? "Saving review…" : "Submit clinician review"}
+              {reviewing ? "Submitting decisions…" : "Submit clinician review"}
             </button>
           </div>
         )}
-      </div>
+      </section>
 
       <details className="card raw-json">
         <summary>Raw JSON</summary>
-        <pre>{JSON.stringify({ analysis, findings }, null, 2)}</pre>
+        <pre>{JSON.stringify({ analysis, xray, findings }, null, 2)}</pre>
       </details>
     </section>
   );

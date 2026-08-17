@@ -8,7 +8,8 @@ import type {
   PatientProfile,
   ReviewPayload,
   TokenPair,
-  XRay
+  XRay,
+  XRayDownloadResponse
 } from "./types";
 
 const rawBaseUrl = import.meta.env.VITE_DENTAI_API_BASE_URL?.trim() ?? "";
@@ -157,6 +158,12 @@ export const api = {
     return request<XRay>(
       "/api/v1/xrays/patients/" + encodeURIComponent(patientId),
       { method: "POST", body }
+    );
+  },
+
+  xrayDownload(xrayId: string) {
+    return request<XRayDownloadResponse>(
+      "/api/v1/xrays/" + encodeURIComponent(xrayId) + "/download"
     );
   },
 
