@@ -91,6 +91,18 @@ export interface AIAnalysis {
   reviewed_at: string | null;
 }
 
+export interface FindingProvenance {
+  [key: string]: unknown;
+  bounding_box?: [number, number, number, number];
+  source_model?: string;
+  model_version?: string;
+  raw_score?: number;
+  uncertainty?: string;
+  uncertainty_reason?: string | null;
+  review_required?: boolean;
+  review_reasons?: string[];
+}
+
 export interface DentalFinding {
   id: string;
   patient_id: string;
@@ -100,7 +112,7 @@ export interface DentalFinding {
   description: string;
   source: string;
   confidence: number | null;
-  provenance: Record<string, unknown> | null;
+  provenance: FindingProvenance | null;
   review_status: FindingReview;
   confirmed_by: string | null;
   confirmed_at: string | null;
@@ -117,6 +129,11 @@ export interface PatientProfile {
   future_risk: Array<Record<string, unknown>>;
   future_care: Array<Record<string, unknown>>;
   followups: Array<Record<string, unknown>>;
+}
+
+export interface XRayDownloadResponse {
+  url: string;
+  expires_in: number;
 }
 
 export interface ReviewPayload {
