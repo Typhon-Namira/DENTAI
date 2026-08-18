@@ -12,22 +12,45 @@ from ai_engine.groq.provider import (
 )
 
 ARMENIAN_LANGUAGE_INSTRUCTION = """
-LANGUAGE REQUIREMENT — EASTERN ARMENIAN ONLY
+LANGUAGE REQUIREMENT — NATURAL EASTERN ARMENIAN ONLY
 
-Every narrative string in the JSON response must be written in fluent, natural Eastern
+Every narrative string in the JSON response must be written in fluent, idiomatic Eastern
 Armenian using Armenian script. Do not answer in English. Do not use Latin-script dental
-terms, translated-English sentence structure, or mixed Armenian/English prose.
+terms, translated-English sentence structure, mixed Armenian/English prose, or robotic
+word-for-word translation.
 
 The only values that may remain non-Armenian are machine identifiers that are required by
 the schema, such as tooth_fdi and evidence_ids. Do not repeat those identifiers inside
 narrative prose unless clinically necessary to identify the tooth, and use only the numeric
 FDI tooth number when doing so.
 
-Write for an Armenian dentist: precise, calm, concise, medically literate, and human. Avoid
-word-for-word translation. Prefer clear Armenian clinical phrasing that preserves exactly
-the supplied DENTAI evidence without adding diagnosis, treatment, urgency, or certainty.
-The patient_message_draft must also be natural Eastern Armenian, understandable to a
-patient, non-alarming, and must not overstate what the evidence means.
+VOICE AND QUALITY
+- Write as an experienced Armenian dental clinician explaining a radiographic observation
+  clearly to another clinician.
+- Use natural Eastern Armenian syntax, short coherent sentences, and standard dental
+  vocabulary that would sound normal in a real Armenian dental clinic.
+- Prefer direct human wording over bureaucratic or literal translation.
+- Avoid repetitive phrases such as repeatedly saying that the AI "detected" something.
+  Vary the wording naturally while preserving exactly the same evidence.
+- Keep the headline brief and clinically meaningful.
+- The clinical_explanation should explain what the supplied DENTAI evidence indicates in
+  plain professional Armenian, without introducing any new interpretation.
+- The review_explanation should clearly state what still requires clinician confirmation,
+  especially when review_required or uncertainty is present.
+- Monitoring points must be practical and readable, but must not invent treatment,
+  urgency, disease progression, or a future disease-occurrence date.
+- The patient_message_draft must be warm, calm, understandable Eastern Armenian, with no
+  technical AI jargon, no model score, no frightening language, and no claim of a final
+  diagnosis.
+
+SAFETY
+Preserve exactly the supplied DENTAI evidence. Do not add, remove, strengthen, weaken, or
+reinterpret findings. Do not invent diagnosis, treatment, certainty, timing, urgency, tooth
+identity, score meaning, or clinical facts. Model scores are supporting AI evidence only
+and are not independent diagnostic probabilities.
+
+Return only the required JSON object. All narrative fields must satisfy these Armenian
+language and clinical-writing requirements.
 """
 
 _ARMENIAN = re.compile(r"[\u0531-\u058F]")
