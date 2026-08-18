@@ -171,8 +171,9 @@ export function parseClinicalSummary(value: unknown): GroqClinicalSummary | null
 }
 
 export const PARTIAL_CLINICAL_SUMMARY_NOTICE =
-  "AI-assisted language is available for part of this analysis. Findings without a " +
-  "validated AI-assisted explanation continue to use the original DENTAI evidence.";
+  "Հայերեն բացատրությունը հասանելի է այս վերլուծության միայն մի մասի համար։ " +
+  "Առանց վավերացված բացատրության արդյունքները շարունակում են ցուցադրվել միայն " +
+  "ԴԵՆՏԱԻ-ի սկզբնական կառուցվածքային տվյալներով։";
 
 export interface ClinicalSummaryPresentation {
   showPanel: boolean;
@@ -268,25 +269,25 @@ export function reviewStatusLanguage(
   status: DentalFinding["review_status"]
 ): string {
   if (status === "CONFIRMED") {
-    return "This finding has been confirmed by the reviewing clinician.";
+    return "Այս արդյունքը հաստատվել է վերանայող բժշկի կողմից։";
   }
   if (status === "REJECTED") {
     return (
-      "This finding was rejected by the reviewing clinician and is not treated as a " +
-      "confirmed finding."
+      "Այս արդյունքը մերժվել է վերանայող բժշկի կողմից և չի համարվում " +
+      "հաստատված կլինիկական արդյունք։"
     );
   }
-  return "This finding is awaiting clinician review.";
+  return "Այս արդյունքը սպասում է բժշկի վերանայմանը։";
 }
 
 export function modelScoreLanguage(score: number | null): string {
   if (typeof score !== "number" || !Number.isFinite(score)) {
-    return "Model score was not provided.";
+    return "Մոդելի միավորը հասանելի չէ։";
   }
   return (
-    "Model score: " + score.toFixed(4) +
-    ". This score represents supporting AI evidence and is not an independent " +
-    "diagnostic probability."
+    "Մոդելի միավոր՝ " + score.toFixed(4) +
+    "։ Այս միավորը ներկայացնում է արհեստական բանականության օժանդակ ապացույցը և " +
+    "ինքնուրույն ախտորոշիչ հավանականություն չէ։"
   );
 }
 
@@ -319,7 +320,21 @@ export function technicalDetailsForFinding(finding: DentalFinding) {
   };
 }
 
+const ARMENIAN_FINDING_LABELS: Record<string, string> = {
+  APICAL: "Ապիկալ փոփոխություն",
+  BONE_LOSS: "Ոսկրային կորստի նշան",
+  CARIES: "Կարիեսի նշան",
+  CROWN: "Պսակ",
+  DEEP_CARIES: "Խորը կարիեսի նշան",
+  FILLING: "Լցանյութ",
+  FURCATION: "Ֆուրկացիոն փոփոխություն",
+  IMPACTED: "Չծկթած ատամ",
+  IMPACTED_TOOTH: "Չծկթած ատամ",
+  RESIDUAL_ROOT: "Մնացորդային արմատ",
+  ROOT_CANAL_TREATMENT: "Արմատախողովակային բուժման նշան",
+  ROOT_FRAGMENT: "Արմատի հատված"
+};
+
 export function humanizeFindingType(value: string): string {
-  const words = value.toLowerCase().replaceAll("_", " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  return ARMENIAN_FINDING_LABELS[value] ?? "Կառուցվածքային արդյունք";
 }
