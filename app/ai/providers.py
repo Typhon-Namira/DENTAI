@@ -6,10 +6,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from ai_engine.groq.provider import (
-    GroqClinicalSummaryProvider,
-    summarize_product_findings,
-)
+from ai_engine.groq.armenian import ArmenianGroqClinicalSummaryProvider
+from ai_engine.groq.provider import summarize_product_findings
 from ai_engine.inference.dentai_unified_v5_onnx import Engine, FrozenArtifactError
 from ai_engine.longitudinal.engine import LongitudinalDentalEngine
 from ai_engine.quality.engine import OPGQualityEngine
@@ -93,7 +91,7 @@ class DENTAIRealOPGProvider(DentalAIProvider):
         self.risk = RuleBasedRecallRiskProvider(Path("configs/ai/risk_policy.yaml"))
         self.longitudinal = LongitudinalDentalEngine()
         self.groq = (
-            GroqClinicalSummaryProvider(
+            ArmenianGroqClinicalSummaryProvider(
                 settings.groq_api_key, settings.groq_model, settings.groq_timeout_seconds
             )
             if settings.groq_api_key
@@ -148,41 +146,45 @@ class DENTAIRealOPGProvider(DentalAIProvider):
                     ),
                     tooth_fdi=tooth["fdi"],
                     raw_score=confidence,
-                    calibrated_confidence=confidence, uncertainty=uncertainty,
+                    calibrated_confidence=confidence,
+                    uncertainty=uncertainty,
                     uncertainty_reason=reason,
                     bounding_box=tuple(tooth["tooth_detection"]["bbox_xyxy"]),
-                    source_model="DENTAI Unified V5", model_version="dentai-unified-v5",
+                    source_model="DENTAI Unified V5",
+                    model_version="dentai-unified-v5",
                     source_image_id=xray_reference,
                 )
                 findings.append(item)
-                structured_findings.append({
-                    "tooth_code": item.tooth_fdi,
-                    "finding_type": item.finding_type,
-                    "description": item.description,
-                    "confidence": item.calibrated_confidence,
-                    "provenance": {
-                        "source_model": item.source_model,
-                        "model_version": item.model_version,
-                        "raw_score": item.raw_score,
-                        "uncertainty": item.uncertainty.value,
-                        "uncertainty_reason": item.uncertainty_reason,
-                        "bounding_box": list(item.bounding_box or ()),
-                        "review_required": review,
-                        "review_reasons": tooth["review_reasons"],
-                        "raw_fdi": tooth["raw_fdi"],
-                        "fdi_confidence": tooth["fdi_confidence"],
-                        "fdi_was_changed": tooth["fdi_was_changed"],
-                        "duplicate_cleanup_applied": tooth["duplicate_cleanup_applied"],
-                        "fdi_review_required": tooth["fdi_review_required"],
-                        "tooth_detection_instance_id": tooth["tooth_detection"]["instance_id"],
-                        "quadrant_candidates": tooth.get("quadrant_candidates", []),
-                        "resolved_quadrant": tooth.get("resolved_quadrant"),
-                        "side_constraint_applied": tooth.get("side_constraint_applied", False),
-                        "side_constraint_overrode_raw_quadrant": tooth.get(
-                            "side_constraint_overrode_raw_quadrant", False
-                        ),
-                    },
-                })
+                structured_findings.append(
+                    {
+                        "tooth_code": item.tooth_fdi,
+                        "finding_type": item.finding_type,
+                        "description": item.description,
+                        "confidence": item.calibrated_confidence,
+                        "provenance": {
+                            "source_model": item.source_model,
+                            "model_version": item.model_version,
+                            "raw_score": item.raw_score,
+                            "uncertainty": item.uncertainty.value,
+                            "uncertainty_reason": item.uncertainty_reason,
+                            "bounding_box": list(item.bounding_box or ()),
+                            "review_required": review,
+                            "review_reasons": tooth["review_reasons"],
+                            "raw_fdi": tooth["raw_fdi"],
+                            "fdi_confidence": tooth["fdi_confidence"],
+                            "fdi_was_changed": tooth["fdi_was_changed"],
+                            "duplicate_cleanup_applied": tooth["duplicate_cleanup_applied"],
+                            "fdi_review_required": tooth["fdi_review_required"],
+                            "tooth_detection_instance_id": tooth["tooth_detection"]["instance_id"],
+                            "quadrant_candidates": tooth.get("quadrant_candidates", []),
+                            "resolved_quadrant": tooth.get("resolved_quadrant"),
+                            "side_constraint_applied": tooth.get("side_constraint_applied", False),
+                            "side_constraint_overrode_raw_quadrant": tooth.get(
+                                "side_constraint_overrode_raw_quadrant", False
+                            ),
+                        },
+                    }
+                )
             teeth.append(
                 ToothObservation(
                     fdi=tooth["fdi"],
@@ -192,7 +194,8 @@ class DENTAIRealOPGProvider(DentalAIProvider):
                 )
             )
         result = OPGAnalysisResult(
-            image=quality, teeth=teeth,
+            image=quality,
+            teeth=teeth,
             component_status={
                 name: ComponentState.SUCCESS
                 for name in (
