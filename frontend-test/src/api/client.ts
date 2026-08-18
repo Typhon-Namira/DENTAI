@@ -7,6 +7,12 @@ import type {
   Patient,
   PatientPage,
   PatientProfile,
+  RadarDashboard,
+  RadarOpportunity,
+  RadarOpportunityDetail,
+  RadarOpportunityFilters,
+  RadarOpportunityPage,
+  RadarSource,
   ReviewPayload,
   TokenPair,
   XRay,
@@ -105,6 +111,19 @@ async function request<T>(
   }
 
   return payload as T;
+}
+
+function radarQuery(filters: RadarOpportunityFilters = {}): string {
+  const params = new URLSearchParams();
+  if (filters.tier) params.set("tier", filters.tier);
+  if (filters.platform) params.set("platform", filters.platform);
+  if (filters.language) params.set("language", filters.language);
+  if (filters.location) params.set("location", filters.location);
+  if (filters.treatment) params.set("treatment", filters.treatment);
+  if (filters.status) params.set("status", filters.status);
+  if (typeof filters.minScore === "number") params.set("min_score", String(filters.minScore));
+  params.set("limit", "100");
+  return params.toString();
 }
 
 export const api = {
@@ -206,6 +225,35 @@ export const api = {
   patientWhatsAppOutreach(patientId: string) {
     return request<{ items: WhatsAppOutreach[] }>(
       "/api/v1/whatsapp/patients/" + encodeURIComponent(patientId) + "/outreach"
+    );
+  },
+
+  radarDashboard(signal?: AbortSignal) {
+    return request<RadarDashboard>("/api/v1/radar/dashboard", { signal });
+  },
+
+  radarSources(signal?: AbortSignal) {
+    return request<RadarSource[]>("/api/v1/radar/sources?active=true&limit=200", { signal });
+  },
+
+  radarOpportunities(filters: RadarOpportunityFilters = {}, signal?: AbortSignal) {
+    return request<RadarOpportunityPage>(
+      "/api/v1/radar/opportunities?" + radarQuery(filters),
+      { signal }
+    );
+  },
+
+  radarOpportunity(opportunityId: string, signal?: AbortSignal) {
+    return request<RadarOpportunityDetail>(
+      "/api/v1/radar/opportunities/" + encodeURIComponent(opportunityId),
+      { signal }
+    );
+  },
+
+  updateRadarOpportunity(opportunityId: string, status: "NEW" | "REVIEWED" | "ARCHIVED") {
+    return request<RadarOpportunity>(
+      "/api/v1/radar/opportunities/" + encodeURIComponent(opportunityId),
+      { method: "PATCH", body: JSON.stringify({ status }) }
     );
   },
 
