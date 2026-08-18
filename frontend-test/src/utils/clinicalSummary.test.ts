@@ -129,9 +129,7 @@ describe("clinical summary utilities", () => {
     expect(presentation.showPanel).toBe(true);
     expect(presentation.showPartialWarning).toBe(true);
     expect(presentation.partialWarning).toBe(PARTIAL_CLINICAL_SUMMARY_NOTICE);
-    expect(presentation.partialWarning).toContain(
-      "Findings without a validated AI-assisted explanation"
-    );
+    expect(presentation.partialWarning).toContain("Հայերեն բացատրությունը հասանելի է");
     expect(presentation.showPatientMessage).toBe(false);
   });
 
@@ -270,19 +268,19 @@ describe("clinical summary utilities", () => {
     expect(explanationForGroup(parsed, group)).toBeNull();
   });
 
-  it("renders current review language from DentalFinding state", () => {
+  it("renders current review language from DentalFinding state in Armenian", () => {
     expect(reviewStatusLanguage("PENDING"))
-      .toBe("This finding is awaiting clinician review.");
+      .toBe("Այս արդյունքը սպասում է բժշկի վերանայմանը։");
     expect(reviewStatusLanguage("CONFIRMED"))
-      .toBe("This finding has been confirmed by the reviewing clinician.");
-    expect(reviewStatusLanguage("REJECTED")).toContain("was rejected");
+      .toBe("Այս արդյունքը հաստատվել է վերանայող բժշկի կողմից։");
+    expect(reviewStatusLanguage("REJECTED")).toContain("մերժվել է");
   });
 
-  it("renders numeric model-score language deterministically without confidence labels", () => {
+  it("renders numeric model-score language deterministically in Armenian", () => {
     const text = modelScoreLanguage(0.8945);
     expect(text).toBe(
-      "Model score: 0.8945. This score represents supporting AI evidence and is not an " +
-      "independent diagnostic probability."
+      "Մոդելի միավոր՝ 0.8945։ Այս միավորը ներկայացնում է արհեստական բանականության " +
+      "օժանդակ ապացույցը և ինքնուրույն ախտորոշիչ հավանականություն չէ։"
     );
     expect(text).not.toMatch(/high confidence|moderate confidence|low confidence/i);
   });

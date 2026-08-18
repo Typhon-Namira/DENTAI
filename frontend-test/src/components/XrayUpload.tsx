@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { api, errorMessage } from "../api/client";
 import type { XRay } from "../api/types";
 
@@ -18,7 +18,9 @@ function normalizedFile(file: File): File {
 }
 
 export function XrayUpload({ patientId, onUploaded }: XrayUploadProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [state, setState] = useState<"idle" | "selected" | "uploading" | "uploaded" | "error">("idle");
@@ -62,6 +64,12 @@ export function XrayUpload({ patientId, onUploaded }: XrayUploadProps) {
     setState("selected");
   }
 
+  function pick(event: ChangeEvent<HTMLInputElement>) {
+    const candidate = event.target.files?.item(0);
+    if (candidate) select(candidate);
+    event.currentTarget.value = "";
+  }
+
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setDragging(false);
@@ -87,8 +95,8 @@ export function XrayUpload({ patientId, onUploaded }: XrayUploadProps) {
     <section className="card upload-card">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">New study</p>
-          <h3>Upload an X-ray</h3>
+          <p className="eyebrow">AI Workspace</p>
+          <h3>Upload or capture an X-ray</h3>
         </div>
         <span className={"upload-state " + state}>{state}</span>
       </div>
@@ -100,22 +108,43 @@ export function XrayUpload({ patientId, onUploaded }: XrayUploadProps) {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
       >
-        <span className="upload-icon" aria-hidden="true">↑</span>
-        <strong>Drop an OPG image here</strong>
-        <span>JPEG, PNG, WebP, or DICOM · up to 15 MB by default</span>
-        <button className="button button-secondary" type="button" onClick={() => inputRef.current?.click()}>
-          Choose file
-        </button>
+        <span className="upload-icon" aria-hidden="true">⌁</span>
+        <strong>Drop an X-ray image here</strong>
+        <span>or choose the easiest way to add it</span>
+        <div className="upload-choice-row">
+          <button className="button button-accent" type="button" onClick={() => uploadRef.current?.click()}>
+            ↑ Upload file
+          </button>
+          <button className="button button-secondary" type="button" onClick={() => cameraRef.current?.click()}>
+            ◉ Take photo
+          </button>
+          <button className="button button-secondary" type="button" onClick={() => galleryRef.current?.click()}>
+            ▣ From gallery
+          </button>
+        </div>
+        <span>Supports PNG, JPG, WebP, DICOM · max size 15 MB</span>
+
         <input
-          ref={inputRef}
+          ref={uploadRef}
           className="sr-only"
           type="file"
           accept=".jpg,.jpeg,.png,.webp,.dcm,image/jpeg,image/png,image/webp,application/dicom"
-          onChange={(event) => {
-            const candidate = event.target.files?.item(0);
-            if (candidate) select(candidate);
-            event.currentTarget.value = "";
-          }}
+          onChange={pick}
+        />
+        <input
+          ref={cameraRef}
+          className="sr-only"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={pick}
+        />
+        <input
+          ref={galleryRef}
+          className="sr-only"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={pick}
         />
       </div>
 
