@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api, errorMessage } from "../api/client";
 import type {
   AIAnalysis,
@@ -82,6 +82,9 @@ export function AnalysisResults({
   );
   const decidedCount = pending.filter((finding) => decisions[finding.id]).length;
   const canSubmit = pending.length > 0 && decidedCount === pending.length;
+  const reviewProgressStyle = {
+    "--progress": `${Math.round((decidedCount / Math.max(pending.length, 1)) * 100)}%`
+  } as CSSProperties;
 
   useEffect(() => {
     setDecisions({});
@@ -204,7 +207,7 @@ export function AnalysisResults({
 
       {role === "DOCTOR" && pending.length > 0 && (
         <section className="compact-review-dock" aria-label="Clinician review">
-          <div className="review-progress-ring" style={{ "--progress": `${Math.round((decidedCount / pending.length) * 100)}%` } as React.CSSProperties}>
+          <div className="review-progress-ring" style={reviewProgressStyle}>
             <span>{decidedCount}/{pending.length}</span>
           </div>
           <div>
