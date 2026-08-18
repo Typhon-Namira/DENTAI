@@ -13,16 +13,13 @@ import {
 import {
   explanationForGroup,
   humanizeFindingType,
-  modelScoreLanguage,
-  reviewStatusLanguage,
   technicalDetailsForFinding
 } from "../utils/clinicalSummary";
-import { StatusBadge } from "./StatusBadge";
 
 const DISPLAYABLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const FILTERS: Array<{ value: FindingFilter; label: string }> = [
-  { value: "ALL", label: "Show all findings" },
-  { value: "PENDING", label: "Pending only" },
+  { value: "ALL", label: "All" },
+  { value: "PENDING", label: "Pending" },
   { value: "CONFIRMED", label: "Confirmed" },
   { value: "REJECTED", label: "Rejected" }
 ];
@@ -89,6 +86,17 @@ export function OPGAnalysisViewer({
     })),
     [groups, imageSize]
   );
+  const selectedProjected = useMemo(
+    () => projectedGroups.find((group) => group.key === selectedGroupKey) ?? null,
+    [projectedGroups, selectedGroupKey]
+  );
+  const focusPosition = useMemo(() => {
+    if (!selectedProjected?.projectedBoundingBox || !imageSize) return "50% 50%";
+    const [x1, y1, x2, y2] = selectedProjected.projectedBoundingBox;
+    const x = (((x1 + x2) / 2) / imageSize.width) * 100;
+    const y = (((y1 + y2) / 2) / imageSize.height) * 100;
+    return `${x}% ${y}%`;
+  }, [selectedProjected, imageSize]);
 
   useEffect(() => {
     let active = true;
@@ -115,6 +123,15 @@ export function OPGAnalysisViewer({
     };
   }, [xray?.id, xray?.mime_type]);
 
+  useEffect(() => {
+    if (!selectedGroup) return;
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") onSelectedGroupChange(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [selectedGroup, onSelectedGroupChange]);
+
   function selectFromKeyboard(event: KeyboardEvent<SVGGElement>, key: string) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -123,353 +140,191 @@ export function OPGAnalysisViewer({
   }
 
   return (
-    <section className="opg-workspace card">
-      <div className="opg-toolbar">
+    <section className="opg-workspace medical-opg card">
+      <div className="medical-opg-header">
         <div>
           <p className="eyebrow">Interactive OPG</p>
-          <h3>Original radiograph with DENTAI overlays</h3>
+          <h3>AI findings on the original radiograph</h3>
+          <p>Tap a luminous region to open the clinical explanation.</p>
         </div>
-        <div className="viewer-controls" aria-label="Viewer controls">
-          <label className="overlay-toggle">
-            <input
-              type="checkbox"
-              checked={overlaysVisible}
-              onChange={(event) => setOverlaysVisible(event.target.checked)}
-            />
-            Show AI overlays
+        <div className="medical-viewer-actions">
+          <label className="medical-switch">
+            <input type="checkbox" checked={overlaysVisible} onChange={(event) => setOverlaysVisible(event.target.checked)} />
+            <span aria-hidden="true" />
+            AI overlay
           </label>
-          <button
-            className="button button-quiet"
-            type="button"
-            disabled={!selectedGroupKey}
-            onClick={() => onSelectedGroupChange(null)}
-          >
-            Reset selected tooth
-          </button>
-        </div>
-      </div>
-
-      <div className="finding-filters" aria-label="Finding review filters">
-        {FILTERS.map((option) => (
-          <button
-            className={filter === option.value ? "active" : ""}
-            key={option.value}
-            type="button"
-            onClick={() => onFilterChange(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="opg-layout">
-        <div className="opg-viewer-shell">
-          {!xray && (
-            <div className="opg-placeholder">
-              The X-ray referenced by this analysis is not present in the patient profile.
-            </div>
-          )}
-
-          {xray && !displayable && (
-            <div className="opg-placeholder dicom-state">
-              <strong>DICOM study</strong>
-              <span>{xray.original_filename}</span>
-              <p>Interactive browser rendering is reserved for a future DICOM viewer.</p>
-            </div>
-          )}
-
-          {xray && displayable && !imageUrl && !imageError && (
-            <div className="opg-placeholder">Authorizing temporary X-ray access…</div>
-          )}
-
-          {imageError && <div className="opg-placeholder error-panel">{imageError}</div>}
-
-          {imageUrl && (
-            <div className="opg-image-stage">
-              <img
-                src={imageUrl}
-                alt="Original OPG for the selected DENTAI analysis"
-                onLoad={(event) => {
-                  setImageSize({
-                    width: event.currentTarget.naturalWidth,
-                    height: event.currentTarget.naturalHeight
-                  });
-                  setImageError("");
-                }}
-                onError={() => setImageError("The temporary X-ray image URL could not be loaded.")}
-              />
-              {overlaysVisible && imageSize && (
-                <svg
-                  className="opg-overlay"
-                  viewBox={"0 0 " + imageSize.width + " " + imageSize.height}
-                  preserveAspectRatio="xMidYMid meet"
-                  aria-label="DENTAI tooth detection overlay"
-                >
-                  {projectedGroups.map((group) => {
-                    if (!group.projectedBoundingBox || !group.toothCode) return null;
-                    const [x1, y1, x2, y2] = group.projectedBoundingBox;
-                    const active = activeGroupKey === group.key;
-                    const strokeWidth = Math.max(2, imageSize.width / 900);
-                    const fontSize = Math.max(18, imageSize.width / 85);
-                    return (
-                      <g
-                        className={"tooth-overlay" + (active ? " active" : "")}
-                        key={group.key}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={"Select tooth " + group.toothCode}
-                        onClick={() => onSelectedGroupChange(group.key)}
-                        onKeyDown={(event) => selectFromKeyboard(event, group.key)}
-                        onMouseEnter={() => {
-                          setHoveredGroupKey(group.key);
-                          onSelectedGroupChange(group.key);
-                        }}
-                        onMouseLeave={() => setHoveredGroupKey(null)}
-                      >
-                        <rect
-                          x={x1}
-                          y={y1}
-                          width={x2 - x1}
-                          height={y2 - y1}
-                          rx={strokeWidth * 2}
-                          vectorEffect="non-scaling-stroke"
-                        />
-                        <text
-                          x={x1 + strokeWidth * 3}
-                          y={Math.max(y1 + fontSize, fontSize)}
-                          fontSize={fontSize}
-                        >
-                          {group.toothCode}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              )}
-            </div>
-          )}
-          <div className="opg-caption">
-            <span>{xray?.original_filename ?? "No X-ray available"}</span>
-            <span>
-              {projectedGroups.filter(
-                (group) => group.projectedBoundingBox && group.toothCode
-              ).length} tooth regions shown
-            </span>
+          <div className="finding-filter-pills" aria-label="Finding review filters">
+            {FILTERS.map((option) => (
+              <button className={filter === option.value ? "active" : ""} key={option.value} type="button" onClick={() => onFilterChange(option.value)}>
+                {option.label}
+              </button>
+            ))}
           </div>
-          {debugOpg && imageSize && (
-            <div className="opg-debug-panel">
-              <strong>OPG coordinate debug</strong>
-              <span>Image: {imageSize.width} × {imageSize.height}</span>
-              {projectedGroups.map((group) => (
-                <code key={group.key}>
-                  {group.toothCode ?? group.key} · source={group.boundingBoxSource ?? "NONE"}
-                  {" · canonical="}{group.geometryAmbiguous
-                    ? "AMBIGUOUS_DUPLICATE_FDI"
-                    : "UNAMBIGUOUS"}
-                  {" · raw="}{JSON.stringify(group.boundingBox)}
-                  {" · projected="}{JSON.stringify(group.projectedBoundingBox)}
-                  {group.toothCode && group.projectedBoundingBox
-                    ? " · side=" + observedImageSide(
-                        group.projectedBoundingBox,
-                        imageSize.width
-                      ) + " · standard=" + String(isStandardPanoramicSideConsistent(
-                        group.toothCode,
-                        group.projectedBoundingBox,
-                        imageSize.width
-                      ))
-                    : ""}
-                </code>
-              ))}
-            </div>
-          )}
         </div>
+      </div>
 
-        <aside className="tooth-inspector" aria-live="polite">
-          {!selectedGroup ? (
-            <div className="inspector-empty">
-              <span>FDI</span>
-              <h3>Select a tooth region</h3>
-              <p>Choose an overlay or finding group to inspect its DENTAI evidence.</p>
-            </div>
-          ) : (
-            <>
-              <div className="selected-tooth-heading">
-                <div>
-                  <p className="eyebrow">Selected tooth</p>
-                  <h2>{selectedGroup.toothCode ?? "Finding region"}</h2>
-                </div>
-                <span className="count-badge">{selectedGroup.findings.length}</span>
-              </div>
+      <div className="opg-cinematic-shell">
+        {!xray && <div className="opg-placeholder">The X-ray referenced by this analysis is not present in the patient profile.</div>}
+        {xray && !displayable && (
+          <div className="opg-placeholder dicom-state"><strong>DICOM study</strong><span>{xray.original_filename}</span><p>Interactive browser rendering is reserved for a future DICOM viewer.</p></div>
+        )}
+        {xray && displayable && !imageUrl && !imageError && <div className="opg-placeholder">Authorizing temporary X-ray access…</div>}
+        {imageError && <div className="opg-placeholder error-panel">{imageError}</div>}
 
-              <div className="finding-chip-row">
-                {selectedGroup.findings.map((finding) => (
-                  <span key={finding.id}>{humanizeFindingType(finding.finding_type)}</span>
-                ))}
-              </div>
-
-              {!selectedGroup.toothCode && (
-                <p className="overlay-note">
-                  Tooth-number assignment: Requires clinician verification. No raw FDI
-                  candidate is presented as the final tooth number.
-                </p>
-              )}
-
-              {selectedGroup.geometryAmbiguous && (
-                <p className="overlay-note">
-                  Canonical overlay withheld: multiple detected tooth regions share this FDI
-                  label. The findings remain available for clinician review.
-                </p>
-              )}
-
-              {selectedExplanation ? (
-                <section className="clinical-tooth-explanation">
-                  <p className="eyebrow">AI-assisted explanation</p>
-                  <h3>{selectedExplanation.headline}</h3>
-                  <p>{selectedExplanation.clinical_explanation}</p>
-                  <p>{selectedExplanation.review_explanation}</p>
-                </section>
-              ) : (
-                <section className="deterministic-tooth-fallback">
-                  <p className="eyebrow">DENTAI evidence</p>
-                  {selectedGroup.findings.map((finding) => (
-                    <p key={finding.id}>{finding.description}</p>
-                  ))}
-                </section>
-              )}
-
-              <p className="score-helper">
-                Model score is supporting AI evidence and is not an independent diagnostic probability.
-              </p>
-
-              <div className="tooth-evidence-list">
-                {selectedGroup.findings.map((finding) => {
-                  const score = findingModelScore(finding);
-                  const technical = technicalDetailsForFinding(finding);
+        {imageUrl && (
+          <div className="opg-image-stage cinematic-stage">
+            <img
+              src={imageUrl}
+              alt="Original OPG for the selected DENTAI analysis"
+              onLoad={(event) => {
+                setImageSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
+                setImageError("");
+              }}
+              onError={() => setImageError("The temporary X-ray image URL could not be loaded.")}
+            />
+            <div className="stage-vignette" aria-hidden="true" />
+            {overlaysVisible && imageSize && (
+              <svg className="opg-overlay medical-overlay" viewBox={`0 0 ${imageSize.width} ${imageSize.height}`} preserveAspectRatio="xMidYMid meet" aria-label="DENTAI tooth detection overlay">
+                <defs>
+                  <filter id="dentaiGlow" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur stdDeviation="8" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
+                {projectedGroups.map((group) => {
+                  if (!group.projectedBoundingBox || !group.toothCode) return null;
+                  const [x1, y1, x2, y2] = group.projectedBoundingBox;
+                  const cx = (x1 + x2) / 2;
+                  const cy = (y1 + y2) / 2;
+                  const rx = Math.max((x2 - x1) * 0.62, imageSize.width / 90);
+                  const ry = Math.max((y2 - y1) * 0.62, imageSize.height / 45);
+                  const active = activeGroupKey === group.key;
+                  const nodeRadius = Math.max(5, imageSize.width / 320);
+                  const fontSize = Math.max(16, imageSize.width / 95);
                   return (
-                    <article key={finding.id}>
-                      <div className="evidence-heading">
-                        <strong>{humanizeFindingType(finding.finding_type)}</strong>
-                        <StatusBadge value={finding.review_status} />
-                      </div>
-                      <p className="live-review-language">
-                        {reviewStatusLanguage(finding.review_status)}
-                      </p>
-                      <p className="model-score-language">
-                        {modelScoreLanguage(finding.confidence)}
-                      </p>
-
-                      {canReview && finding.review_status === "PENDING" && (
-                        <label className="inline-review-decision">
-                          Clinician decision
-                          <select
-                            value={decisions[finding.id] ?? ""}
-                            onChange={(event) =>
-                              onDecisionChange(
-                                finding.id,
-                                event.target.value as ReviewDecision | ""
-                              )
-                            }
-                          >
-                            <option value="">Choose…</option>
-                            <option value="CONFIRMED">Confirm finding</option>
-                            <option value="REJECTED">Reject finding</option>
-                          </select>
-                        </label>
-                      )}
-
-                      <details className="technical-details">
-                        <summary>Technical details</summary>
-                        <dl>
-                          <div>
-                            <dt>Model score</dt>
-                            <dd title={score === null ? undefined : "Exact value: " + String(score)}>
-                              {formatModelScore(score)}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>Stored confidence</dt>
-                            <dd>{detailValue(technical.confidence)}</dd>
-                          </div>
-                          <div><dt>Review status</dt><dd>{technical.review_status}</dd></div>
-                          <div>
-                            <dt>Review required</dt>
-                            <dd>{detailValue(technical.review_required)}</dd>
-                          </div>
-                          <div>
-                            <dt>Uncertainty</dt>
-                            <dd>{detailValue(technical.uncertainty)}</dd>
-                          </div>
-                          <div>
-                            <dt>Uncertainty reason</dt>
-                            <dd>{detailValue(technical.uncertainty_reason)}</dd>
-                          </div>
-                          <div>
-                            <dt>Review reasons</dt>
-                            <dd>{technical.review_reasons.length
-                              ? technical.review_reasons.join(", ")
-                              : "Not provided"}</dd>
-                          </div>
-                          <div>
-                            <dt>Source model</dt>
-                            <dd>{detailValue(technical.source_model)}</dd>
-                          </div>
-                          <div>
-                            <dt>Model version</dt>
-                            <dd>{detailValue(technical.model_version)}</dd>
-                          </div>
-                          <div>
-                            <dt>Bounding box</dt>
-                            <dd>{technical.bounding_box
-                              ? JSON.stringify(technical.bounding_box)
-                              : "Not provided"}</dd>
-                          </div>
-                          <div><dt>Raw candidate FDI</dt><dd>{detailValue(technical.raw_fdi)}</dd></div>
-                          <div><dt>FDI confidence</dt><dd>{detailValue(technical.fdi_confidence)}</dd></div>
-                          <div>
-                            <dt>FDI review required</dt>
-                            <dd>{detailValue(technical.fdi_review_required)}</dd>
-                          </div>
-                          <div>
-                            <dt>Detector instance</dt>
-                            <dd>{detailValue(technical.tooth_detection_instance_id)}</dd>
-                          </div>
-                          <div>
-                            <dt>Quadrant candidates</dt>
-                            <dd>{technical.quadrant_candidates.length
-                              ? technical.quadrant_candidates.join(", ")
-                              : "Not provided"}</dd>
-                          </div>
-                          <div>
-                            <dt>Resolved quadrant</dt>
-                            <dd>{detailValue(technical.resolved_quadrant)}</dd>
-                          </div>
-                          <div>
-                            <dt>Side constraint applied</dt>
-                            <dd>{detailValue(technical.side_constraint_applied)}</dd>
-                          </div>
-                        </dl>
-                      </details>
-                    </article>
+                    <g
+                      className={`medical-finding-hotspot${active ? " active" : ""}`}
+                      key={group.key}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Open tooth ${group.toothCode} finding`}
+                      onClick={() => onSelectedGroupChange(group.key)}
+                      onKeyDown={(event) => selectFromKeyboard(event, group.key)}
+                      onMouseEnter={() => setHoveredGroupKey(group.key)}
+                      onMouseLeave={() => setHoveredGroupKey(null)}
+                    >
+                      <ellipse className="hotspot-aura hotspot-aura-outer" cx={cx} cy={cy} rx={rx * 1.16} ry={ry * 1.16} filter="url(#dentaiGlow)" />
+                      <ellipse className="hotspot-aura hotspot-aura-inner" cx={cx} cy={cy} rx={rx} ry={ry} />
+                      <circle className="hotspot-node" cx={cx + rx * 0.68} cy={cy - ry * 0.68} r={nodeRadius} />
+                      <text className="hotspot-label" x={cx + rx * 0.68 + nodeRadius * 1.7} y={cy - ry * 0.68 + fontSize * 0.34} fontSize={fontSize}>{group.toothCode}</text>
+                    </g>
                   );
                 })}
-              </div>
-            </>
-          )}
-        </aside>
+              </svg>
+            )}
+            <div className="opg-stage-guide"><span className="guide-pulse" />Click a highlighted tooth for the clinical view</div>
+          </div>
+        )}
+
+        <div className="opg-caption medical-caption">
+          <span>{xray?.original_filename ?? "No X-ray available"}</span>
+          <span>{projectedGroups.filter((group) => group.projectedBoundingBox && group.toothCode).length} interactive regions</span>
+        </div>
       </div>
 
-      {projectedGroups.some((group) => group.geometryAmbiguous) && (
-        <p className="overlay-note">
-          Duplicate canonical FDI regions were detected. Ambiguous overlays are withheld
-          instead of combining separate tooth detections.
-        </p>
+      {debugOpg && imageSize && (
+        <details className="opg-debug-panel"><summary>OPG coordinate debug</summary><span>Image: {imageSize.width} × {imageSize.height}</span>{projectedGroups.map((group) => (
+          <code key={group.key}>{group.toothCode ?? group.key} · source={group.boundingBoxSource ?? "NONE"}{" · canonical="}{group.geometryAmbiguous ? "AMBIGUOUS_DUPLICATE_FDI" : "UNAMBIGUOUS"}{" · raw="}{JSON.stringify(group.boundingBox)}{" · projected="}{JSON.stringify(group.projectedBoundingBox)}{group.toothCode && group.projectedBoundingBox ? ` · side=${observedImageSide(group.projectedBoundingBox, imageSize.width)} · standard=${String(isStandardPanoramicSideConsistent(group.toothCode, group.projectedBoundingBox, imageSize.width))}` : ""}</code>
+        ))}</details>
       )}
-      {projectedGroups.some(
-        (group) => !group.projectedBoundingBox && !group.geometryAmbiguous
-      ) && (
-        <p className="overlay-note">
-          Findings without a valid bounding box remain available in the finding panel.
-        </p>
+
+      {selectedGroup && (
+        <div className="finding-dialog-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.currentTarget === event.target) onSelectedGroupChange(null);
+        }}>
+          <section className="finding-dialog" role="dialog" aria-modal="true" aria-label={`Tooth ${selectedGroup.toothCode} AI finding`} lang="hy">
+            <button className="finding-dialog-close" type="button" onClick={() => onSelectedGroupChange(null)} aria-label="Close">×</button>
+
+            <div className="finding-dialog-visual">
+              {imageUrl && <img src={imageUrl} alt="Focused radiographic region" style={{ objectPosition: focusPosition }} />}
+              <div className="finding-visual-shade" />
+              <div className="finding-visual-target" aria-hidden="true"><i /><i /><span>{selectedGroup.toothCode}</span></div>
+              <div className="finding-visual-label"><span>✦</span><strong>DENTAI clinical focus</strong></div>
+            </div>
+
+            <div className="finding-dialog-content">
+              <header className="finding-dialog-heading">
+                <div>
+                  <p className="eyebrow">Ընտրված ատամ · FDI {selectedGroup.toothCode}</p>
+                  <h2>{selectedExplanation?.headline ?? humanizeFindingType(selectedGroup.findings[0]?.finding_type ?? "")}</h2>
+                </div>
+                <span className="finding-count-badge">{selectedGroup.findings.length} դիտարկում</span>
+              </header>
+
+              <div className="finding-chip-row premium-finding-chips">
+                {selectedGroup.findings.map((finding) => <span key={finding.id}>{humanizeFindingType(finding.finding_type)}</span>)}
+              </div>
+
+              <div className="clinical-story-grid">
+                <article className="clinical-story-card primary-story">
+                  <span className="story-icon">◉</span>
+                  <div><small>Ինչ է նկատել համակարգը</small><p>{selectedExplanation?.clinical_explanation ?? `DENTAI-ն այս ատամի շրջանում նշել է ${selectedGroup.findings.map((finding) => humanizeFindingType(finding.finding_type)).join(", ")}։ Արդյունքը պետք է համադրել կլինիկական զննման հետ։`}</p></div>
+                </article>
+                <article className="clinical-story-card">
+                  <span className="story-icon">✓</span>
+                  <div><small>Բժշկի գնահատում</small><p>{selectedExplanation?.review_explanation ?? "Այս դիտարկումը նախատեսված է բժշկի վերանայման համար և ինքնուրույն վերջնական ախտորոշում չէ։"}</p></div>
+                </article>
+                {clinicalSummary?.monitoring_points[0] && (
+                  <article className="clinical-story-card">
+                    <span className="story-icon">⌁</span>
+                    <div><small>Հսկողության կետ</small><p>{clinicalSummary.monitoring_points[0]}</p></div>
+                  </article>
+                )}
+              </div>
+
+              {canReview && selectedGroup.findings.some((finding) => finding.review_status === "PENDING") && (
+                <section className="micro-review-card">
+                  <div><strong>Բժշկի որոշում</strong><small>Փոքր, հստակ հաստատում յուրաքանչյուր արդյունքի համար</small></div>
+                  <div className="micro-review-items">
+                    {selectedGroup.findings.filter((finding) => finding.review_status === "PENDING").map((finding) => (
+                      <div key={finding.id} className="micro-review-item">
+                        <span>{humanizeFindingType(finding.finding_type)}</span>
+                        <div className="decision-segmented" role="group" aria-label="Clinician decision">
+                          <button className={decisions[finding.id] === "CONFIRMED" ? "selected confirm" : ""} type="button" onClick={() => onDecisionChange(finding.id, "CONFIRMED")}>Հաստատել</button>
+                          <button className={decisions[finding.id] === "REJECTED" ? "selected reject" : ""} type="button" onClick={() => onDecisionChange(finding.id, "REJECTED")}>Մերժել</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <details className="technical-details premium-technical-details">
+                <summary>Տեխնիկական տվյալներ</summary>
+                <div className="technical-finding-stack">
+                  {selectedGroup.findings.map((finding) => {
+                    const score = findingModelScore(finding);
+                    const technical = technicalDetailsForFinding(finding);
+                    return (
+                      <article key={finding.id}>
+                        <h4>{humanizeFindingType(finding.finding_type)}</h4>
+                        <dl>
+                          <div><dt>Model score</dt><dd>{formatModelScore(score)}</dd></div>
+                          <div><dt>Review status</dt><dd>{technical.review_status}</dd></div>
+                          <div><dt>Review required</dt><dd>{detailValue(technical.review_required)}</dd></div>
+                          <div><dt>Uncertainty</dt><dd>{detailValue(technical.uncertainty)}</dd></div>
+                          <div><dt>Source model</dt><dd>{detailValue(technical.source_model)}</dd></div>
+                          <div><dt>Model version</dt><dd>{detailValue(technical.model_version)}</dd></div>
+                          <div><dt>Bounding box</dt><dd>{technical.bounding_box ? JSON.stringify(technical.bounding_box) : "Not provided"}</dd></div>
+                        </dl>
+                      </article>
+                    );
+                  })}
+                </div>
+              </details>
+            </div>
+          </section>
+        </div>
       )}
     </section>
   );
