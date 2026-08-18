@@ -11,8 +11,6 @@ import {
   extractVisionToothGeometry,
   filterFindings,
   findingGroupKey,
-  findingModelScore,
-  formatModelScore,
   groupFindingsByTooth,
   isFindingProductVisible,
   MODEL_SCORE_DISPLAY_THRESHOLD,
@@ -21,6 +19,7 @@ import {
 } from "../utils/opg";
 import {
   clinicalSummaryPresentation,
+  humanizeFindingType,
   parseClinicalSummary
 } from "../utils/clinicalSummary";
 import { OPGAnalysisViewer } from "./OPGAnalysisViewer";
@@ -81,7 +80,8 @@ export function AnalysisResults({
     () => productVisibleFindings.filter((finding) => finding.review_status === "PENDING"),
     [productVisibleFindings]
   );
-  const canSubmit = pending.length > 0 && pending.every((finding) => decisions[finding.id]);
+  const decidedCount = pending.filter((finding) => decisions[finding.id]).length;
+  const canSubmit = pending.length > 0 && decidedCount === pending.length;
 
   useEffect(() => {
     setDecisions({});
@@ -106,7 +106,7 @@ export function AnalysisResults({
   }
 
   async function submitReview() {
-    if (!analysis || !canSubmit) return;
+    if (!canSubmit) return;
     setReviewing(true);
     setReviewError("");
     setReviewDone("");
@@ -117,7 +117,7 @@ export function AnalysisResults({
           decision: decisions[finding.id] as ReviewDecision
         }))
       });
-      setReviewDone("Review decisions submitted.");
+      setReviewDone("Վերանայման որոշումները պահպանվել են։");
       await onReviewed();
     } catch (reason) {
       setReviewError(errorMessage(reason));
@@ -132,85 +132,57 @@ export function AnalysisResults({
   }
 
   return (
-    <section className="analysis-workspace">
-      <header className="analysis-hero-header">
+    <section className="analysis-workspace pro-analysis-workspace">
+      <header className="analysis-focus-header">
         <div>
-          <p className="eyebrow">DENTAI V5 analysis</p>
-          <h2>{analysis.model_name}</h2>
-          <p>
-            Original OPG with model-generated tooth regions and clinician-review evidence.
-          </p>
+          <span className="analysis-spark" aria-hidden="true">✦</span>
+          <div>
+            <p className="eyebrow">DENTAI V5 · Clinical review</p>
+            <h2>AI-assisted radiographic review</h2>
+            <p>{displayDate(analysis.completed_at ?? analysis.requested_at)} · {productVisibleFindings.length} product-visible findings</p>
+          </div>
         </div>
         <StatusBadge value={analysis.status} />
       </header>
 
-      <div className="analysis-metadata card">
-        <dl className="metadata-grid">
-          <div><dt>Analysis ID</dt><dd>{analysis.id}</dd></div>
-          <div><dt>Provider</dt><dd>{analysis.provider}</dd></div>
-          <div><dt>Model version</dt><dd>{analysis.model_version}</dd></div>
-          <div><dt>Schema version</dt><dd>{analysis.analysis_schema_version}</dd></div>
-          <div><dt>Review</dt><dd>{analysis.review_status.replaceAll("_", " ")}</dd></div>
-          <div><dt>Requested</dt><dd>{displayDate(analysis.requested_at)}</dd></div>
-          <div><dt>Processing started</dt><dd>{displayDate(analysis.processing_started_at)}</dd></div>
-          <div><dt>Completed</dt><dd>{displayDate(analysis.completed_at)}</dd></div>
-        </dl>
-        {analysis.status === "FAILED" && (
-          <div className="error-panel" role="alert">
-            Analysis failed{analysis.error_code ? ": " + analysis.error_code : "."}
-          </div>
-        )}
-      </div>
+      {analysis.status === "FAILED" && (
+        <div className="error-panel" role="alert">
+          Analysis failed{analysis.error_code ? `: ${analysis.error_code}` : "."}
+        </div>
+      )}
 
       {summaryPresentation.showPanel && clinicalSummary && (
-        <section className="card clinical-summary-panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">AI-assisted clinical summary</p>
-              <h3>DENTAI evidence in clinical language</h3>
-            </div>
+        <section className="clinical-briefing" lang="hy">
+          <div className="briefing-orbit" aria-hidden="true">
+            <span>AI</span><i /><i />
           </div>
-          <p className="clinical-summary-disclaimer">
-            AI-assisted explanatory text based only on DENTAI structured evidence.
-            This is not a diagnosis and requires clinician review.
-          </p>
+          <div className="briefing-copy">
+            <p className="eyebrow">Կլինիկական ամփոփում</p>
+            <h3>{clinicalSummary.doctor_summary}</h3>
+            <p className="briefing-safety">DENTAI-ի կառուցվածքային տվյալների բացատրություն է և չի փոխարինում բժշկի գնահատմանը։</p>
+          </div>
+          <div className="briefing-signals">
+            {clinicalSummary.important_changes[0] && (
+              <article>
+                <span className="signal-icon">◉</span>
+                <div><small>Հիմնական դիտարկում</small><strong>{clinicalSummary.important_changes[0]}</strong></div>
+              </article>
+            )}
+            {clinicalSummary.monitoring_points[0] && (
+              <article>
+                <span className="signal-icon">⌁</span>
+                <div><small>Հսկողություն</small><strong>{clinicalSummary.monitoring_points[0]}</strong></div>
+              </article>
+            )}
+            {clinicalSummary.questions_for_doctor[0] && (
+              <article>
+                <span className="signal-icon">?</span>
+                <div><small>Բժշկի համար</small><strong>{clinicalSummary.questions_for_doctor[0]}</strong></div>
+              </article>
+            )}
+          </div>
           {summaryPresentation.showPartialWarning && (
-            <p className="clinical-summary-disclaimer partial-coverage-notice" role="status">
-              {summaryPresentation.partialWarning}
-            </p>
-          )}
-          <p className="doctor-summary">{clinicalSummary.doctor_summary}</p>
-          <div className="clinical-summary-lists">
-            {clinicalSummary.important_changes.length > 0 && (
-              <div>
-                <h4>Important changes</h4>
-                <ul>{clinicalSummary.important_changes.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}</ul>
-              </div>
-            )}
-            {clinicalSummary.monitoring_points.length > 0 && (
-              <div>
-                <h4>Monitoring points</h4>
-                <ul>{clinicalSummary.monitoring_points.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}</ul>
-              </div>
-            )}
-            {clinicalSummary.questions_for_doctor.length > 0 && (
-              <div>
-                <h4>Questions for the doctor</h4>
-                <ul>{clinicalSummary.questions_for_doctor.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}</ul>
-              </div>
-            )}
-          </div>
-          {summaryPresentation.showPatientMessage && (
-            <details className="patient-message-draft">
-              <summary>Optional patient message draft</summary>
-              <p>{clinicalSummary.patient_message_draft}</p>
-            </details>
+            <p className="briefing-partial" role="status">{summaryPresentation.partialWarning}</p>
           )}
         </section>
       )}
@@ -230,125 +202,53 @@ export function AnalysisResults({
         onSelectedGroupChange={setSelectedGroupKey}
       />
 
-      <section className="card findings-review-section">
-        <div className="section-heading">
+      {role === "DOCTOR" && pending.length > 0 && (
+        <section className="compact-review-dock" aria-label="Clinician review">
+          <div className="review-progress-ring" style={{ "--progress": `${Math.round((decidedCount / pending.length) * 100)}%` } as React.CSSProperties}>
+            <span>{decidedCount}/{pending.length}</span>
+          </div>
           <div>
-            <p className="eyebrow">Findings / clinician review</p>
-            <h3>Finding groups</h3>
+            <strong>Բժշկի հաստատում</strong>
+            <p>Ընտրեք յուրաքանչյուր բացված արդյունքի «Հաստատել» կամ «Մերժել» տարբերակը։</p>
           </div>
-          <span className="count-badge">{filteredFindings.length}</span>
-        </div>
-        <p className="score-helper">
-          Product view shows AI findings with a model score of{" "}
-          {MODEL_SCORE_DISPLAY_THRESHOLD.toFixed(2)} or higher.
-        </p>
-        <p className="score-helper">
-          Model score is supporting AI evidence and is not an independent diagnostic probability.
-          Exact backend values remain available in Raw JSON.
-        </p>
+          {reviewError && <span className="review-inline-error" role="alert">{reviewError}</span>}
+          {reviewDone && <span className="review-inline-success" role="status">{reviewDone}</span>}
+          <button
+            className="button button-accent"
+            type="button"
+            disabled={!canSubmit || reviewing}
+            onClick={() => void submitReview()}
+          >
+            {reviewing ? "Պահպանվում է…" : "Պահպանել վերանայումը"}
+          </button>
+        </section>
+      )}
 
-        {groups.length === 0 ? (
-          <div className="empty-inline">
-            {findings.length === 0
-              ? analysis.status === "COMPLETED"
-                ? "No DentalFinding records were returned for this analysis."
-                : "Findings will appear after processing completes."
-              : productVisibleFindings.length === 0
-                ? "No findings meet the product display threshold."
-                : "No findings match the selected review filter."}
-          </div>
-        ) : (
-          <div className="finding-group-grid">
-            {groups.map((group) => (
-              <button
-                className={"finding-group-card" + (
-                  selectedGroupKey === group.key ? " selected" : ""
-                )}
-                key={group.key}
-                type="button"
-                onClick={() => setSelectedGroupKey(group.key)}
-                onMouseEnter={() => setSelectedGroupKey(group.key)}
-              >
-                <span className="tooth-code">{group.toothCode ?? "Finding region"}</span>
-                <span className="group-findings">
-                  <strong>{group.findings.map((finding) =>
-                    finding.finding_type.replaceAll("_", " ")
-                  ).join(" · ")}</strong>
-                  <small>
-                    {group.findings.map((finding) =>
-                      formatModelScore(findingModelScore(finding))
-                    ).join(" · ")}
-                  </small>
-                </span>
-                <span className="group-statuses">
-                  {Array.from(new Set(group.findings.map((finding) => finding.review_status)))
-                    .map((status) => <StatusBadge key={status} value={status} />)}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {role === "DOCTOR" && pending.length > 0 && (
-          <div className="review-panel">
-            <div>
-              <p className="eyebrow">Required decisions</p>
-              <h3>Review every pending finding</h3>
-              <p className="muted">
-                Each pending finding requires an explicit Confirm or Reject decision.
-                Nothing is auto-confirmed.
-              </p>
-            </div>
-            <div className="clinical-review-list">
-              {pending.map((finding) => (
-                <article
-                  className="clinical-review-row"
-                  key={finding.id}
-                  onMouseEnter={() => inspectFinding(finding)}
-                >
-                  <button type="button" onClick={() => inspectFinding(finding)}>
-                    <span className="tooth-code">{finding.tooth_code ?? "Finding region"}</span>
-                    <span>
-                      <strong>{finding.finding_type.replaceAll("_", " ")}</strong>
-                      <small>{finding.description}</small>
-                    </span>
-                  </button>
-                  <label>
-                    Decision
-                    <select
-                      value={decisions[finding.id] ?? ""}
-                      onChange={(event) =>
-                        setDecisions((current) => ({
-                          ...current,
-                          [finding.id]: event.target.value as ReviewDecision | ""
-                        }))
-                      }
-                    >
-                      <option value="">Choose…</option>
-                      <option value="CONFIRMED">Confirm finding</option>
-                      <option value="REJECTED">Reject finding</option>
-                    </select>
-                  </label>
-                </article>
-              ))}
-            </div>
-            {reviewError && <div className="error-panel" role="alert">{reviewError}</div>}
-            {reviewDone && <div className="success-panel" role="status">{reviewDone}</div>}
-            <button
-              className="button button-primary"
-              type="button"
-              disabled={!canSubmit || reviewing}
-              onClick={() => void submitReview()}
-            >
-              {reviewing ? "Submitting decisions…" : "Submit clinician review"}
+      <details className="finding-library-fold card">
+        <summary>
+          <span>All visible findings</span>
+          <small>Model score ≥ {MODEL_SCORE_DISPLAY_THRESHOLD.toFixed(2)} · hidden by default</small>
+        </summary>
+        <div className="finding-library-list">
+          {productVisibleFindings.map((finding) => (
+            <button key={finding.id} type="button" onClick={() => inspectFinding(finding)}>
+              <span className="tooth-code">{finding.tooth_code}</span>
+              <span><strong>{humanizeFindingType(finding.finding_type)}</strong><small>{finding.review_status.replaceAll("_", " ")}</small></span>
+              <span>›</span>
             </button>
-          </div>
-        )}
-      </section>
+          ))}
+        </div>
+      </details>
 
-      <details className="card raw-json">
-        <summary>Raw JSON</summary>
-        <pre>{JSON.stringify({ analysis, xray, findings }, null, 2)}</pre>
+      <details className="technical-fold card">
+        <summary>Technical analysis data</summary>
+        <div className="technical-mini-grid">
+          <span><small>Analysis ID</small><strong>{analysis.id}</strong></span>
+          <span><small>Provider</small><strong>{analysis.provider}</strong></span>
+          <span><small>Model version</small><strong>{analysis.model_version}</strong></span>
+          <span><small>Review</small><strong>{analysis.review_status.replaceAll("_", " ")}</strong></span>
+        </div>
+        <details className="raw-json nested-raw-json"><summary>Raw JSON</summary><pre>{JSON.stringify({ analysis, xray, findings }, null, 2)}</pre></details>
       </details>
     </section>
   );
