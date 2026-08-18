@@ -1,0 +1,51 @@
+{
+  "rule_set": "DENTAI_ARMENIA_PATIENT_RADAR_V1",
+  "version": "1.0",
+  "market": "Armenia",
+  "disclaimer": "Opportunity scores rank observable public or otherwise authorized intent signals. They are not calibrated conversion probabilities and do not establish patient identity or clinical diagnosis.",
+  "score_weights": {
+    "dental_relevance": 0.25,
+    "treatment_intent": 0.20,
+    "location_match": 0.20,
+    "urgency": 0.15,
+    "recency": 0.10,
+    "recommendation_intent": 0.05,
+    "classifier_confidence": 0.05
+  },
+  "tiers": {
+    "HOT": 90,
+    "WARM": 75,
+    "RESEARCH": 50,
+    "IGNORE": 0
+  },
+  "candidate_relevance_threshold": 0.25,
+  "source_priority": {
+    "HIGH": 75,
+    "MEDIUM": 50,
+    "LOW": 0
+  },
+  "monitoring_minutes": {
+    "HIGH": 5,
+    "MEDIUM": 45,
+    "LOW": 180,
+    "INACTIVE": 1440
+  },
+  "semantic_batch_size": 20,
+  "semantic_timeout_seconds": 20,
+  "languages": ["hy", "ru", "en", "mixed"],
+  "treatments": [
+    "DENTAL_PAIN",
+    "DENTIST_RECOMMENDATION",
+    "IMPLANT",
+    "VENEER",
+    "CROWN",
+    "ROOT_CANAL",
+    "FILLING",
+    "BRACES",
+    "WHITENING",
+    "CLEANING",
+    "WISDOM_TOOTH",
+    "EMERGENCY_DENTAL_CARE",
+    "COSMETIC_DENTISTRY"
+  ]
+}
