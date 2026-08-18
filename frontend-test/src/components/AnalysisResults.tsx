@@ -109,7 +109,7 @@ export function AnalysisResults({
   }
 
   async function submitReview() {
-    if (!canSubmit) return;
+    if (!analysis || !canSubmit) return;
     setReviewing(true);
     setReviewError("");
     setReviewDone("");
