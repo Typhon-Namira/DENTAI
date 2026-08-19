@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -66,7 +65,6 @@ def _needs_semantic(item: CollectedSignal, heuristic: RadarClassification) -> bo
     threshold = get_settings().radar_semantic_min_relevance
     if heuristic.dental_relevance >= threshold:
         return True
-    # Short comments such as "how much?" can only make sense with dental context.
     if item.context_text and heuristic.intent in {"PRICE_INQUIRY", "RECOMMENDATION"}:
         return True
     return False
