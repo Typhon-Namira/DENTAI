@@ -10,6 +10,7 @@ import type {
 import { AnalysisResults } from "./components/AnalysisResults";
 import { BackendChecks } from "./components/BackendChecks";
 import { LoginCard } from "./components/LoginCard";
+import { PatientRadar } from "./components/PatientRadar";
 import { StatusBadge } from "./components/StatusBadge";
 import { WhatsAppOutreachCard } from "./components/WhatsAppOutreachCard";
 import { XrayUpload } from "./components/XrayUpload";
@@ -24,6 +25,7 @@ type AppSection =
   | "xrays"
   | "history"
   | "followups"
+  | "radar"
   | "outreach"
   | "settings";
 
@@ -33,6 +35,7 @@ const NAV_ITEMS: Array<{ value: AppSection; label: string; icon: string }> = [
   { value: "xrays", label: "X-rays", icon: "▣" },
   { value: "history", label: "History", icon: "◴" },
   { value: "followups", label: "Follow-ups", icon: "↻" },
+  { value: "radar", label: "Patient Radar", icon: "⌁" },
   { value: "outreach", label: "Outreach", icon: "↗" },
   { value: "settings", label: "Settings", icon: "⚙" }
 ];
@@ -395,7 +398,7 @@ export default function App() {
       <header className="pro-header">
         <div>
           <strong>{section === "workspace" ? "Clinical AI workspace" : NAV_ITEMS.find((item) => item.value === section)?.label}</strong>
-          <span>{profile ? patientName(profile.patient) : "No patient selected"}</span>
+          <span>{section === "radar" ? "Armenia opportunity intelligence" : profile ? patientName(profile.patient) : "No patient selected"}</span>
         </div>
         <div className="pro-header-actions">
           <div className="header-pill"><span>▥</span><strong>{branchLabel}</strong></div>
@@ -609,6 +612,8 @@ export default function App() {
             )}
           </>
         )}
+
+        {section === "radar" && <PatientRadar role={user.role} />}
 
         {section === "outreach" && (
           <>

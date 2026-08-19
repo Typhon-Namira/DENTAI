@@ -4,6 +4,7 @@ import App from "./App";
 import "./styles/index.css";
 import "./styles/workspace-redesign.css";
 import "./styles/medical-workspace.css";
+import "./styles/patient-radar.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

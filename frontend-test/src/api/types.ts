@@ -256,6 +256,123 @@ export interface WhatsAppOutreach {
   safe_error: string | null;
 }
 
+export type RadarPlatform = "INSTAGRAM" | "FACEBOOK" | "TELEGRAM" | "WEB";
+export type RadarTier = "HOT" | "WARM" | "RESEARCH" | "IGNORE";
+export type RadarOpportunityStatus = "NEW" | "REVIEWED" | "ARCHIVED";
+
+export interface RadarDashboard {
+  hot: number;
+  warm: number;
+  research: number;
+  ignored: number;
+  sources_monitored: number;
+  new_signals_24h: number;
+  new_opportunities_24h: number;
+  generated_at: string;
+}
+
+export interface RadarSource {
+  id: string;
+  platform: RadarPlatform;
+  external_source_id: string;
+  source_type: string;
+  name: string;
+  handle: string | null;
+  source_url: string;
+  language_hints: string[];
+  location_hint: string | null;
+  armenia_relevance: number;
+  engagement_score: number;
+  dental_signal_probability: number;
+  source_score: number;
+  priority: "HIGH" | "MEDIUM" | "LOW" | "INACTIVE";
+  monitoring_interval_minutes: number;
+  is_active: boolean;
+  last_polled_at: string | null;
+  last_content_at: string | null;
+  next_check_at: string | null;
+  source_metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RadarOpportunity {
+  id: string;
+  platform: RadarPlatform;
+  author_display: string | null;
+  author_profile_url: string | null;
+  language: string;
+  location: string | null;
+  treatment: string | null;
+  intent: string;
+  urgency: string;
+  opportunity_score: number;
+  tier: RadarTier;
+  status: RadarOpportunityStatus;
+  first_seen_at: string;
+  last_seen_at: string;
+  signal_count: number;
+  explanation: string;
+  evidence_summary: Record<string, unknown>;
+  scoring_rule_set: string;
+  scoring_rule_version: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RadarOpportunityPage {
+  items: RadarOpportunity[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RadarSignal {
+  id: string;
+  source_id: string;
+  opportunity_id: string | null;
+  platform: RadarPlatform;
+  external_signal_id: string | null;
+  signal_type: string;
+  text: string;
+  context_text: string | null;
+  source_url: string;
+  author_display: string | null;
+  language: string;
+  location: string | null;
+  treatment: string | null;
+  intent: string;
+  urgency_label: string;
+  dental_relevance: number;
+  treatment_intent: number;
+  location_match: number;
+  urgency_score: number;
+  recency_score: number;
+  recommendation_intent: number;
+  classifier_confidence: number;
+  opportunity_score: number;
+  tier: RadarTier;
+  is_candidate: boolean;
+  evidence: Record<string, unknown>;
+  observed_at: string;
+  published_at: string | null;
+}
+
+export interface RadarOpportunityDetail {
+  opportunity: RadarOpportunity;
+  signals: RadarSignal[];
+}
+
+export interface RadarOpportunityFilters {
+  tier?: string;
+  platform?: string;
+  language?: string;
+  location?: string;
+  treatment?: string;
+  status?: string;
+  minScore?: number;
+}
+
 export interface ApiErrorBody {
   error?: {
     code?: string;
