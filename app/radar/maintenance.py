@@ -13,8 +13,14 @@ POSITIVE_OUTCOMES = {"BOOKED", "QUALIFIED"}
 OUTCOMES = {"CONTACTED", "QUALIFIED", "BOOKED", "REJECTED", "NO_RESPONSE"}
 
 
-async def update_runtime_state(db: AsyncSession, key: str, value: dict[str, Any]) -> None:
-    row = await db.scalar(select(RadarRuntimeState).where(RadarRuntimeState.key == key))
+async def update_runtime_state(
+    db: AsyncSession,
+    key: str,
+    value: dict[str, Any],
+) -> None:
+    row = await db.scalar(
+        select(RadarRuntimeState).where(RadarRuntimeState.key == key)
+    )
     if row is None:
         row = RadarRuntimeState(key=key, value=value)
         db.add(row)
@@ -35,7 +41,9 @@ async def privacy_cleanup(db: AsyncSession) -> dict[str, int]:
             RadarSignal.created_at < ignored_cutoff,
         )
     )
-    old = await db.execute(delete(RadarSignal).where(RadarSignal.created_at < all_cutoff))
+    old = await db.execute(
+        delete(RadarSignal).where(RadarSignal.created_at < all_cutoff)
+    )
     return {
         "ignored_deleted": int(ignored.rowcount or 0),
         "expired_deleted": int(old.rowcount or 0),
@@ -111,7 +119,10 @@ async def calibration_report(db: AsyncSession) -> dict[str, Any]:
 async def recent_metrics(db: AsyncSession) -> dict[str, Any]:
     since = datetime.now(UTC) - timedelta(hours=24)
     signals = int(
-        await db.scalar(select(func.count(RadarSignal.id)).where(RadarSignal.created_at >= since)) or 0
+        await db.scalar(
+            select(func.count(RadarSignal.id)).where(RadarSignal.created_at >= since)
+        )
+        or 0
     )
     candidates = int(
         await db.scalar(
