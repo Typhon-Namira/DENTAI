@@ -254,6 +254,49 @@ export const api = {
       method: "PATCH", body: JSON.stringify({ status })
     });
   },
+  radarConnections(signal?: AbortSignal) {
+    return request<Array<{
+      id: string; platform: string; provider: string; status: string; account_display?: string | null;
+      expires_at?: string | null; last_health_at?: string | null; last_error_code?: string | null; metadata?: Record<string, unknown>;
+    }>>("/api/v1/radar/connections", { signal });
+  },
+  startRadarMeta(platform: "FACEBOOK" | "INSTAGRAM") {
+    return request<{ connection: { id: string }; authorization_url: string; state: string }>(
+      "/api/v1/radar/connections/meta/start",
+      { method: "POST", body: JSON.stringify({ platform }) }
+    );
+  },
+  completeRadarMeta(connectionId: string, code: string, state: string) {
+    return request<unknown>("/api/v1/radar/connections/" + encodeURIComponent(connectionId) + "/meta/complete", {
+      method: "POST", body: JSON.stringify({ code, state })
+    });
+  },
+  startRadarTelegram(phone: string) {
+    return request<{ connection: { id: string; status: string }; next: string }>(
+      "/api/v1/radar/connections/telegram/start",
+      { method: "POST", body: JSON.stringify({ phone }) }
+    );
+  },
+  completeRadarTelegram(connectionId: string, code: string, password?: string) {
+    return request<{ connection: { id: string; status: string }; next: string }>(
+      "/api/v1/radar/connections/" + encodeURIComponent(connectionId) + "/telegram/complete",
+      { method: "POST", body: JSON.stringify({ code, password: password || null }) }
+    );
+  },
+  disconnectRadarConnection(connectionId: string) {
+    return request<unknown>("/api/v1/radar/connections/" + encodeURIComponent(connectionId), { method: "DELETE" });
+  },
+  radarMetrics(signal?: AbortSignal) {
+    return request<{ signals_24h: number; candidates_24h: number; candidate_yield: number }>("/api/v1/radar/metrics", { signal });
+  },
+  radarCalibration(signal?: AbortSignal) {
+    return request<{ sample_size: number; ready_for_recalibration: boolean; policy: string }>("/api/v1/radar/calibration", { signal });
+  },
+  recordRadarOutcome(opportunityId: string, outcome: string) {
+    return request<unknown>("/api/v1/radar/opportunities/" + encodeURIComponent(opportunityId) + "/outcomes", {
+      method: "POST", body: JSON.stringify({ outcome, metadata: {} })
+    });
+  },
 
   reviewAnalysis(analysisId: string, body: ReviewPayload) {
     return request<AIAnalysis>("/api/v1/ai-analyses/" + encodeURIComponent(analysisId) + "/review", {
