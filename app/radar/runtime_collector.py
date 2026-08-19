@@ -64,7 +64,9 @@ async def _remote(
         "mode": "read_only",
     }
     try:
-        async with httpx.AsyncClient(timeout=settings.radar_collector_timeout_seconds) as client:
+        async with httpx.AsyncClient(
+            timeout=settings.radar_collector_timeout_seconds
+        ) as client:
             response = await client.post(
                 settings.radar_collector_url.rstrip("/") + "/v1/collect",
                 headers=headers,
@@ -73,15 +75,25 @@ async def _remote(
             response.raise_for_status()
             data = response.json()
     except httpx.TimeoutException as exc:
-        raise RadarCollectorError("RADAR_COLLECTOR_TIMEOUT", "Authorized collector timed out.") from exc
+        raise RadarCollectorError(
+            "RADAR_COLLECTOR_TIMEOUT",
+            "Authorized collector timed out.",
+        ) from exc
     except httpx.HTTPStatusError as exc:
-        retryable = exc.response.status_code >= 500 or exc.response.status_code in {408, 429}
+        retryable = exc.response.status_code >= 500 or exc.response.status_code in {
+            408,
+            429,
+        }
         code = (
             "RADAR_AUTH_SESSION_REQUIRED"
             if exc.response.status_code in {401, 403, 409}
             else "RADAR_COLLECTOR_HTTP_ERROR"
         )
-        raise RadarCollectorError(code, "Authorized collector rejected the source.", retryable=retryable) from exc
+        raise RadarCollectorError(
+            code,
+            "Authorized collector rejected the source.",
+            retryable=retryable,
+        ) from exc
     except (httpx.HTTPError, ValueError, TypeError) as exc:
         raise RadarCollectorError(
             "RADAR_COLLECTOR_INVALID_RESPONSE",
@@ -97,19 +109,36 @@ async def _remote(
         published_at = None
         if raw.get("published_at"):
             try:
-                published_at = datetime.fromisoformat(str(raw["published_at"]).replace("Z", "+00:00"))
+                published_at = datetime.fromisoformat(
+                    str(raw["published_at"]).replace("Z", "+00:00")
+                )
             except ValueError:
                 pass
+        external_signal_id = (
+            str(raw.get("external_signal_id"))
+            if raw.get("external_signal_id")
+            else None
+        )
+        author_external_id = (
+            str(raw.get("author_external_id"))
+            if raw.get("author_external_id")
+            else None
+        )
+        author_profile_url = (
+            str(raw.get("author_profile_url"))[:1000]
+            if raw.get("author_profile_url")
+            else None
+        )
         signals.append(
             CollectedSignal(
-                external_signal_id=str(raw.get("external_signal_id")) if raw.get("external_signal_id") else None,
+                external_signal_id=external_signal_id,
                 signal_type=str(raw.get("signal_type") or "COMMENT").upper(),
                 text=text[:20_000],
                 context_text=_clean(raw.get("context_text"))[:30_000] or None,
                 source_url=str(raw.get("source_url") or source.source_url)[:1500],
-                author_external_id=str(raw.get("author_external_id")) if raw.get("author_external_id") else None,
+                author_external_id=author_external_id,
                 author_display=_clean(raw.get("author_display"))[:300] or None,
-                author_profile_url=str(raw.get("author_profile_url"))[:1000] if raw.get("author_profile_url") else None,
+                author_profile_url=author_profile_url,
                 observed_at=now,
                 published_at=published_at,
             )
@@ -123,11 +152,18 @@ async def _remote(
         discovered_sources=list(data.get("discovered_sources") or [])[:100],
         collector=str(data.get("collector") or "authorized"),
         fetched_at=now,
-        source_revision=str(data.get("source_revision")) if data.get("source_revision") else None,
+        source_revision=(
+            str(data.get("source_revision")) if data.get("source_revision") else None
+        ),
     )
 
 
-async def collect_source(*, clinic_id: str, source: Any, db: AsyncSession) -> CollectorResult:
+async def collect_source(
+    *,
+    clinic_id: str,
+    source: Any,
+    db: AsyncSession,
+) -> CollectorResult:
     platform = source.platform.strip().upper()
     metadata = source.source_metadata or {}
     if platform in {"INSTAGRAM", "FACEBOOK"} or metadata.get("collector") == "remote":
@@ -135,6 +171,9 @@ async def collect_source(*, clinic_id: str, source: Any, db: AsyncSession) -> Co
     try:
         return await collect_builtin(platform, source.source_url)
     except RadarCollectorError as exc:
-        if exc.code == "RADAR_AUTH_SESSION_REQUIRED" and get_settings().radar_collector_url:
+        if (
+            exc.code == "RADAR_AUTH_SESSION_REQUIRED"
+            and get_settings().radar_collector_url
+        ):
             return await _remote(clinic_id=clinic_id, source=source, db=db)
         raise
