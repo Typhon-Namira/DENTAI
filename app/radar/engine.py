@@ -126,6 +126,7 @@ TREATMENT_TERMS: dict[str, tuple[str, ...]] = {
     ),
     "COSMETIC_DENTISTRY": (
         "ժպիտ",
+        "ժպտ",
         "էսթետիկ ատամ",
         "эстетическая стомат",
         "улыбк",
