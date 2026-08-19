@@ -1,0 +1,47 @@
+name: Patient Radar
+
+on:
+  pull_request:
+    paths:
+      - "app/radar/**"
+      - "app/api/v1/radar.py"
+      - "app/core/config.py"
+      - "app/main.py"
+      - "config/patient_radar_rules.json"
+      - "migrations/versions/0005_patient_radar.py"
+      - "tests/test_radar_*.py"
+      - "frontend-test/**"
+      - "docs/PATIENT_RADAR.md"
+      - ".github/workflows/patient-radar.yml"
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --extra dev
+      - run: uv run pytest tests/test_radar_engine.py tests/test_radar_operational.py
+      - run: uv run python -c "import app.main; import app.radar.worker"
+      - run: >-
+          uv run ruff check
+          app/radar
+          app/api/v1/radar.py
+          app/core/config.py
+          tests/test_radar_engine.py
+          tests/test_radar_operational.py
+          migrations/versions/0005_patient_radar.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+        working-directory: frontend-test
+      - run: npm test
+        working-directory: frontend-test
+      - run: npm run build
+        working-directory: frontend-test
