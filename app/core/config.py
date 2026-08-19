@@ -54,6 +54,19 @@ class Settings(BaseSettings):
     whatsapp_claim_timeout_seconds: int = 300
     whatsapp_max_attempts: int = 5
 
+    # Armenia Patient Radar operational runtime.
+    radar_worker_poll_seconds: float = 5.0
+    radar_claim_seconds: int = 180
+    radar_http_timeout_seconds: int = 20
+    radar_http_max_bytes: int = 2 * 1024 * 1024
+    radar_max_items_per_poll: int = 300
+    radar_user_agent: str = "DENTAI-Patient-Radar/1.0 (+read-only intelligence)"
+    radar_llm_enabled: bool = True
+    radar_llm_batch_size: int = 32
+    radar_collector_url: str | None = None
+    radar_collector_token: str | None = None
+    radar_collector_timeout_seconds: int = 30
+
     @field_validator("cors_allowed_origins", mode="before")
     @classmethod
     def split_origins(cls, value: object) -> object:
@@ -62,9 +75,20 @@ class Settings(BaseSettings):
     @staticmethod
     def _is_loopback_whatsapp_url(value: str | None) -> bool:
         url = (value or "").strip().lower()
-        return url.startswith("http://127.0.0.1:") or url.startswith(
-            "http://localhost:"
-        ) or url.startswith("http://[::1]:")
+        return (
+            url.startswith("http://127.0.0.1:")
+            or url.startswith("http://localhost:")
+            or url.startswith("http://[::1]:")
+        )
+
+    @staticmethod
+    def _is_loopback_radar_collector_url(value: str | None) -> bool:
+        url = (value or "").strip().lower()
+        return (
+            url.startswith("http://127.0.0.1:")
+            or url.startswith("http://localhost:")
+            or url.startswith("http://[::1]:")
+        )
 
     def validate_production(self) -> None:
         if self.app_env == "production":
@@ -101,6 +125,14 @@ class Settings(BaseSettings):
             ):
                 raise RuntimeError(
                     "WHATSAPP_SERVICE_TOKEN is required for a non-loopback WhatsApp service"
+                )
+            if (
+                self.radar_collector_url
+                and not self.radar_collector_token
+                and not self._is_loopback_radar_collector_url(self.radar_collector_url)
+            ):
+                raise RuntimeError(
+                    "RADAR_COLLECTOR_TOKEN is required for a non-loopback Radar collector"
                 )
 
 
