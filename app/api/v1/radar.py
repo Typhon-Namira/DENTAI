@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import os
+import socket
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
@@ -11,8 +14,11 @@ from sqlalchemy import select
 from app.auth.dependencies import AuthContext, current_context, roles
 from app.core.errors import AppError
 from app.database.models import Role
-from app.radar.engine import classify_signal, source_rank
-from app.radar.models import RadarOpportunity, RadarSignal, RadarSource
+from app.radar.collector import CollectedSignal, collector_runtime_status
+from app.radar.engine import source_rank
+from app.radar.intelligence import classify_collected_batch
+from app.radar.models import RadarOpportunity, RadarSource
+from app.radar.operations import mark_manual_claim, poll_registered_source
 from app.radar.service import (
     OPPORTUNITY_STATUSES,
     create_source,
@@ -21,6 +27,8 @@ from app.radar.service import (
     ingest_signal,
     list_opportunities,
     opportunity_signals,
+    runtime_summary,
+    source_runtime,
     update_source,
 )
 
@@ -29,14 +37,14 @@ router = APIRouter(prefix="/radar", tags=["patient-radar"])
 
 class RadarSourceCreate(BaseModel):
     platform: str
-    external_source_id: str = Field(min_length=1, max_length=300)
-    source_type: str
+    external_source_id: str | None = Field(default=None, max_length=300)
+    source_type: str = Field(default="WEB_SOURCE", min_length=1, max_length=40)
     name: str = Field(min_length=1, max_length=300)
     handle: str | None = Field(default=None, max_length=300)
     source_url: HttpUrl
     language_hints: list[str] = Field(default_factory=list, max_length=8)
-    location_hint: str | None = Field(default=None, max_length=160)
-    armenia_relevance: float = Field(default=50, ge=0, le=100)
+    location_hint: str | None = Field(default="Armenia", max_length=160)
+    armenia_relevance: float = Field(default=70, ge=0, le=100)
     engagement_score: float = Field(default=50, ge=0, le=100)
     dental_signal_probability: float = Field(default=50, ge=0, le=100)
     source_metadata: dict[str, Any] = Field(default_factory=dict)
@@ -192,11 +200,64 @@ class RadarIngestItemOut(BaseModel):
     opportunity: RadarOpportunityOut | None
 
 
+class RadarRunOut(BaseModel):
+    source_id: str
+    status: str
+    collector: str | None = None
+    signals_seen: int = 0
+    new_signals: int = 0
+    candidate_signals: int = 0
+    duration_ms: int | None = None
+    error_code: str | None = None
+    error: str | None = None
+    retryable: bool | None = None
+
+
+class RadarRuntimeOut(BaseModel):
+    worker_expected: bool
+    active_sources: int
+    due_sources: int
+    unhealthy_sources: int
+    action_required_sources: int
+    last_success_at: str | None
+    llm_semantic_refinement: bool
+    collectors: dict[str, Any]
+    sources: dict[str, dict[str, Any]]
+
+
+def _external_source_id(platform: str, url: str, supplied: str | None) -> str:
+    if supplied and supplied.strip():
+        return supplied.strip()
+    return hashlib.sha256(f"{platform.strip().upper()}|{url}".encode()).hexdigest()[:48]
+
+
+def _collected_from_payload(item: RadarSignalIn) -> CollectedSignal:
+    return CollectedSignal(
+        external_signal_id=item.external_signal_id,
+        signal_type=item.signal_type,
+        text=item.text,
+        context_text=item.context_text,
+        source_url=str(item.source_url),
+        author_external_id=item.author_external_id,
+        author_display=item.author_display,
+        author_profile_url=str(item.author_profile_url) if item.author_profile_url else None,
+        observed_at=item.observed_at,
+        published_at=item.published_at,
+    )
+
+
 @router.get("/dashboard", response_model=RadarDashboardOut)
-async def radar_dashboard(
-    ctx: Annotated[AuthContext, Depends(current_context)],
-):
+async def radar_dashboard(ctx: Annotated[AuthContext, Depends(current_context)]):
     return await dashboard_summary(ctx.session)
+
+
+@router.get("/runtime", response_model=RadarRuntimeOut)
+async def radar_runtime(ctx: Annotated[AuthContext, Depends(current_context)]):
+    summary = await runtime_summary(ctx.session)
+    sources = list((await ctx.session.scalars(select(RadarSource))).all())
+    summary["collectors"] = await collector_runtime_status()
+    summary["sources"] = {str(source.id): source_runtime(source) for source in sources}
+    return summary
 
 
 @router.get("/sources", response_model=list[RadarSourceOut])
@@ -220,13 +281,18 @@ async def radar_source_create(
     payload: RadarSourceCreate,
     ctx: Annotated[AuthContext, Depends(roles(Role.DIRECTOR, Role.MANAGER))],
 ):
+    source_url = str(payload.source_url)
     source = await create_source(
         ctx.session,
         platform=payload.platform,
-        external_source_id=payload.external_source_id,
+        external_source_id=_external_source_id(
+            payload.platform,
+            source_url,
+            payload.external_source_id,
+        ),
         source_type=payload.source_type,
         name=payload.name,
-        source_url=str(payload.source_url),
+        source_url=source_url,
         handle=payload.handle,
         language_hints=payload.language_hints,
         location_hint=payload.location_hint,
@@ -262,6 +328,25 @@ async def radar_source_patch(
     return source
 
 
+@router.post("/sources/{source_id}/run", response_model=RadarRunOut)
+async def radar_source_run(
+    source_id: uuid.UUID,
+    ctx: Annotated[AuthContext, Depends(roles(Role.DIRECTOR, Role.MANAGER))],
+):
+    source = await ctx.session.get(RadarSource, source_id)
+    if not source:
+        raise AppError("RADAR_SOURCE_NOT_FOUND", "Radar source was not found.", 404)
+    if not source.is_active:
+        raise AppError("RADAR_SOURCE_INACTIVE", "Radar source is inactive.", 409)
+    worker_id = os.getenv("RADAR_WORKER_ID", f"manual-{socket.gethostname()}")
+    await mark_manual_claim(ctx.session, source, worker_id=worker_id)
+    await ctx.session.commit()
+    source = await ctx.session.get(RadarSource, source_id)
+    result = await poll_registered_source(ctx.session, clinic_id=ctx.clinic.id, source=source)
+    await ctx.session.commit()
+    return result
+
+
 @router.get("/sources/due", response_model=list[RadarSourceOut])
 async def radar_due_sources(
     ctx: Annotated[AuthContext, Depends(roles(Role.DIRECTOR, Role.MANAGER))],
@@ -289,6 +374,9 @@ async def radar_source_polled(
     source.monitoring_interval_minutes = interval
     source.last_polled_at = now
     source.next_check_at = now + timedelta(minutes=interval)
+    metadata = dict(source.source_metadata or {})
+    metadata.update(runtime_state="HEALTHY", last_success_at=now.isoformat())
+    source.source_metadata = metadata
     await ctx.session.commit()
     await ctx.session.refresh(source)
     return source
@@ -303,8 +391,15 @@ async def radar_ingest(
     if not source:
         raise AppError("RADAR_SOURCE_NOT_FOUND", "Radar source was not found.", 404)
 
+    collected = [_collected_from_payload(item) for item in payload.signals]
+    classifications = await classify_collected_batch(collected)
     results: list[RadarIngestItemOut] = []
-    for item in payload.signals:
+    for item, collected_item, classification in zip(
+        payload.signals,
+        collected,
+        classifications,
+        strict=True,
+    ):
         result = await ingest_signal(
             ctx.session,
             clinic_id=ctx.clinic.id,
@@ -313,12 +408,13 @@ async def radar_ingest(
             signal_type=item.signal_type,
             text=item.text,
             context_text=item.context_text,
-            source_url=str(item.source_url),
+            source_url=collected_item.source_url,
             author_external_id=item.author_external_id,
             author_display=item.author_display,
-            author_profile_url=str(item.author_profile_url) if item.author_profile_url else None,
+            author_profile_url=collected_item.author_profile_url,
             observed_at=item.observed_at,
             published_at=item.published_at,
+            classification=classification,
         )
         results.append(
             RadarIngestItemOut(
@@ -340,11 +436,20 @@ async def radar_classify_preview(
     payload: RadarPreviewIn,
     _: Annotated[AuthContext, Depends(roles(Role.DIRECTOR, Role.MANAGER))],
 ):
-    return classify_signal(
-        payload.text,
+    now = datetime.now(UTC)
+    item = CollectedSignal(
+        external_signal_id="preview",
+        signal_type="PREVIEW",
+        text=payload.text,
         context_text=payload.context_text,
+        source_url="https://example.invalid/radar-preview",
+        author_external_id=None,
+        author_display=None,
+        author_profile_url=None,
+        observed_at=now,
         published_at=payload.published_at,
-    ).as_dict()
+    )
+    return (await classify_collected_batch([item]))[0].as_dict()
 
 
 @router.get("/opportunities", response_model=RadarOpportunityPage)
