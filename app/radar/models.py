@@ -118,3 +118,73 @@ class RadarSignal(UUIDMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     __table_args__ = (UniqueConstraint("source_id", "dedupe_key"),)
+
+
+class RadarConnection(UUIDMixin, TimestampMixin, Base):
+    """Encrypted user-authorized platform session/token metadata.
+
+    Secrets are stored only in ``encrypted_credentials`` and are never serialized by API models.
+    """
+
+    __tablename__ = "radar_connections"
+
+    platform: Mapped[str] = mapped_column(String(24), index=True)
+    provider: Mapped[str] = mapped_column(String(40), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="CONNECTING", index=True)
+    account_external_id: Mapped[str | None] = mapped_column(String(300), index=True)
+    account_display: Mapped[str | None] = mapped_column(String(300))
+    encrypted_credentials: Mapped[str | None] = mapped_column(Text)
+    scopes: Mapped[list] = mapped_column(JSON, default=list)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    last_health_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error_code: Mapped[str | None] = mapped_column(String(100))
+    last_error: Mapped[str | None] = mapped_column(String(500))
+    auth_nonce: Mapped[str | None] = mapped_column(String(100), index=True)
+    connection_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class RadarSourceCandidate(UUIDMixin, TimestampMixin, Base):
+    """A deduplicated node in the autonomous Armenia source graph."""
+
+    __tablename__ = "radar_source_candidates"
+
+    platform: Mapped[str] = mapped_column(String(24), index=True)
+    external_source_id: Mapped[str] = mapped_column(String(300))
+    source_type: Mapped[str] = mapped_column(String(40))
+    name: Mapped[str] = mapped_column(String(300))
+    handle: Mapped[str | None] = mapped_column(String(300))
+    source_url: Mapped[str] = mapped_column(String(1000))
+    location_hint: Mapped[str | None] = mapped_column(String(160))
+    language_hints: Mapped[list] = mapped_column(JSON, default=list)
+    discovered_from_source_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("radar_sources.id", ondelete="SET NULL"), index=True
+    )
+    state: Mapped[str] = mapped_column(String(24), default="NEW", index=True)
+    candidate_score: Mapped[int] = mapped_column(Integer, default=50, index=True)
+    discovery_count: Mapped[int] = mapped_column(Integer, default=1)
+    last_discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    evidence: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    __table_args__ = (UniqueConstraint("platform", "external_source_id"),)
+
+
+class RadarOutcome(UUIDMixin, TimestampMixin, Base):
+    """Observed business outcome used for empirical score calibration."""
+
+    __tablename__ = "radar_outcomes"
+
+    opportunity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("radar_opportunities.id", ondelete="CASCADE"), index=True
+    )
+    outcome: Mapped[str] = mapped_column(String(32), index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    outcome_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class RadarRuntimeState(UUIDMixin, TimestampMixin, Base):
+    """Small operational state records for worker heartbeat and aggregate metrics."""
+
+    __tablename__ = "radar_runtime_state"
+
+    key: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    value: Mapped[dict] = mapped_column(JSON, default=dict)
