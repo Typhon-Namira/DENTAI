@@ -39,7 +39,10 @@ class RadarSource(UUIDMixin, TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     last_polled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_content_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    next_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    next_check_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
     source_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
 
     __table_args__ = (UniqueConstraint("platform", "external_source_id"),)
@@ -60,7 +63,10 @@ class RadarOpportunity(UUIDMixin, TimestampMixin, Base):
     opportunity_score: Mapped[int] = mapped_column(Integer, index=True)
     tier: Mapped[str] = mapped_column(String(20), index=True)
     status: Mapped[str] = mapped_column(String(30), default="NEW", index=True)
-    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    first_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )
     last_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,
@@ -79,10 +85,12 @@ class RadarSignal(UUIDMixin, Base):
     __tablename__ = "radar_signals"
 
     source_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("radar_sources.id", ondelete="CASCADE"), index=True
+        ForeignKey("radar_sources.id", ondelete="CASCADE"),
+        index=True,
     )
     opportunity_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("radar_opportunities.id", ondelete="SET NULL"), index=True
+        ForeignKey("radar_opportunities.id", ondelete="SET NULL"),
+        index=True,
     )
     platform: Mapped[str] = mapped_column(String(24), index=True)
     external_signal_id: Mapped[str | None] = mapped_column(String(400))
@@ -114,8 +122,14 @@ class RadarSignal(UUIDMixin, Base):
         default=utc_now,
         index=True,
     )
-    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )
 
     __table_args__ = (UniqueConstraint("source_id", "dedupe_key"),)
 
@@ -135,7 +149,10 @@ class RadarConnection(UUIDMixin, TimestampMixin, Base):
     account_display: Mapped[str | None] = mapped_column(String(300))
     encrypted_credentials: Mapped[str | None] = mapped_column(Text)
     scopes: Mapped[list] = mapped_column(JSON, default=list)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
     last_health_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_error_code: Mapped[str | None] = mapped_column(String(100))
     last_error: Mapped[str | None] = mapped_column(String(500))
@@ -157,12 +174,16 @@ class RadarSourceCandidate(UUIDMixin, TimestampMixin, Base):
     location_hint: Mapped[str | None] = mapped_column(String(160))
     language_hints: Mapped[list] = mapped_column(JSON, default=list)
     discovered_from_source_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("radar_sources.id", ondelete="SET NULL"), index=True
+        ForeignKey("radar_sources.id", ondelete="SET NULL"),
+        index=True,
     )
     state: Mapped[str] = mapped_column(String(24), default="NEW", index=True)
     candidate_score: Mapped[int] = mapped_column(Integer, default=50, index=True)
     discovery_count: Mapped[int] = mapped_column(Integer, default=1)
-    last_discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_discovered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+    )
     evidence: Mapped[dict] = mapped_column(JSON, default=dict)
 
     __table_args__ = (UniqueConstraint("platform", "external_source_id"),)
@@ -174,10 +195,15 @@ class RadarOutcome(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "radar_outcomes"
 
     opportunity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("radar_opportunities.id", ondelete="CASCADE"), index=True
+        ForeignKey("radar_opportunities.id", ondelete="CASCADE"),
+        index=True,
     )
     outcome: Mapped[str] = mapped_column(String(32), index=True)
-    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        index=True,
+    )
     outcome_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
