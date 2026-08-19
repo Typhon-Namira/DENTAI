@@ -3,7 +3,17 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base, TimestampMixin, UUIDMixin, utc_now
@@ -51,7 +61,11 @@ class RadarOpportunity(UUIDMixin, TimestampMixin, Base):
     tier: Mapped[str] = mapped_column(String(20), index=True)
     status: Mapped[str] = mapped_column(String(30), default="NEW", index=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        index=True,
+    )
     signal_count: Mapped[int] = mapped_column(Integer, default=1)
     explanation: Mapped[str] = mapped_column(Text)
     evidence_summary: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -95,7 +109,11 @@ class RadarSignal(UUIDMixin, Base):
     tier: Mapped[str] = mapped_column(String(20), index=True)
     is_candidate: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     evidence: Mapped[dict] = mapped_column(JSON, default=dict)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        index=True,
+    )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
