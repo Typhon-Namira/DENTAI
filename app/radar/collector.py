@@ -212,7 +212,7 @@ def _clean_text(value: str) -> str:
 
 
 def _stable_signal_id(source_url: str, text: str) -> str:
-    return hashlib.sha256(f"{source_url}\n{text}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{source_url}\n{text}".encode()).hexdigest()
 
 
 def _is_public_ip(value: str) -> bool:
@@ -504,7 +504,9 @@ async def collect_remote(*, clinic_id: str, source: Any) -> CollectorResult:
         published_at = None
         if raw.get("published_at"):
             try:
-                published_at = datetime.fromisoformat(str(raw["published_at"]).replace("Z", "+00:00"))
+                published_at = datetime.fromisoformat(
+                    str(raw["published_at"]).replace("Z", "+00:00")
+                )
             except ValueError:
                 published_at = None
         signals.append(
