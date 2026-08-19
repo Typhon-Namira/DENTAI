@@ -26,7 +26,9 @@ _ARMENIA_MARKERS = (
 
 
 def source_external_id(platform: str, url: str) -> str:
-    return hashlib.sha256(f"{platform.strip().upper()}|{url.strip()}".encode()).hexdigest()[:48]
+    return hashlib.sha256(
+        f"{platform.strip().upper()}|{url.strip()}".encode()
+    ).hexdigest()[:48]
 
 
 def _handle(url: str) -> str | None:
@@ -35,15 +37,26 @@ def _handle(url: str) -> str | None:
     return parts[0][:300] if parts else None
 
 
-def score_discovered_source(parent: RadarSource, candidate: dict[str, Any], *, repeats: int = 1) -> int:
+def score_discovered_source(
+    parent: RadarSource,
+    candidate: dict[str, Any],
+    *,
+    repeats: int = 1,
+) -> int:
     url = str(candidate.get("source_url") or "")
-    haystack = f"{url} {candidate.get('name') or ''} {candidate.get('handle') or ''}".casefold()
+    haystack = (
+        f"{url} {candidate.get('name') or ''} {candidate.get('handle') or ''}"
+    ).casefold()
     score = 35
     score += int(parent.armenia_relevance * 0.25)
     score += min(15, max(0, repeats - 1) * 3)
     if any(marker in haystack for marker in _ARMENIA_MARKERS):
         score += 20
-    if str(candidate.get("platform") or "").upper() in {"INSTAGRAM", "FACEBOOK", "TELEGRAM"}:
+    if str(candidate.get("platform") or "").upper() in {
+        "INSTAGRAM",
+        "FACEBOOK",
+        "TELEGRAM",
+    }:
         score += 5
     return max(0, min(100, score))
 
@@ -64,7 +77,9 @@ async def record_discoveries(
         url = str(raw.get("source_url") or "").strip()
         if not url.startswith(("http://", "https://")):
             continue
-        external_id = str(raw.get("external_source_id") or source_external_id(platform, url))[:300]
+        external_id = str(
+            raw.get("external_source_id") or source_external_id(platform, url)
+        )[:300]
         if await db.scalar(
             select(RadarSource.id).where(
                 RadarSource.platform == platform,
@@ -79,7 +94,9 @@ async def record_discoveries(
             )
         )
         handle = str(raw.get("handle") or _handle(url) or "")[:300] or None
-        name = str(raw.get("name") or handle or urlparse(url).hostname or "Discovered source")[:300]
+        name = str(
+            raw.get("name") or handle or urlparse(url).hostname or "Discovered source"
+        )[:300]
         if candidate is None:
             candidate = RadarSourceCandidate(
                 platform=platform,
@@ -124,14 +141,23 @@ async def record_discoveries(
                     source_url=candidate.source_url,
                     language_hints=candidate.language_hints,
                     location_hint=candidate.location_hint,
-                    armenia_relevance=max(parent.armenia_relevance, float(candidate.candidate_score)),
+                    armenia_relevance=max(
+                        parent.armenia_relevance,
+                        float(candidate.candidate_score),
+                    ),
                     engagement_score=max(30.0, parent.engagement_score * 0.75),
-                    dental_signal_probability=max(25.0, parent.dental_signal_probability * 0.60),
+                    dental_signal_probability=max(
+                        25.0,
+                        parent.dental_signal_probability * 0.60,
+                    ),
                     source_score=score,
                     priority=priority,
                     monitoring_interval_minutes=interval,
                     next_check_at=now,
-                    source_metadata={"discovered": True, "candidate_id": str(candidate.id)},
+                    source_metadata={
+                        "discovered": True,
+                        "candidate_id": str(candidate.id),
+                    },
                 )
             )
             candidate.state = "AUTO_PROMOTED"
@@ -142,21 +168,29 @@ async def record_discoveries(
 
 async def refresh_source_quality(db: AsyncSession, source: RadarSource) -> None:
     """Re-rank a source from recent observed yield instead of frontend defaults."""
-    lookback = datetime.now(UTC) - timedelta(days=get_settings().radar_source_quality_lookback_days)
+    lookback = datetime.now(UTC) - timedelta(
+        days=get_settings().radar_source_quality_lookback_days
+    )
     rows = (
         await db.execute(
             select(
                 func.count(RadarSignal.id),
                 func.sum(case((RadarSignal.is_candidate.is_(True), 1), else_=0)),
                 func.avg(RadarSignal.location_match),
-            ).where(RadarSignal.source_id == source.id, RadarSignal.observed_at >= lookback)
+            ).where(
+                RadarSignal.source_id == source.id,
+                RadarSignal.observed_at >= lookback,
+            )
         )
     ).one()
     total = int(rows[0] or 0)
     candidates = int(rows[1] or 0)
     location_avg = float(rows[2] or 0.0)
     if total:
-        source.dental_signal_probability = max(0.0, min(100.0, candidates / total * 100.0))
+        source.dental_signal_probability = max(
+            0.0,
+            min(100.0, candidates / total * 100.0),
+        )
         source.armenia_relevance = max(
             source.armenia_relevance * 0.4,
             min(100.0, location_avg * 100.0),
@@ -166,7 +200,9 @@ async def refresh_source_quality(db: AsyncSession, source: RadarSource) -> None:
         new = int(runtime.get("last_new_signal_count") or candidates)
         activity = min(
             100.0,
-            30.0 + min(50.0, seen / max(1, total) * 50.0) + min(20.0, new * 2.0),
+            30.0
+            + min(50.0, seen / max(1, total) * 50.0)
+            + min(20.0, new * 2.0),
         )
         source.engagement_score = activity
     score, priority, interval = source_rank(
