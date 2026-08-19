@@ -1,0 +1,14 @@
+[
+  {"id":"hy-recommend-implant","text":"Երևանում լավ ատամնաբույժ կասե՞ք իմպլանտի համար","context":"","language":"hy","intent":"RECOMMENDATION","treatment":"IMPLANT","candidate":true},
+  {"id":"hy-urgent","text":"Ատամս շատ ցավում է, շտապ ատամնաբույժ է պետք Երևանում","context":"","language":"hy","intent":"URGENT_NEED","candidate":true},
+  {"id":"ru-price","text":"Сколько стоит имплант в Ереване?","context":"","language":"ru","intent":"PRICE_INQUIRY","treatment":"IMPLANT","candidate":true},
+  {"id":"ru-recommend","text":"Посоветуйте хорошего стоматолога в Ереване","context":"","language":"ru","intent":"RECOMMENDATION","candidate":true},
+  {"id":"en-veneer","text":"How much are veneers in Yerevan?","context":"","language":"en","intent":"PRICE_INQUIRY","treatment":"VENEER","candidate":true},
+  {"id":"mixed","text":"Երևանում implant price ինչքա՞ն է","context":"Dental implant discussion","language":"mixed","intent":"PRICE_INQUIRY","treatment":"IMPLANT","candidate":true},
+  {"id":"context-short","text":"how much?","context":"Veneers in Yerevan - smile makeover","intent":"PRICE_INQUIRY","treatment":"VENEER","candidate":true},
+  {"id":"negative-shopping","text":"Where can I buy a good phone in Yerevan?","context":"Electronics shopping","intent":"UNRELATED","candidate":false},
+  {"id":"negative-general-pain","text":"My back hurts after the gym","context":"Fitness discussion","intent":"UNRELATED","candidate":false},
+  {"id":"hy-cleaning","text":"Ատամների մաքրումը Երևանում ինչքա՞ն արժի","context":"","language":"hy","intent":"PRICE_INQUIRY","treatment":"CLEANING","candidate":true},
+  {"id":"ru-braces","text":"Кто хороший ортодонт для брекетов в Ереване?","context":"","language":"ru","intent":"RECOMMENDATION","treatment":"BRACES","candidate":true},
+  {"id":"en-emergency","text":"Urgent dentist needed, unbearable tooth pain in Yerevan","context":"","language":"en","intent":"URGENT_NEED","candidate":true}
+]

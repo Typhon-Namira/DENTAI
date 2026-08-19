@@ -8,9 +8,11 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.radar.collector import RadarCollectorError, collect_source
-from app.radar.intelligence import classify_collected_batch
+from app.radar.collector import RadarCollectorError
+from app.radar.discovery import record_discoveries, refresh_source_quality
+from app.radar.funnel import run_funnel
 from app.radar.models import RadarSource
+from app.radar.runtime_collector import collect_source
 from app.radar.service import complete_source_poll, fail_source_poll, ingest_signal
 
 
@@ -42,11 +44,11 @@ async def poll_registered_source(
     await db.flush()
 
     try:
-        collected = await collect_source(clinic_id=str(clinic_id), source=source)
-        classifications = await classify_collected_batch(collected.signals)
+        collected = await collect_source(clinic_id=str(clinic_id), source=source, db=db)
+        funnel = await run_funnel(db, source=source, collected=collected.signals)
         new_count = 0
         candidate_count = 0
-        for item, classification in zip(collected.signals, classifications, strict=True):
+        for item, classification in zip(funnel.signals, funnel.classifications, strict=True):
             result = await ingest_signal(
                 db,
                 clinic_id=clinic_id,
@@ -68,11 +70,28 @@ async def poll_registered_source(
             if classification.candidate:
                 candidate_count += 1
 
-        duration_ms = int((time.perf_counter() - started) * 1000)
+        discovered_created = 0
+        discovered_promoted = 0
         if collected.discovered_sources:
-            source_meta = dict(source.source_metadata or {})
-            source_meta["discovered_sources"] = collected.discovered_sources[:50]
-            source.source_metadata = source_meta
+            discovered_created, discovered_promoted = await record_discoveries(
+                db, parent=source, discovered=collected.discovered_sources
+            )
+        await refresh_source_quality(db, source)
+
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        source_meta = dict(source.source_metadata or {})
+        source_meta["funnel"] = {
+            "raw": len(collected.signals),
+            "duplicates_skipped": funnel.duplicates_skipped,
+            "semantic_candidates": funnel.semantic_candidates,
+            "cheap_rejected": funnel.cheap_rejected,
+        }
+        source_meta["discovery"] = {
+            "seen": len(collected.discovered_sources),
+            "created": discovered_created,
+            "auto_promoted": discovered_promoted,
+        }
+        source.source_metadata = source_meta
         await complete_source_poll(
             db,
             source,
@@ -89,6 +108,10 @@ async def poll_registered_source(
             "signals_seen": len(collected.signals),
             "new_signals": new_count,
             "candidate_signals": candidate_count,
+            "duplicates_skipped": funnel.duplicates_skipped,
+            "semantic_candidates": funnel.semantic_candidates,
+            "discovered_sources": discovered_created,
+            "auto_promoted_sources": discovered_promoted,
             "duration_ms": duration_ms,
         }
     except RadarCollectorError as exc:

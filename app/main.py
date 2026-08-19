@@ -15,6 +15,7 @@ from app.api.v1 import (
     dashboard,
     patients,
     radar,
+    radar_connections,
     users,
     xrays,
 )
@@ -61,6 +62,7 @@ for router in (
     clinical.router,
     administration.router,
     radar.router,
+    radar_connections.router,
     outreach.router,
 ):
     app.include_router(router, prefix="/api/v1")
