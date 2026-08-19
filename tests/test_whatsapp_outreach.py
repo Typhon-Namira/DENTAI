@@ -80,20 +80,23 @@ def test_unresolved_and_below_threshold_findings_are_not_eligible():
     assert not eligible_finding("raw_37", 0.99)
 
 
-def test_armenian_fallback_contains_exact_date_and_no_model_score():
+def test_armenian_fallback_uses_approved_native_template():
     message = deterministic_armenian_message(timing("FILLING"))
-    assert "17.08.2027" in message
+    assert message.startswith("Բարև Ձեզ։")
+    assert "37-րդ ատամի հատվածը" in message
+    assert "17.08.2027թ.։" in message
     assert "0." not in message
-    assert "ատամ" in message
 
 
 @pytest.mark.asyncio
-async def test_groq_unavailable_falls_back_without_changing_target(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "")
+async def test_armenian_message_keeps_approved_template_and_target(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "test-key-does-not-change-outreach")
     get_settings.cache_clear()
     value = timing("DEEP_CARIES")
     message = await armenian_message(value)
-    assert "17.11.2026" in message
+    assert message.startswith("Բարև Ձեզ։")
+    assert "37-րդ ատամի հատվածը" in message
+    assert "17.11.2026թ.։" in message
     assert value.target_followup_at.isoformat() == "2026-11-17T06:00:00+00:00"
     get_settings.cache_clear()
 
