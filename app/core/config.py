@@ -55,7 +55,10 @@ class Settings(BaseSettings):
     whatsapp_max_attempts: int = 5
 
     # Armenia Patient Radar operational runtime.
+    radar_enabled: bool = True
     radar_worker_poll_seconds: float = 5.0
+    radar_worker_concurrency: int = 8
+    radar_worker_heartbeat_seconds: int = 30
     radar_claim_seconds: int = 180
     radar_http_timeout_seconds: int = 20
     radar_http_max_bytes: int = 2 * 1024 * 1024
@@ -63,9 +66,22 @@ class Settings(BaseSettings):
     radar_user_agent: str = "DENTAI-Patient-Radar/1.0 (+read-only intelligence)"
     radar_llm_enabled: bool = True
     radar_llm_batch_size: int = 32
+    radar_semantic_min_relevance: float = 0.45
     radar_collector_url: str | None = None
     radar_collector_token: str | None = None
     radar_collector_timeout_seconds: int = 30
+    radar_session_encryption_key: str | None = None
+    radar_signal_retention_days: int = 90
+    radar_ignored_retention_days: int = 14
+    radar_cleanup_interval_seconds: int = 3600
+    radar_discovery_auto_promote_score: int = 82
+    radar_source_quality_lookback_days: int = 30
+    radar_meta_app_id: str | None = None
+    radar_meta_app_secret: str | None = None
+    radar_meta_redirect_uri: str | None = None
+    radar_meta_api_version: str = "v23.0"
+    radar_telegram_api_id: int | None = None
+    radar_telegram_api_hash: str | None = None
 
     @field_validator("cors_allowed_origins", mode="before")
     @classmethod
@@ -90,6 +106,15 @@ class Settings(BaseSettings):
             or url.startswith("http://[::1]:")
         )
 
+    @staticmethod
+    def _validate_fernet(value: str | None, *, name: str) -> None:
+        if not value:
+            raise RuntimeError(f"{name} is required in production")
+        try:
+            Fernet(value.encode())
+        except (ValueError, TypeError) as exc:
+            raise RuntimeError(f"{name} must be a valid Fernet key") from exc
+
     def validate_production(self) -> None:
         if self.app_env == "production":
             secrets = (
@@ -104,12 +129,7 @@ class Settings(BaseSettings):
                 raise RuntimeError("Production secrets must be unique and at least 32 characters")
             if len(set(secrets)) != len(secrets):
                 raise RuntimeError("Production secrets must be unique")
-            if not self.tenant_dsn_encryption_key:
-                raise RuntimeError("TENANT_DSN_ENCRYPTION_KEY is required in production")
-            try:
-                Fernet(self.tenant_dsn_encryption_key.encode())
-            except (ValueError, TypeError) as exc:
-                raise RuntimeError("TENANT_DSN_ENCRYPTION_KEY must be a valid Fernet key") from exc
+            self._validate_fernet(self.tenant_dsn_encryption_key, name="TENANT_DSN_ENCRYPTION_KEY")
             if "*" in self.cors_allowed_origins:
                 raise RuntimeError("Wildcard CORS is forbidden in production")
             if self.object_storage_provider != "s3":
@@ -125,6 +145,11 @@ class Settings(BaseSettings):
             ):
                 raise RuntimeError(
                     "WHATSAPP_SERVICE_TOKEN is required for a non-loopback WhatsApp service"
+                )
+            if self.radar_enabled:
+                self._validate_fernet(
+                    self.radar_session_encryption_key,
+                    name="RADAR_SESSION_ENCRYPTION_KEY",
                 )
             if (
                 self.radar_collector_url
