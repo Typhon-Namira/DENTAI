@@ -18,7 +18,7 @@ def armenian_summary() -> GroqClinicalSummary:
             GroqToothExplanation(
                 tooth_fdi="37",
                 evidence_ids=["finding_0"],
-                headline="Ատամ 37 — բժշկի գնահատում",
+                headline="37-րդ ատամ — բժշկի գնահատում",
                 clinical_explanation=(
                     "Այս ատամի համար համակարգում գրանցված է կառուցվածքային նշան, "
                     "որը ներկայացվում է որպես օժանդակ տեղեկատվություն։"
@@ -55,3 +55,15 @@ def test_prompt_requires_eastern_armenian_and_preserves_machine_identifiers() ->
     assert "Do not answer in English" in ARMENIAN_LANGUAGE_INSTRUCTION
     assert "tooth_fdi" in ARMENIAN_LANGUAGE_INSTRUCTION
     assert "evidence_ids" in ARMENIAN_LANGUAGE_INSTRUCTION
+    assert "15-րդ" in ARMENIAN_LANGUAGE_INSTRUCTION
+
+
+def test_prompt_enforces_native_armenian_dental_vocabulary() -> None:
+    assert "լցոնում" in ARMENIAN_LANGUAGE_INSTRUCTION
+    assert "պսակ" in ARMENIAN_LANGUAGE_INSTRUCTION
+    assert "արմատախողովակային բուժում" in ARMENIAN_LANGUAGE_INSTRUCTION
+    assert "խորը կարիես" in ARMENIAN_LANGUAGE_INSTRUCTION
+    assert "ֆիլինգ" in ARMENIAN_LANGUAGE_INSTRUCTION
+    assert "կրոն" in ARMENIAN_LANGUAGE_INSTRUCTION
+    assert "ռուտային թերապիա" in ARMENIAN_LANGUAGE_INSTRUCTION
+    assert "խորը աքսիդներ" in ARMENIAN_LANGUAGE_INSTRUCTION
