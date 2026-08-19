@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import AppError
 from app.radar.engine import (
     RadarClassification,
@@ -67,6 +68,27 @@ def opportunity_explanation(classification: RadarClassification) -> str:
     return " · ".join(parts)
 
 
+def _source_meta(source: RadarSource) -> dict[str, Any]:
+    return dict(source.source_metadata or {})
+
+
+def source_runtime(source: RadarSource) -> dict[str, Any]:
+    metadata = _source_meta(source)
+    return {
+        "state": metadata.get("runtime_state", "IDLE"),
+        "collector": metadata.get("last_collector"),
+        "last_error_code": metadata.get("last_error_code"),
+        "last_error": metadata.get("last_error"),
+        "last_signal_count": int(metadata.get("last_signal_count") or 0),
+        "last_new_signal_count": int(metadata.get("last_new_signal_count") or 0),
+        "consecutive_failures": int(metadata.get("consecutive_failures") or 0),
+        "last_success_at": metadata.get("last_success_at"),
+        "last_duration_ms": metadata.get("last_duration_ms"),
+        "source_revision": metadata.get("source_revision"),
+        "claimed_by": metadata.get("claimed_by"),
+    }
+
+
 async def create_source(
     db: AsyncSession,
     *,
@@ -100,6 +122,9 @@ async def create_source(
         dental_signal_probability,
     )
     now = datetime.now(UTC)
+    metadata = dict(source_metadata)
+    metadata.setdefault("runtime_state", "IDLE")
+    metadata.setdefault("consecutive_failures", 0)
     source = RadarSource(
         platform=normalized_platform,
         external_source_id=external_source_id.strip(),
@@ -116,7 +141,7 @@ async def create_source(
         priority=priority,
         monitoring_interval_minutes=interval,
         next_check_at=now,
-        source_metadata=source_metadata,
+        source_metadata=metadata,
     )
     db.add(source)
     await db.flush()
@@ -151,8 +176,45 @@ async def update_source(
     source.priority = priority
     source.monitoring_interval_minutes = interval
     source.next_check_at = datetime.now(UTC) + timedelta(minutes=interval)
+    metadata = _source_meta(source)
+    if not source.is_active:
+        metadata["runtime_state"] = "PAUSED"
+    elif metadata.get("runtime_state") == "PAUSED":
+        metadata["runtime_state"] = "IDLE"
+    source.source_metadata = metadata
     await db.flush()
     return source
+
+
+def _opportunity_summary(
+    classification: RadarClassification,
+    *,
+    source_id: uuid.UUID,
+    source_url: str,
+    existing: dict[str, Any] | None = None,
+    occurred_at: datetime,
+) -> dict[str, Any]:
+    summary = dict(existing or {})
+    previous_latest = summary.get("latest_score")
+    history = list(summary.get("score_history") or [])[-19:]
+    history.append({"at": occurred_at.isoformat(), "score": classification.opportunity_score})
+    summary.update(
+        {
+            "latest_source_id": str(source_id),
+            "latest_url": source_url,
+            "score_components": classification.evidence.get("components", {}),
+            "latest_score": classification.opportunity_score,
+            "peak_score": max(int(summary.get("peak_score") or 0), classification.opportunity_score),
+            "score_trend": (
+                classification.opportunity_score - int(previous_latest)
+                if isinstance(previous_latest, int)
+                else 0
+            ),
+            "score_history": history,
+            "semantic_classifier": classification.evidence.get("semantic_classifier", "heuristic"),
+        }
+    )
+    return summary
 
 
 async def ingest_signal(
@@ -170,6 +232,7 @@ async def ingest_signal(
     author_profile_url: str | None,
     observed_at: datetime,
     published_at: datetime | None,
+    classification: RadarClassification | None = None,
 ) -> IngestResult:
     if not source.is_active:
         raise AppError("RADAR_SOURCE_INACTIVE", "Radar source is inactive.", 409)
@@ -197,7 +260,7 @@ async def ingest_signal(
             opportunity = await db.get(RadarOpportunity, existing.opportunity_id)
         return IngestResult(existing, opportunity, True)
 
-    classification = classify_signal(
+    classification = classification or classify_signal(
         text,
         context_text=context_text,
         observed_at=observed_at,
@@ -209,6 +272,7 @@ async def ingest_signal(
         person_key = f"anonymous:{dedupe_key[:54]}"
 
     opportunity: RadarOpportunity | None = None
+    occurred_at = published_at or observed_at
     if classification.candidate:
         opportunity = await db.scalar(
             select(RadarOpportunity).where(
@@ -231,15 +295,16 @@ async def ingest_signal(
                 opportunity_score=classification.opportunity_score,
                 tier=classification.tier,
                 status="NEW",
-                first_seen_at=published_at or observed_at,
-                last_seen_at=published_at or observed_at,
+                first_seen_at=occurred_at,
+                last_seen_at=occurred_at,
                 signal_count=1,
                 explanation=explanation,
-                evidence_summary={
-                    "latest_source_id": str(source.id),
-                    "latest_url": source_url,
-                    "score_components": classification.evidence.get("components", {}),
-                },
+                evidence_summary=_opportunity_summary(
+                    classification,
+                    source_id=source.id,
+                    source_url=source_url,
+                    occurred_at=occurred_at,
+                ),
                 scoring_rule_set=classification.rule_set,
                 scoring_rule_version=classification.rule_version,
             )
@@ -247,9 +312,13 @@ async def ingest_signal(
             await db.flush()
         else:
             opportunity.signal_count += 1
-            opportunity.last_seen_at = max(
-                opportunity.last_seen_at,
-                published_at or observed_at,
+            opportunity.last_seen_at = max(opportunity.last_seen_at, occurred_at)
+            opportunity.evidence_summary = _opportunity_summary(
+                classification,
+                source_id=source.id,
+                source_url=source_url,
+                existing=opportunity.evidence_summary,
+                occurred_at=occurred_at,
             )
             if classification.opportunity_score >= opportunity.opportunity_score:
                 opportunity.opportunity_score = classification.opportunity_score
@@ -260,11 +329,6 @@ async def ingest_signal(
                 opportunity.intent = classification.intent
                 opportunity.urgency = classification.urgency_label
                 opportunity.explanation = explanation
-                opportunity.evidence_summary = {
-                    "latest_source_id": str(source.id),
-                    "latest_url": source_url,
-                    "score_components": classification.evidence.get("components", {}),
-                }
             if author_display and not opportunity.author_display:
                 opportunity.author_display = author_display.strip()
             if author_profile_url and not opportunity.author_profile_url:
@@ -306,19 +370,109 @@ async def ingest_signal(
         published_at=published_at,
     )
     db.add(signal)
+    await db.flush()
+    return IngestResult(signal, opportunity, False)
 
-    _, source.priority, source.monitoring_interval_minutes = source_rank(
+
+async def claim_due_source(db: AsyncSession, *, worker_id: str) -> RadarSource | None:
+    now = datetime.now(UTC)
+    settings = get_settings()
+    source = await db.scalar(
+        select(RadarSource)
+        .where(
+            RadarSource.is_active.is_(True),
+            or_(RadarSource.next_check_at.is_(None), RadarSource.next_check_at <= now),
+        )
+        .order_by(RadarSource.next_check_at.asc(), RadarSource.source_score.desc())
+        .with_for_update(skip_locked=True)
+        .limit(1)
+    )
+    if source is None:
+        return None
+    metadata = _source_meta(source)
+    metadata.update(
+        runtime_state="CLAIMED",
+        claimed_by=worker_id,
+        claimed_at=now.isoformat(),
+        last_error_code=None,
+        last_error=None,
+    )
+    source.source_metadata = metadata
+    source.next_check_at = now + timedelta(seconds=settings.radar_claim_seconds)
+    await db.flush()
+    return source
+
+
+async def complete_source_poll(
+    db: AsyncSession,
+    source: RadarSource,
+    *,
+    collector: str,
+    signal_count: int,
+    new_signal_count: int,
+    duration_ms: int,
+    source_revision: str | None,
+) -> None:
+    now = datetime.now(UTC)
+    _, priority, interval = source_rank(
         source.armenia_relevance,
         source.engagement_score,
         source.dental_signal_probability,
-        active=True,
-        new_content=True,
+        active=source.is_active,
+        new_content=new_signal_count > 0,
     )
-    source.last_content_at = published_at or observed_at
-    source.last_polled_at = observed_at
-    source.next_check_at = observed_at + timedelta(minutes=source.monitoring_interval_minutes)
+    source.priority = priority
+    source.monitoring_interval_minutes = interval
+    source.last_polled_at = now
+    if new_signal_count > 0:
+        source.last_content_at = now
+    source.next_check_at = now + timedelta(minutes=interval)
+    metadata = _source_meta(source)
+    metadata.update(
+        runtime_state="HEALTHY",
+        claimed_by=None,
+        claimed_at=None,
+        last_collector=collector,
+        last_signal_count=signal_count,
+        last_new_signal_count=new_signal_count,
+        last_success_at=now.isoformat(),
+        last_duration_ms=duration_ms,
+        source_revision=source_revision,
+        consecutive_failures=0,
+        last_error_code=None,
+        last_error=None,
+    )
+    source.source_metadata = metadata
     await db.flush()
-    return IngestResult(signal, opportunity, False)
+
+
+async def fail_source_poll(
+    db: AsyncSession,
+    source: RadarSource,
+    *,
+    error_code: str,
+    safe_error: str,
+    retryable: bool,
+) -> None:
+    now = datetime.now(UTC)
+    metadata = _source_meta(source)
+    failures = int(metadata.get("consecutive_failures") or 0) + 1
+    metadata.update(
+        runtime_state="ERROR" if retryable else "ACTION_REQUIRED",
+        claimed_by=None,
+        claimed_at=None,
+        consecutive_failures=failures,
+        last_error_code=error_code,
+        last_error=safe_error[:300],
+        last_failure_at=now.isoformat(),
+    )
+    source.source_metadata = metadata
+    if retryable:
+        delay_minutes = min(360, max(5, 5 * (2 ** min(failures - 1, 6))))
+        source.next_check_at = now + timedelta(minutes=delay_minutes)
+    else:
+        source.next_check_at = now + timedelta(hours=24)
+    await db.flush()
 
 
 async def dashboard_summary(db: AsyncSession) -> dict[str, Any]:
@@ -357,6 +511,34 @@ async def dashboard_summary(db: AsyncSession) -> dict[str, Any]:
         "new_signals_24h": new_signals,
         "new_opportunities_24h": opportunities_24h,
         "generated_at": now,
+    }
+
+
+async def runtime_summary(db: AsyncSession) -> dict[str, Any]:
+    now = datetime.now(UTC)
+    sources = list(
+        (await db.scalars(select(RadarSource).order_by(RadarSource.source_score.desc()))).all()
+    )
+    active = [source for source in sources if source.is_active]
+    due = [source for source in active if source.next_check_at is None or source.next_check_at <= now]
+    action_required = [
+        source for source in active if source_runtime(source)["state"] == "ACTION_REQUIRED"
+    ]
+    unhealthy = [source for source in active if source_runtime(source)["state"] == "ERROR"]
+    last_success_values = [
+        source_runtime(source)["last_success_at"]
+        for source in active
+        if source_runtime(source)["last_success_at"]
+    ]
+    settings = get_settings()
+    return {
+        "worker_expected": bool(active),
+        "active_sources": len(active),
+        "due_sources": len(due),
+        "unhealthy_sources": len(unhealthy),
+        "action_required_sources": len(action_required),
+        "last_success_at": max(last_success_values) if last_success_values else None,
+        "llm_semantic_refinement": bool(settings.radar_llm_enabled and settings.groq_api_key),
     }
 
 
@@ -438,7 +620,7 @@ async def due_sources(db: AsyncSession, *, limit: int = 50) -> list[RadarSource]
                     RadarSource.is_active.is_(True),
                     or_(RadarSource.next_check_at.is_(None), RadarSource.next_check_at <= now),
                 )
-                .order_by(RadarSource.priority.asc(), RadarSource.next_check_at.asc())
+                .order_by(RadarSource.next_check_at.asc(), RadarSource.source_score.desc())
                 .limit(limit)
             )
         ).all()
