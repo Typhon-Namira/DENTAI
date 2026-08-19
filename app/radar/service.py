@@ -204,14 +204,19 @@ def _opportunity_summary(
             "latest_url": source_url,
             "score_components": classification.evidence.get("components", {}),
             "latest_score": classification.opportunity_score,
-            "peak_score": max(int(summary.get("peak_score") or 0), classification.opportunity_score),
+            "peak_score": max(
+                int(summary.get("peak_score") or 0),
+                classification.opportunity_score,
+            ),
             "score_trend": (
                 classification.opportunity_score - int(previous_latest)
                 if isinstance(previous_latest, int)
                 else 0
             ),
             "score_history": history,
-            "semantic_classifier": classification.evidence.get("semantic_classifier", "heuristic"),
+            "semantic_classifier": classification.evidence.get(
+                "semantic_classifier", "heuristic"
+            ),
         }
     )
     return summary
@@ -520,7 +525,11 @@ async def runtime_summary(db: AsyncSession) -> dict[str, Any]:
         (await db.scalars(select(RadarSource).order_by(RadarSource.source_score.desc()))).all()
     )
     active = [source for source in sources if source.is_active]
-    due = [source for source in active if source.next_check_at is None or source.next_check_at <= now]
+    due = [
+        source
+        for source in active
+        if source.next_check_at is None or source.next_check_at <= now
+    ]
     action_required = [
         source for source in active if source_runtime(source)["state"] == "ACTION_REQUIRED"
     ]
