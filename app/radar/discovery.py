@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -147,7 +147,7 @@ async def refresh_source_quality(db: AsyncSession, source: RadarSource) -> None:
         await db.execute(
             select(
                 func.count(RadarSignal.id),
-                func.sum(func.cast(RadarSignal.is_candidate, int)),
+                func.sum(case((RadarSignal.is_candidate.is_(True), 1), else_=0)),
                 func.avg(RadarSignal.location_match),
             ).where(RadarSignal.source_id == source.id, RadarSignal.observed_at >= lookback)
         )
@@ -164,7 +164,10 @@ async def refresh_source_quality(db: AsyncSession, source: RadarSource) -> None:
         runtime = dict(source.source_metadata or {})
         seen = int(runtime.get("last_signal_count") or total)
         new = int(runtime.get("last_new_signal_count") or candidates)
-        activity = min(100.0, 30.0 + min(50.0, seen / max(1, total) * 50.0) + min(20.0, new * 2.0))
+        activity = min(
+            100.0,
+            30.0 + min(50.0, seen / max(1, total) * 50.0) + min(20.0, new * 2.0),
+        )
         source.engagement_score = activity
     score, priority, interval = source_rank(
         source.armenia_relevance,
