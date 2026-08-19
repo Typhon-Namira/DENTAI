@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { api, errorMessage } from "../api/client";
+import { RadarConnectionCenter } from "./RadarConnectionCenter";
 import type {
   RadarDashboard,
   RadarOpportunity,
@@ -305,6 +306,8 @@ export function PatientRadar({ role }: { role: Role }) {
         </div>
         <ConnectionMatrix runtime={runtime} />
       </section>
+
+      <RadarConnectionCenter canManage={canManage} />
 
       <section className="radar-metrics" aria-label="Patient Radar summary">
         <Metric label="Hot opportunities" value={dashboard.hot} accent="hot" />
