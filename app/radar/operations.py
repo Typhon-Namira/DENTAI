@@ -8,10 +8,11 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.radar.collector import RadarCollectorError, collect_source
+from app.radar.collector import RadarCollectorError
 from app.radar.discovery import record_discoveries, refresh_source_quality
 from app.radar.funnel import run_funnel
 from app.radar.models import RadarSource
+from app.radar.runtime_collector import collect_source
 from app.radar.service import complete_source_poll, fail_source_poll, ingest_signal
 
 
@@ -47,11 +48,7 @@ async def poll_registered_source(
         funnel = await run_funnel(db, source=source, collected=collected.signals)
         new_count = 0
         candidate_count = 0
-        for item, classification in zip(
-            funnel.signals,
-            funnel.classifications,
-            strict=True,
-        ):
+        for item, classification in zip(funnel.signals, funnel.classifications, strict=True):
             result = await ingest_signal(
                 db,
                 clinic_id=clinic_id,
@@ -77,9 +74,7 @@ async def poll_registered_source(
         discovered_promoted = 0
         if collected.discovered_sources:
             discovered_created, discovered_promoted = await record_discoveries(
-                db,
-                parent=source,
-                discovered=collected.discovered_sources,
+                db, parent=source, discovered=collected.discovered_sources
             )
         await refresh_source_quality(db, source)
 
