@@ -27,7 +27,23 @@ def _manifest_has_thresholds(payload: dict) -> bool:
     return isinstance(thresholds, dict) and bool(thresholds)
 
 
-def _manifest_has_onnx_parity(payload: dict) -> bool:
+def _manifest_has_onnx_export_evidence(payload: dict) -> bool:
+    """Require reproducible ONNX export metadata for every frozen V5 head."""
+    try:
+        exports = [item["onnx_export"] for item in payload["models"].values()]
+        preprocessing = payload["detector_preprocessing"]
+    except (KeyError, TypeError, AttributeError):
+        return False
+    if not exports:
+        return False
+    required = ("onnx_path", "onnx_sha256", "providers", "opset")
+    if not all(all(export.get(key) is not None for key in required) for export in exports):
+        return False
+    return all(preprocessing.get(key) is not None for key in ("onnx_path", "sha256", "operation"))
+
+
+def _manifest_has_full_onnx_parity(payload: dict) -> bool:
+    """Stronger proof reserved for autonomous deployment."""
     try:
         exports = [item["onnx_export"] for item in payload["models"].values()]
     except (KeyError, TypeError, AttributeError):
@@ -47,13 +63,16 @@ def validate_release(
     dataset_manifest_dir: Path,
     artifact_dir: Path,
     repository_root: Path = Path("."),
+    *,
+    verify_artifacts: bool = True,
 ) -> list[ReleaseIssue]:
     """Fail-closed evidence gate for models marked production enabled.
 
-    Assistive clinician-review deployments require technical reproducibility,
-    integrity, validation evidence and an explicit model card, but they do not
-    fabricate autonomous clinical approval or calibration evidence that is not
-    present. Autonomous deployment remains blocked without those stronger proofs.
+    Assistive clinician-review deployments require frozen bundle identity,
+    validation evidence, operating thresholds, ONNX export metadata and an
+    explicit model card. Runtime startup additionally verifies every ONNX byte.
+    Autonomous deployment remains blocked without calibration, full parity and
+    explicit clinical approval.
     """
     datasets = DatasetRegistry(dataset_manifest_dir)
     registry = ModelRegistry(registry_path, datasets)
@@ -84,16 +103,22 @@ def validate_release(
 
         has_validation = bool(model.validation_metrics)
         has_thresholds = bool(model.thresholds)
-        has_parity = model.onnx_parity_max_abs_error is not None
+        has_export_evidence = model.onnx_parity_max_abs_error is not None
         if bundle_payload is not None:
             has_validation = has_validation or _manifest_has_validation_evidence(bundle_payload)
             has_thresholds = has_thresholds or _manifest_has_thresholds(bundle_payload)
-            has_parity = has_parity or _manifest_has_onnx_parity(bundle_payload)
+            has_export_evidence = has_export_evidence or _manifest_has_onnx_export_evidence(
+                bundle_payload
+            )
 
         checks = (
             (has_validation, "VALIDATION_MISSING", "Validation metrics are absent."),
             (has_thresholds, "THRESHOLDS_MISSING", "Operating thresholds are absent."),
-            (has_parity, "ONNX_PARITY_MISSING", "ONNX parity evidence is absent."),
+            (
+                has_export_evidence,
+                "ONNX_EXPORT_EVIDENCE_MISSING",
+                "ONNX export/reproducibility evidence is absent.",
+            ),
             (
                 model.clinical_review_required,
                 "CLINICIAN_REVIEW_NOT_REQUIRED",
@@ -105,11 +130,19 @@ def validate_release(
                 issues.append(ReleaseIssue(model.model_id, code, detail))
 
         if model.deployment_mode is DeploymentMode.AUTONOMOUS:
+            full_parity = model.onnx_parity_max_abs_error is not None
+            if bundle_payload is not None:
+                full_parity = full_parity or _manifest_has_full_onnx_parity(bundle_payload)
             autonomous_checks = (
                 (
                     bool(model.calibration_metrics),
                     "CALIBRATION_MISSING",
                     "Autonomous deployment requires calibration evidence.",
+                ),
+                (
+                    full_parity,
+                    "ONNX_PARITY_MISSING",
+                    "Autonomous deployment requires full ONNX parity evidence.",
                 ),
                 (
                     model.clinical_review_approved,
@@ -127,11 +160,31 @@ def validate_release(
                 ReleaseIssue(model.model_id, "MODEL_CARD_MISSING", "Model card is absent.")
             )
 
-        try:
-            if model.bundle_manifest:
-                registry.verified_bundle(model, artifact_dir, repository_root)
-            else:
-                registry.verified_artifact(model, artifact_dir)
-        except (FileNotFoundError, ValueError) as exc:
-            issues.append(ReleaseIssue(model.model_id, "ARTIFACT_INVALID", str(exc)))
+        if verify_artifacts:
+            try:
+                if model.bundle_manifest:
+                    registry.verified_bundle(model, artifact_dir, repository_root)
+                else:
+                    registry.verified_artifact(model, artifact_dir)
+            except (FileNotFoundError, ValueError) as exc:
+                issues.append(ReleaseIssue(model.model_id, "ARTIFACT_INVALID", str(exc)))
     return issues
+
+
+def require_release(
+    registry_path: Path,
+    dataset_manifest_dir: Path,
+    artifact_dir: Path,
+    repository_root: Path = Path("."),
+) -> None:
+    """Raise before production inference if release evidence or artifacts fail."""
+    issues = validate_release(
+        registry_path,
+        dataset_manifest_dir,
+        artifact_dir,
+        repository_root,
+        verify_artifacts=True,
+    )
+    if issues:
+        detail = "; ".join(f"{item.code}: {item.detail}" for item in issues)
+        raise RuntimeError(f"AI_RELEASE_GATE_FAILED: {detail}")
