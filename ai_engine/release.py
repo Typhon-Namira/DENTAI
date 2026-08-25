@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ai_engine.data.registry import DatasetRegistry
-from ai_engine.models.registry import ModelLifecycle, ModelRegistry
+from ai_engine.models.registry import DeploymentMode, ModelLifecycle, ModelRegistry
 
 
 @dataclass(frozen=True)
@@ -12,13 +12,49 @@ class ReleaseIssue:
     detail: str
 
 
+def _manifest_has_validation_evidence(payload: dict) -> bool:
+    try:
+        models = payload["models"]
+        return bool(models) and all(
+            bool(item.get("checkpoint_metric_metadata")) for item in models.values()
+        )
+    except (KeyError, TypeError, AttributeError):
+        return False
+
+
+def _manifest_has_thresholds(payload: dict) -> bool:
+    thresholds = payload.get("thresholds")
+    return isinstance(thresholds, dict) and bool(thresholds)
+
+
+def _manifest_has_onnx_parity(payload: dict) -> bool:
+    try:
+        exports = [item["onnx_export"] for item in payload["models"].values()]
+    except (KeyError, TypeError, AttributeError):
+        return False
+    if not exports:
+        return False
+    for export in exports:
+        if export.get("prediction_agreement") is True:
+            continue
+        if export.get("max_abs_logit_difference") is None:
+            return False
+    return True
+
+
 def validate_release(
     registry_path: Path,
     dataset_manifest_dir: Path,
     artifact_dir: Path,
     repository_root: Path = Path("."),
 ) -> list[ReleaseIssue]:
-    """Fail-closed evidence gate for models marked production enabled."""
+    """Fail-closed evidence gate for models marked production enabled.
+
+    Assistive clinician-review deployments require technical reproducibility,
+    integrity, validation evidence and an explicit model card, but they do not
+    fabricate autonomous clinical approval or calibration evidence that is not
+    present. Autonomous deployment remains blocked without those stronger proofs.
+    """
     datasets = DatasetRegistry(dataset_manifest_dir)
     registry = ModelRegistry(registry_path, datasets)
     issues: list[ReleaseIssue] = []
@@ -38,39 +74,64 @@ def validate_release(
                     "Research-only lineage cannot pass the production release gate.",
                 )
             )
+
+        bundle_payload: dict | None = None
+        if model.bundle_manifest:
+            try:
+                bundle_payload = registry.load_bundle_manifest(model, repository_root)
+            except (FileNotFoundError, ValueError) as exc:
+                issues.append(ReleaseIssue(model.model_id, "BUNDLE_MANIFEST_INVALID", str(exc)))
+
+        has_validation = bool(model.validation_metrics)
+        has_thresholds = bool(model.thresholds)
+        has_parity = model.onnx_parity_max_abs_error is not None
+        if bundle_payload is not None:
+            has_validation = has_validation or _manifest_has_validation_evidence(bundle_payload)
+            has_thresholds = has_thresholds or _manifest_has_thresholds(bundle_payload)
+            has_parity = has_parity or _manifest_has_onnx_parity(bundle_payload)
+
         checks = (
+            (has_validation, "VALIDATION_MISSING", "Validation metrics are absent."),
+            (has_thresholds, "THRESHOLDS_MISSING", "Operating thresholds are absent."),
+            (has_parity, "ONNX_PARITY_MISSING", "ONNX parity evidence is absent."),
             (
-                bool(model.validation_metrics),
-                "VALIDATION_MISSING",
-                "Validation metrics are absent.",
-            ),
-            (bool(model.thresholds), "THRESHOLDS_MISSING", "Operating thresholds are absent."),
-            (
-                bool(model.calibration_metrics),
-                "CALIBRATION_MISSING",
-                "Calibration evidence is absent.",
-            ),
-            (
-                model.onnx_parity_max_abs_error is not None,
-                "ONNX_PARITY_MISSING",
-                "ONNX parity evidence is absent.",
-            ),
-            (
-                model.clinical_review_approved,
-                "CLINICAL_REVIEW_MISSING",
-                "Clinical approval is absent.",
+                model.clinical_review_required,
+                "CLINICIAN_REVIEW_NOT_REQUIRED",
+                "Production AI findings must require clinician review.",
             ),
         )
         for passed, code, detail in checks:
             if not passed:
                 issues.append(ReleaseIssue(model.model_id, code, detail))
+
+        if model.deployment_mode is DeploymentMode.AUTONOMOUS:
+            autonomous_checks = (
+                (
+                    bool(model.calibration_metrics),
+                    "CALIBRATION_MISSING",
+                    "Autonomous deployment requires calibration evidence.",
+                ),
+                (
+                    model.clinical_review_approved,
+                    "CLINICAL_REVIEW_MISSING",
+                    "Autonomous deployment requires explicit clinical approval.",
+                ),
+            )
+            for passed, code, detail in autonomous_checks:
+                if not passed:
+                    issues.append(ReleaseIssue(model.model_id, code, detail))
+
         card = repository_root / model.model_card if model.model_card else None
         if card is None or not card.is_file():
             issues.append(
                 ReleaseIssue(model.model_id, "MODEL_CARD_MISSING", "Model card is absent.")
             )
+
         try:
-            registry.verified_artifact(model, artifact_dir)
+            if model.bundle_manifest:
+                registry.verified_bundle(model, artifact_dir, repository_root)
+            else:
+                registry.verified_artifact(model, artifact_dir)
         except (FileNotFoundError, ValueError) as exc:
             issues.append(ReleaseIssue(model.model_id, "ARTIFACT_INVALID", str(exc)))
     return issues
