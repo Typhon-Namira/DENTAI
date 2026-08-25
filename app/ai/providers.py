@@ -19,6 +19,7 @@ from ai_engine.schemas import (
     UncertaintyLevel,
     VisionFinding,
 )
+from app.ai.finding_scores import resolve_finding_score
 from app.core.config import get_settings
 
 
@@ -122,7 +123,6 @@ class DENTAIRealOPGProvider(DentalAIProvider):
         structured_findings: list[dict] = []
         for tooth in raw["teeth"]:
             review = bool(tooth["review_required"])
-            confidence = float(tooth["status_v2"]["confidence"])
             uncertainty = (
                 UncertaintyLevel.LOW_CONFIDENCE
                 if review
@@ -133,6 +133,7 @@ class DENTAIRealOPGProvider(DentalAIProvider):
             for finding_type in tooth["final_findings"]:
                 if finding_type == "HEALTHY":
                     continue
+                selected_score, score_sources = resolve_finding_score(tooth, finding_type)
                 item = VisionFinding(
                     finding_type=finding_type,
                     description=(
@@ -145,8 +146,8 @@ class DENTAIRealOPGProvider(DentalAIProvider):
                         )
                     ),
                     tooth_fdi=tooth["fdi"],
-                    raw_score=confidence,
-                    calibrated_confidence=confidence,
+                    raw_score=selected_score.score,
+                    calibrated_confidence=selected_score.score,
                     uncertainty=uncertainty,
                     uncertainty_reason=reason,
                     bounding_box=tuple(tooth["tooth_detection"]["bbox_xyxy"]),
@@ -165,6 +166,16 @@ class DENTAIRealOPGProvider(DentalAIProvider):
                             "source_model": item.source_model,
                             "model_version": item.model_version,
                             "raw_score": item.raw_score,
+                            "score_source_head": selected_score.source_head,
+                            "score_source_type": selected_score.evidence_type,
+                            "score_sources": [
+                                {
+                                    "source_head": source.source_head,
+                                    "evidence_type": source.evidence_type,
+                                    "raw_score": source.score,
+                                }
+                                for source in score_sources
+                            ],
                             "uncertainty": item.uncertainty.value,
                             "uncertainty_reason": item.uncertainty_reason,
                             "bounding_box": list(item.bounding_box or ()),
