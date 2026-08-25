@@ -1,1 +1,14 @@
-models: []
+models:
+  - model_id: dentai-unified-v5
+    task: panoramic_dental_xray_assistive_analysis
+    architecture: multi-head ONNX bundle
+    version: dentai-unified-v5
+    training_dataset_ids: []
+    bundle_manifest: artifacts/production/dentai_v5_model_manifest.json
+    production_enabled: true
+    model_card: docs/ai/dentai-unified-v5-model-card.md
+    lifecycle: PRODUCTION_ENABLED
+    deployment_mode: ASSISTIVE_CLINICIAN_REVIEW
+    clinical_review_required: true
+    clinical_review_approved: false
+    clinical_review_state: NOT_REVIEWED
