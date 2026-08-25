@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     ai_provider: str = "mock"
     ai_model_artifact_path: Path = Path("model_artifacts/dentai_v5")
     ai_model_manifest_path: Path = Path("artifacts/production/dentai_v5_model_manifest.json")
+    ai_release_registry_path: Path = Path("configs/ai/models.yaml")
+    ai_dataset_manifest_dir: Path = Path("ai_engine/data/manifests")
     ai_worker_poll_seconds: float = 2.0
     ai_worker_heartbeat_seconds: float = 30.0
     ai_config_path: Path = Path("configs/ai/opg_v1.yaml")
