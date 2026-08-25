@@ -4,10 +4,12 @@ import os
 import socket
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 
 from sqlalchemy import select
 
 from ai_engine.inference.dentai_unified_v5_onnx import Engine
+from ai_engine.release import require_release
 from app.ai.jobs import claim_next_analysis, heartbeat, schedule_retry
 from app.ai.providers import DENTAIRealOPGProvider
 from app.clinic_resolution.service import resolver
@@ -41,11 +43,14 @@ async def process_one(session, session_factory, worker_id: str) -> bool:
         prior = await session.scalar(
             select(AIAnalysis.structured_result)
             .where(AIAnalysis.patient_id == job.patient_id, AIAnalysis.status == AIStatus.COMPLETED)
-            .order_by(AIAnalysis.completed_at.desc()).limit(1)
+            .order_by(AIAnalysis.completed_at.desc())
+            .limit(1)
         )
         result = await DENTAIRealOPGProvider().analyze_xray(
-            patient_context={"patient_id": str(job.patient_id)}, xray_reference=str(xray.id),
-            image_bytes=image_bytes, prior_analysis=prior,
+            patient_context={"patient_id": str(job.patient_id)},
+            xray_reference=str(xray.id),
+            image_bytes=image_bytes,
+            prior_analysis=prior,
         )
         job.provider, job.model_name, job.model_version = (
             result.provider,
@@ -87,7 +92,14 @@ async def process_one(session, session_factory, worker_id: str) -> bool:
 
 async def run() -> None:
     settings = get_settings()
-    # Startup/release gate: hashes, exact filenames, and all ONNX sessions before any claim.
+    # Release gate runs before model session creation or any job claim. It checks
+    # registry/manifest evidence and SHA-256 of the exact nine deployed ONNX files.
+    require_release(
+        settings.ai_release_registry_path,
+        settings.ai_dataset_manifest_dir,
+        settings.ai_model_artifact_path,
+        Path("."),
+    )
     Engine(settings.ai_model_artifact_path, settings.ai_model_manifest_path)
     worker_id = os.getenv("AI_WORKER_ID", f"{socket.gethostname()}-{uuid.uuid4().hex[:12]}")
     while True:
