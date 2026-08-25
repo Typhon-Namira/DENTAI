@@ -34,6 +34,15 @@ jobs:
       - run: uv sync --frozen --extra dev
       - run: uv run pytest --cov=app --cov-report=term-missing
 
+  release-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: {version: "0.12.3", enable-cache: true}
+      - run: uv sync --frozen --extra dev
+      - run: uv run python scripts/validate_ai_release.py --metadata-only
+
   security:
     runs-on: ubuntu-latest
     steps:
