@@ -28,6 +28,7 @@ COPY configs ./configs
 COPY config ./config
 COPY artifacts/production ./artifacts/production
 COPY migrations ./migrations
+COPY docs/ai ./docs/ai
 COPY scripts ./scripts
 COPY whatsapp_service ./whatsapp_service
 COPY alembic.ini README.md ./
