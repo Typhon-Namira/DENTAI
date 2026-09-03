@@ -1,0 +1,245 @@
+/* Clinical tools restored inside the V4 dashboard without changing the V4 shell. */
+.v4-clinical-feature{
+  grid-column:1/-1;
+  min-width:0;
+  margin-top:2px;
+  padding:2px;
+}
+.v4-clinical-feature .analysis-workspace{
+  display:grid;
+  gap:18px;
+  min-width:0;
+}
+.v4-clinical-feature .card,
+.v4-outreach-tool .card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:0 15px 45px rgba(55,45,130,.075);
+}
+.v4-clinical-feature .card{padding:20px}
+.v4-clinical-feature .eyebrow,
+.v4-outreach-tool .eyebrow{
+  color:var(--violet);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.v4-clinical-feature .button,
+.v4-outreach-tool .button{
+  min-height:40px;
+  border:0;
+  border-radius:10px;
+  padding:9px 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-weight:750;
+  transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease;
+}
+.v4-clinical-feature .button:not(:disabled):hover,
+.v4-outreach-tool .button:not(:disabled):hover{transform:translateY(-1px)}
+.v4-clinical-feature .button:disabled,
+.v4-outreach-tool .button:disabled{opacity:.5;cursor:not-allowed}
+.v4-clinical-feature .button-primary,
+.v4-outreach-tool .button-primary{background:linear-gradient(135deg,#6d4cff,#5537f4);color:#fff;box-shadow:0 9px 22px rgba(101,69,255,.2)}
+.v4-clinical-feature .button-secondary,
+.v4-outreach-tool .button-secondary{background:#f2efff;color:#5b43e6}
+.v4-clinical-feature .button-quiet,
+.v4-outreach-tool .button-quiet{background:#f5f6fb;color:#62698d}
+.v4-clinical-feature .button-accent,
+.v4-outreach-tool .button-accent{background:linear-gradient(135deg,#6d4cff,#7d63ff);color:#fff;box-shadow:0 9px 24px rgba(101,69,255,.22)}
+.v4-clinical-feature .error-panel,
+.v4-outreach-tool .error-panel{border-radius:11px;background:#fff1f2;color:#b33d4a;padding:10px 12px;font-size:12px}
+.v4-clinical-feature .status-badge{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  border-radius:999px;
+  padding:6px 9px;
+  background:#f1efff;
+  color:#5f47e6;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+.v4-clinical-feature .status-completed,
+.v4-clinical-feature .status-confirmed{background:#eaf9f2;color:#14855a}
+.v4-clinical-feature .status-failed,
+.v4-clinical-feature .status-rejected{background:#fff0f1;color:#c34d58}
+.v4-clinical-feature .status-processing,
+.v4-clinical-feature .status-queued,
+.v4-clinical-feature .status-pending{background:#fff7e8;color:#a96a17}
+.v4-clinical-feature .analysis-focus-header{
+  border:1px solid #e8e4ff;
+  border-radius:18px;
+  background:linear-gradient(135deg,#fbfaff,#fff);
+  box-shadow:0 12px 34px rgba(83,65,177,.06);
+}
+.v4-clinical-feature .medical-opg{
+  overflow:visible;
+  border-color:#e5e1ff;
+  box-shadow:0 18px 55px rgba(44,39,102,.08);
+}
+.v4-clinical-feature .cinematic-stage{border-radius:18px;overflow:hidden}
+.v4-clinical-feature .cinematic-stage>img{display:block;width:100%;height:auto;max-height:640px;object-fit:contain;background:#090b12}
+.v4-clinical-feature .clinical-briefing{
+  box-shadow:0 16px 48px rgba(81,66,173,.08);
+}
+.v4-clinical-feature .finding-library-fold,
+.v4-clinical-feature .technical-fold{box-shadow:none}
+.v4-clinical-feature details>summary{cursor:pointer}
+.v4-clinical-feature .compact-review-dock{position:sticky;bottom:16px;z-index:8;box-shadow:0 20px 50px rgba(59,47,144,.16)}
+
+/* Outreach: reuse the proven QR + test-message workflow in the current V4 visual language. */
+.v4-outreach-enhanced{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);
+  gap:18px;
+  align-items:start;
+  margin-top:18px;
+}
+.v4-outreach-tool{min-width:0}
+.v4-outreach-tool .whatsapp-card{
+  padding:22px;
+  display:grid;
+  gap:17px;
+  border-color:#e6e1ff;
+  background:linear-gradient(180deg,#fff,#fdfcff);
+}
+.v4-outreach-tool .section-heading{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+}
+.v4-outreach-tool .section-heading h3{margin:4px 0 0;font-size:20px;letter-spacing:-.025em}
+.v4-outreach-tool .connection-dot{
+  border-radius:999px;
+  padding:7px 10px;
+  background:#fff0f1;
+  color:#bd4b57;
+  font-size:10px;
+  font-weight:850;
+  white-space:nowrap;
+}
+.v4-outreach-tool .connection-dot.connected{background:#eaf9f2;color:#14855a}
+.v4-outreach-tool .whatsapp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.v4-outreach-tool .whatsapp-grid>div{
+  border:1px solid #eceafd;
+  border-radius:13px;
+  background:#fafaff;
+  padding:13px;
+  min-width:0;
+}
+.v4-outreach-tool .field-label{display:block;color:#8a90ae;font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;margin-bottom:5px}
+.v4-outreach-tool .whatsapp-grid strong{font-size:12px;word-break:break-word}
+.v4-outreach-tool .whatsapp-phone-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+.v4-outreach-tool .whatsapp-phone-row label{display:grid;gap:7px;color:#596187;font-size:11px;font-weight:750}
+.v4-outreach-tool input[type="tel"]{
+  width:100%;
+  height:42px;
+  border-radius:10px;
+  border:1px solid #dedff1;
+  background:#fff;
+  color:var(--ink);
+  padding:0 12px;
+  outline:none;
+}
+.v4-outreach-tool input[type="tel"]:focus{border-color:#9f90ff;box-shadow:0 0 0 3px rgba(101,69,255,.1)}
+.v4-outreach-tool .whatsapp-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:2px}
+.v4-outreach-tool .image-option{display:flex;align-items:center;gap:7px;color:#68709b;font-size:11px;font-weight:650;margin-right:auto}
+.v4-outreach-tool .image-option input{accent-color:#6545ff}
+.v4-outreach-tool .whatsapp-delivery-state{margin:0;padding:10px 12px;border-radius:10px;background:#f6f4ff;color:#5c4bb5;font-size:11px}
+.v4-outreach-tool .muted{margin:0;color:#858ba9;font-size:10px;line-height:1.6}
+.v4-outreach-tool .whatsapp-result{
+  border:1px solid #e6e2ff;
+  background:#faf9ff;
+  border-radius:14px;
+  padding:15px;
+}
+.v4-outreach-tool .whatsapp-result h4{margin:0 0 11px;font-size:14px}
+.v4-outreach-tool .whatsapp-result dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
+.v4-outreach-tool .whatsapp-result dl>div{background:#fff;border:1px solid #eeecfb;border-radius:10px;padding:9px;min-width:0}
+.v4-outreach-tool .whatsapp-result dt{color:#9095b2;font-size:9px;text-transform:uppercase;font-weight:800;letter-spacing:.06em}
+.v4-outreach-tool .whatsapp-result dd{margin:4px 0 0;font-size:11px;font-weight:700;word-break:break-word}
+.v4-outreach-patient{min-height:220px}
+.v4-outreach-patient .v4-detail-dl{margin-top:8px}
+
+.v4-outreach-tool .qr-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:rgba(13,14,35,.62);
+  backdrop-filter:blur(10px);
+}
+.v4-outreach-tool .qr-modal{
+  width:min(430px,94vw);
+  border-radius:24px;
+  border:1px solid rgba(255,255,255,.65);
+  background:#fff;
+  box-shadow:0 35px 100px rgba(20,18,58,.3);
+  padding:28px;
+  text-align:center;
+  position:relative;
+  animation:v4QrIn .22s ease-out both;
+}
+.v4-outreach-tool .qr-modal h2{margin:6px 0 16px;font-size:27px;letter-spacing:-.04em}
+.v4-outreach-tool .qr-modal>img{
+  width:min(285px,72vw);
+  aspect-ratio:1;
+  object-fit:contain;
+  display:block;
+  margin:0 auto 16px;
+  padding:10px;
+  border:1px solid #eceafd;
+  border-radius:18px;
+  background:#fff;
+}
+.v4-outreach-tool .qr-modal>p:not(.eyebrow){color:#72799c;font-size:12px;line-height:1.6;margin:0 0 7px}
+.v4-outreach-tool .qr-modal>small{color:#9a9fba;font-size:10px}
+.v4-outreach-tool .qr-close{
+  position:absolute;
+  top:13px;
+  right:13px;
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:10px;
+  background:#f4f3fb;
+  color:#72799c;
+  font-size:20px;
+}
+.v4-outreach-tool .qr-loading{
+  width:min(285px,72vw);
+  aspect-ratio:1;
+  display:grid;
+  place-items:center;
+  margin:0 auto 16px;
+  border-radius:18px;
+  border:1px dashed #d9d4ff;
+  background:#faf9ff;
+  color:#7563d9;
+  font-size:12px;
+  font-weight:750;
+}
+@keyframes v4QrIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+
+@media(max-width:980px){
+  .v4-outreach-enhanced{grid-template-columns:1fr}
+  .v4-clinical-feature .compact-review-dock{position:static}
+}
+@media(max-width:640px){
+  .v4-outreach-tool .whatsapp-grid,
+  .v4-outreach-tool .whatsapp-result dl{grid-template-columns:1fr}
+  .v4-outreach-tool .whatsapp-phone-row{grid-template-columns:1fr}
+  .v4-outreach-tool .whatsapp-actions{align-items:stretch}
+  .v4-outreach-tool .whatsapp-actions .button{width:100%}
+  .v4-outreach-tool .image-option{width:100%;margin:0}
+  .v4-clinical-feature{padding:0}
+}
