@@ -75,31 +75,27 @@ class LocalStorageProvider:
 
 class S3StorageProvider:
     def __init__(self, settings: Settings) -> None:
-        missing = [
-            name
-            for name, value in (
-                ("S3_BUCKET", settings.s3_bucket),
-                ("S3_ACCESS_KEY", settings.s3_access_key),
-                ("S3_SECRET_KEY", settings.s3_secret_key),
-            )
-            if not value
-        ]
-        if missing:
-            raise RuntimeError(f"S3 storage configuration is incomplete: {', '.join(missing)}")
+        if not settings.s3_bucket:
+            raise RuntimeError("S3 storage configuration is incomplete: S3_BUCKET is required")
+        if bool(settings.s3_access_key) != bool(settings.s3_secret_key):
+            raise RuntimeError("S3_ACCESS_KEY and S3_SECRET_KEY must be provided together")
         self.bucket = settings.s3_bucket
-        self.client = boto3.client(
-            "s3",
-            endpoint_url=settings.s3_endpoint or None,
-            region_name=settings.s3_region,
-            aws_access_key_id=settings.s3_access_key,
-            aws_secret_access_key=settings.s3_secret_key,
-            config=Config(
+        client_options = {
+            "endpoint_url": settings.s3_endpoint or None,
+            "region_name": settings.s3_region,
+            "config": Config(
                 signature_version="s3v4",
                 connect_timeout=settings.s3_connect_timeout_seconds,
                 read_timeout=settings.s3_read_timeout_seconds,
                 retries={"max_attempts": 3, "mode": "standard"},
             ),
-        )
+        }
+        if settings.s3_access_key and settings.s3_secret_key:
+            client_options.update(
+                aws_access_key_id=settings.s3_access_key,
+                aws_secret_access_key=settings.s3_secret_key,
+            )
+        self.client = boto3.client("s3", **client_options)
 
     async def upload(self, key: str, data: bytes, content_type: str) -> None:
         key = "/".join(_key_parts(key))

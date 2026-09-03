@@ -15,8 +15,13 @@ depends_on = None
 
 
 def selected():
+    """Return tables for the selected migration plane in FK dependency order."""
     control = os.getenv("MIGRATION_PLANE", "clinic") == "control"
-    return [t for name, t in Base.metadata.tables.items() if (name == "clinic_registry") == control]
+    return [
+        table
+        for table in Base.metadata.sorted_tables
+        if (table.name == "clinic_registry") == control
+    ]
 
 
 def upgrade():
