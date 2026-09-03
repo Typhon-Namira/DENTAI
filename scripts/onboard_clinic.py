@@ -3,6 +3,15 @@
 import argparse
 import asyncio
 import os
+import sys
+from pathlib import Path
+
+# When executed as ``python scripts/onboard_clinic.py`` inside the image,
+# Python otherwise puts /app/scripts (not /app) on sys.path. Ensure the
+# repository root is importable so ``app.*`` imports work consistently.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from alembic import command
 from alembic.config import Config
