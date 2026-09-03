@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.auth.security import hash_password
 from app.database.control_models import ClinicRegistry
-from app.database.models import Branch, Role, User
+from app.database.models import Branch, Role, User, UserBranchScope
 
 
 def migrate_tenant(database_url: str) -> None:
@@ -41,16 +41,17 @@ async def main(a):
         branch = Branch(name=a.branch_name, code=a.branch_code)
         db.add(branch)
         await db.flush()
-        db.add(
-            User(
-                username=a.username,
-                email=a.email.lower(),
-                password_hash=hash_password(a.password),
-                role=Role.DIRECTOR,
-                first_name=a.first_name,
-                last_name=a.last_name,
-            )
+        user = User(
+            username=a.username,
+            email=a.email.lower(),
+            password_hash=hash_password(a.password),
+            role=Role.DIRECTOR,
+            first_name=a.first_name,
+            last_name=a.last_name,
         )
+        db.add(user)
+        await db.flush()
+        db.add(UserBranchScope(user_id=user.id, branch_id=branch.id))
     encrypted = (
         Fernet(os.environ["TENANT_DSN_ENCRYPTION_KEY"].encode())
         .encrypt(tenant_url.encode())
