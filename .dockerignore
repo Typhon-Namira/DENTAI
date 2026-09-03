@@ -14,7 +14,9 @@ __pycache__
 storage
 tests
 work-*
-docs
+docs/*
+!docs/ai/
+!docs/ai/**
 frontend-test/node_modules
 frontend-test/dist
 frontend-test/.env*
