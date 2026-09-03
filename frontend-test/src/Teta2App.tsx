@@ -1,44 +1,33 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import {
+  Bell, Building2, CalendarDays, Camera, ChevronDown, ChevronRight, CircleUserRound,
+  FolderOpen, HeartPulse, Home, Image, Languages, LogOut, Radar, Search, Settings,
+  ShieldCheck, Sparkles, UploadCloud, UsersRound, WandSparkles, Wifi, X
+} from "lucide-react";
 import { api, clearSession, errorMessage, hasSession } from "./api/client";
-import type { AIAnalysis, CurrentUser, Patient, PatientProfile, XRay } from "./api/types";
-import { AnalysisResults } from "./components/AnalysisResults";
-import { BackendChecks } from "./components/BackendChecks";
-import { PatientRadar } from "./components/PatientRadar";
+import type { AIAnalysis, CurrentUser, DentalFinding, Patient, PatientProfile, XRay } from "./api/types";
+import type { Lang } from "./i18n";
+import { tr } from "./i18n";
+import { AdminPanel } from "./components/AdminPanel";
 import { PublicPortal } from "./components/PublicPortal";
-import { WhatsAppOutreachCard } from "./components/WhatsAppOutreachCard";
-import { XrayUpload } from "./components/XrayUpload";
-import { xrayForAnalysis } from "./utils/opg";
+import { Teta2Logo } from "./components/Teta2Logo";
 
-type Section = "dashboard" | "workspace" | "patients" | "xrays" | "followups" | "radar" | "outreach" | "settings";
+type Section = "dashboard" | "patients" | "xrays" | "followups" | "radar" | "outreach" | "settings";
+const LANG_KEY = "teta2-language";
 
-const nav: Array<{ value: Section; label: string; icon: string }> = [
-  { value: "dashboard", label: "Dashboard", icon: "⌂" },
-  { value: "workspace", label: "AI Workspace", icon: "✦" },
-  { value: "patients", label: "My Patients", icon: "◎" },
-  { value: "xrays", label: "X-rays", icon: "▣" },
-  { value: "followups", label: "Follow-ups", icon: "◷" },
-  { value: "radar", label: "Radar AI", icon: "⌁" },
-  { value: "outreach", label: "Outreach", icon: "↗" },
-  { value: "settings", label: "Settings", icon: "⚙" }
-];
-
+function getSavedLang(): Lang | null {
+  const value = localStorage.getItem(LANG_KEY);
+  return value === "en" || value === "hy" ? value : null;
+}
 function fullName(patient: Patient) { return `${patient.first_name} ${patient.last_name}`; }
-function initials(patient: Patient) { return `${patient.first_name[0] ?? ""}${patient.last_name[0] ?? ""}`.toUpperCase(); }
-function shortDate(value: string | null | undefined) {
-  if (!value) return "—";
-  return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-function asRecord(value: unknown): Record<string, unknown> { return (value && typeof value === "object") ? value as Record<string, unknown> : {}; }
-function followupDate(item: Record<string, unknown>) {
-  const value = item.due_at ?? item.recommended_date ?? item.created_at;
-  return typeof value === "string" ? shortDate(value) : "—";
-}
-function followupReason(item: Record<string, unknown>) {
-  const value = item.reason ?? item.summary ?? item.status;
-  return typeof value === "string" ? value : "Follow-up";
-}
+function initials(patient: Patient) { return `${patient.first_name[0] || ""}${patient.last_name[0] || ""}`.toUpperCase(); }
+function dateText(value: string | null | undefined, lang: Lang) { return value ? new Intl.DateTimeFormat(lang === "hy" ? "hy-AM" : "en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value)) : "—"; }
+function record(item: unknown): Record<string, unknown> { return item && typeof item === "object" ? item as Record<string, unknown> : {}; }
+function followDate(item: Record<string, unknown>, lang: Lang) { const value = item.due_at ?? item.scheduled_date ?? item.created_at; return typeof value === "string" ? dateText(value, lang) : "—"; }
+function followReason(item: Record<string, unknown>) { const value = item.reason ?? item.summary ?? item.priority; return typeof value === "string" ? value.replaceAll("_", " ") : "Follow-up"; }
 
 export default function Teta2App() {
+  const [lang, setLangState] = useState<Lang | null>(() => getSavedLang());
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [profiles, setProfiles] = useState<Record<string, PatientProfile>>({});
@@ -50,209 +39,107 @@ export default function Teta2App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const pollTimer = useRef<number | null>(null);
+  const adminMode = window.location.pathname.startsWith("/admin") || window.location.hash === "#admin";
 
-  const profile = selectedPatientId ? profiles[selectedPatientId] ?? null : null;
-  const selectedAnalysis = profile?.ai_analyses.find((item) => item.id === selectedAnalysisId) ?? profile?.ai_analyses[0] ?? null;
-  const selectedXray = xrayForAnalysis(selectedAnalysis, profile?.xrays ?? []);
-  const selectedFindings = profile?.findings.filter((item) => item.analysis_id === selectedAnalysis?.id) ?? [];
+  function setLang(next: Lang) { localStorage.setItem(LANG_KEY, next); setLangState(next); document.documentElement.lang = next; }
 
-  const recentAnalyses = useMemo(() => {
-    return Object.values(profiles)
-      .flatMap((p) => p.ai_analyses.map((analysis) => ({ analysis, patient: p.patient })))
-      .sort((a, b) => new Date(b.analysis.requested_at).getTime() - new Date(a.analysis.requested_at).getTime())
-      .slice(0, 4);
-  }, [profiles]);
-
-  const dueFollowups = useMemo(() => {
-    return Object.values(profiles)
-      .flatMap((p) => p.followups.map((item) => ({ item: asRecord(item), patient: p.patient })))
-      .sort((a, b) => String(a.item.due_at ?? "").localeCompare(String(b.item.due_at ?? "")))
-      .slice(0, 5);
-  }, [profiles]);
-
-  const totalFindings = useMemo(() => Object.values(profiles).reduce((sum, p) => sum + p.findings.length, 0), [profiles]);
-
-  async function loadPatientProfile(patientId: string) {
-    const next = await api.patientProfile(patientId);
-    setProfiles((current) => ({ ...current, [patientId]: next }));
-    return next;
-  }
+  useEffect(() => { if (lang) document.documentElement.lang = lang; }, [lang]);
+  useEffect(() => { if (!hasSession()) { setRestoring(false); return; } void hydrate().catch((reason) => { clearSession(); setError(errorMessage(reason)); setUser(null); }).finally(() => setRestoring(false)); }, []);
+  useEffect(() => () => { if (pollTimer.current) window.clearTimeout(pollTimer.current); }, []);
 
   async function hydrate(currentUser?: CurrentUser) {
     setError("");
-    const [me, patientPage] = await Promise.all([currentUser ? Promise.resolve(currentUser) : api.me(), api.listPatients()]);
-    setUser(me);
-    setPatients(patientPage.items);
-    const firstPatients = patientPage.items.slice(0, 6);
-    const loaded = await Promise.allSettled(firstPatients.map((patient) => api.patientProfile(patient.id)));
-    const nextProfiles: Record<string, PatientProfile> = {};
-    loaded.forEach((result) => { if (result.status === "fulfilled") nextProfiles[result.value.patient.id] = result.value; });
-    setProfiles((current) => ({ ...current, ...nextProfiles }));
+    const [me, page] = await Promise.all([currentUser ? Promise.resolve(currentUser) : api.me(), api.listPatients()]);
+    setUser(me); setPatients(page.items);
+    const loaded = await Promise.allSettled(page.items.slice(0, 8).map((patient) => api.patientProfile(patient.id)));
+    const next: Record<string, PatientProfile> = {};
+    loaded.forEach((result) => { if (result.status === "fulfilled") next[result.value.patient.id] = result.value; });
+    setProfiles((current) => ({ ...current, ...next }));
   }
 
-  useEffect(() => {
-    if (!hasSession()) { setRestoring(false); return; }
-    hydrate().catch((reason) => { clearSession(); setError(errorMessage(reason)); setUser(null); }).finally(() => setRestoring(false));
-  }, []);
-
-  useEffect(() => () => { if (pollTimer.current) window.clearTimeout(pollTimer.current); }, []);
-
-  function authenticated(currentUser: CurrentUser) {
-    setRestoring(true);
-    hydrate(currentUser).catch((reason) => setError(errorMessage(reason))).finally(() => setRestoring(false));
+  async function loadProfile(patientId: string) { const profile = await api.patientProfile(patientId); setProfiles((current) => ({ ...current, [patientId]: profile })); return profile; }
+  async function openPatient(patientId: string, destination: Section = "dashboard") {
+    setSelectedPatientId(patientId); setSection(destination); setBusy(true);
+    try { const p = profiles[patientId] ?? await loadProfile(patientId); setSelectedAnalysisId(p.ai_analyses[0]?.id ?? ""); setSelectedXrayId(p.ai_analyses[0]?.xray_id ?? p.xrays[0]?.id ?? ""); }
+    catch (reason) { setError(errorMessage(reason)); } finally { setBusy(false); }
   }
+  async function logout() { try { await api.logout(); } catch { clearSession(); } setUser(null); setPatients([]); setProfiles({}); setSelectedPatientId(""); setSection("dashboard"); }
+  function authenticated(current: CurrentUser) { setRestoring(true); void hydrate(current).catch((reason) => setError(errorMessage(reason))).finally(() => setRestoring(false)); }
 
-  function openPatient(patientId: string, destination: Section = "workspace") {
-    setSelectedPatientId(patientId);
-    setSection(destination);
-    const cached = profiles[patientId];
-    if (cached) {
-      setSelectedAnalysisId(cached.ai_analyses[0]?.id ?? "");
-      setSelectedXrayId(cached.ai_analyses[0]?.xray_id ?? cached.xrays[0]?.id ?? "");
-    } else {
-      setBusy(true);
-      loadPatientProfile(patientId)
-        .then((next) => { setSelectedAnalysisId(next.ai_analyses[0]?.id ?? ""); setSelectedXrayId(next.ai_analyses[0]?.xray_id ?? next.xrays[0]?.id ?? ""); })
-        .catch((reason) => setError(errorMessage(reason)))
-        .finally(() => setBusy(false));
-    }
-  }
+  if (!lang) return <LanguageGate onSelect={setLang}/>;
+  if (adminMode) return <AdminPanel lang={lang} setLang={setLang} onExit={() => { window.history.pushState({}, "", "/"); window.location.reload(); }}/>;
+  if (!user) return restoring ? <RestoreScreen lang={lang}/> : <PublicPortal lang={lang} setLang={setLang} onAuthenticated={authenticated}/>;
 
-  async function uploaded(xray: XRay) {
-    setSelectedXrayId(xray.id);
-    await loadPatientProfile(xray.patient_id);
-  }
+  const c = tr(lang);
+  const profile = selectedPatientId ? profiles[selectedPatientId] ?? null : null;
+  const nav = [
+    { id: "dashboard" as Section, label: c.nav.dashboard, icon: Home },
+    { id: "patients" as Section, label: c.nav.patients, icon: CircleUserRound },
+    { id: "xrays" as Section, label: c.nav.xrays, icon: Image },
+    { id: "followups" as Section, label: c.nav.followups, icon: CalendarDays },
+    { id: "radar" as Section, label: c.nav.radar, icon: Radar },
+    { id: "outreach" as Section, label: c.nav.outreach, icon: HeartPulse },
+    { id: "settings" as Section, label: c.nav.settings, icon: Settings }
+  ];
+  const userLabel = user.username.replace(/[._-]/g, " ");
+  const today = new Intl.DateTimeFormat(lang === "hy" ? "hy-AM" : "en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date());
 
-  function pollAnalysis(patientId: string, analysisId: string, attempt = 0) {
-    if (attempt > 150) return;
-    pollTimer.current = window.setTimeout(async () => {
-      try {
-        const next = await loadPatientProfile(patientId);
-        const analysis = next.ai_analyses.find((item) => item.id === analysisId);
-        if (analysis && ["QUEUED", "PROCESSING"].includes(analysis.status)) pollAnalysis(patientId, analysisId, attempt + 1);
-      } catch { pollAnalysis(patientId, analysisId, attempt + 1); }
-    }, 2000);
-  }
+  return <div className="clinic-shell-v3">
+    <aside className="clinic-sidebar-v3">
+      <div className="clinic-brand"><Teta2Logo/><span>{c.brand.platform}</span></div>
+      <nav>{nav.map(({id,label,icon:Icon}) => <button key={id} className={section === id ? "active" : ""} onClick={() => setSection(id)}><Icon size={19}/><span>{label}</span>{id === "radar" && <i className="radar-notify"/>}</button>)}</nav>
+      <div className="clinic-user-v3"><span className="user-avatar-v3">{user.username.slice(0,2).toUpperCase()}</span><div><strong>{userLabel}</strong><small>{user.role}</small></div><button onClick={() => void logout()} aria-label={c.common.logout}><LogOut size={17}/></button></div>
+    </aside>
 
-  async function runAnalysis() {
-    if (!selectedXrayId || !profile) return;
-    setBusy(true); setError("");
-    try {
-      const analysis = await api.createAnalysis(selectedXrayId);
-      setSelectedAnalysisId(analysis.id);
-      await loadPatientProfile(profile.patient.id);
-      pollAnalysis(profile.patient.id, analysis.id);
-    } catch (reason) { setError(errorMessage(reason)); }
-    finally { setBusy(false); }
-  }
+    <header className="clinic-topbar-v3"><div><h1>{section === "dashboard" ? `${c.dashboard.morning}, Dr. ${userLabel} 👋` : nav.find((item)=>item.id===section)?.label}</h1><p>{section === "dashboard" ? c.dashboard.subtitle : profile ? fullName(profile.patient) : c.brand.tagline}</p></div><div className="topbar-controls-v3"><button className="branch-control"><Building2 size={17}/><span>{user.branch_scope.length === 1 ? (lang === "en" ? "Yerevan Branch" : "Երևանի մասնաճյուղ") : `${user.branch_scope.length} ${c.common.branch}`}</span><ChevronDown size={15}/></button><span className="date-control"><CalendarDays size={17}/>{today}</span><div className="language-control"><Languages size={16}/><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button><button className={lang === "hy" ? "active" : ""} onClick={() => setLang("hy")}>HY</button></div><button className="bell-control"><Bell size={20}/><i/></button></div></header>
 
-  async function logout() {
-    try { await api.logout(); } catch { clearSession(); }
-    setUser(null); setPatients([]); setProfiles({}); setSelectedPatientId(""); setSection("dashboard");
-  }
-
-  if (!user) {
-    if (restoring) return <div className="teta-restore-screen"><span className="teta-tooth-mark large">T2</span><strong>Restoring secure clinic session…</strong></div>;
-    return <PublicPortal onAuthenticated={authenticated} />;
-  }
-
-  const today = new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
-  const userLabel = user.username.replace(/[._-]+/g, " ");
-
-  return (
-    <div className="teta-app-shell">
-      <aside className="teta-sidebar">
-        <div className="teta-side-brand"><span className="teta-tooth-mark">T2</span><div><strong>Teta2</strong><small>AI DENTAL PLATFORM</small></div></div>
-        <nav>{nav.map((item) => <button className={section === item.value ? "active" : ""} key={item.value} type="button" onClick={() => setSection(item.value)}><span>{item.icon}</span>{item.label}{item.value === "radar" && <i className="new-dot" />}</button>)}</nav>
-        <div className="teta-side-user"><span>{user.username.slice(0, 2).toUpperCase()}</span><div><strong>{userLabel}</strong><small>{user.role}</small></div><button type="button" onClick={() => void logout()}>↗</button></div>
-      </aside>
-
-      <header className="teta-topbar">
-        <div><strong>{section === "dashboard" ? `Good morning, Dr. ${userLabel} 👋` : nav.find((item) => item.value === section)?.label}</strong><span>{section === "dashboard" ? "Let's analyze, follow up, and plan the best care for your patients." : profile ? fullName(profile.patient) : "Teta2 clinical workspace"}</span></div>
-        <div className="teta-top-actions"><span className="teta-top-pill">▥ <b>{user.branch_scope.length || 1} branch{user.branch_scope.length === 1 ? "" : "es"}</b></span><span className="teta-top-pill">□ <b>{today}</b></span><button className="teta-bell" type="button">♢<i /></button></div>
-      </header>
-
-      <main className="teta-main">
-        {error && <div className="teta-global-error">{error}<button type="button" onClick={() => setError("")}>×</button></div>}
-        {busy && <div className="teta-progress-line" />}
-
-        {section === "dashboard" && (
-          <div className="teta-dashboard-grid">
-            <section className="teta-dashboard-hero cardlike">
-              <div className="dashboard-card-heading"><div><span className="teta-kicker">AI Workspace</span><h2>Analyze an OPG in one clinical flow</h2><p>Choose a patient, upload the radiograph, and send it to DENTAI V5.</p></div><span className="dashboard-ai-orb">✦</span></div>
-              <div className="dashboard-upload-zone">
-                <span className="dashboard-tooth-icon">⌗</span><strong>Drop an X-ray into your patient's workspace</strong><small>Private storage · AI-assisted decision support · clinician review</small>
-                <div><button className="teta-primary-button compact" type="button" onClick={() => setSection("workspace")}>Open AI Workspace</button><button className="teta-ghost-button" type="button" onClick={() => setSection("xrays")}>X-ray library</button></div>
-              </div>
-              <div className="clinical-warning"><span>♢</span><p>AI results are decision-support information, not diagnosis. Please review clinically.</p></div>
-            </section>
-
-            <section className="teta-recent-patients cardlike">
-              <div className="dashboard-section-title"><h3>Recent Patients</h3><button type="button" onClick={() => setSection("patients")}>View all</button></div>
-              <div className="recent-patient-list">{patients.slice(0, 5).map((patient, index) => <button type="button" key={patient.id} onClick={() => openPatient(patient.id)}><span className={`patient-avatar tone-${index % 5}`}>{initials(patient)}</span><div><strong>{fullName(patient)}</strong><small>ID: {patient.patient_number}</small></div><span className="patient-last-visit"><small>Profile</small><b>{profiles[patient.id]?.visits.length ?? 0} visits</b></span><i>›</i></button>)}{patients.length === 0 && <div className="dashboard-empty">No patients yet.</div>}</div>
-            </section>
-
-            <section className="teta-recent-analyses cardlike">
-              <div className="dashboard-section-title"><h3>Recent Analyses</h3><button type="button" onClick={() => setSection("workspace")}>View all</button></div>
-              <div className="analysis-preview-grid">{recentAnalyses.map(({ analysis, patient }, index) => <button key={analysis.id} type="button" onClick={() => { openPatient(patient.id); setSelectedAnalysisId(analysis.id); setSelectedXrayId(analysis.xray_id); }}><div className={`fake-xray xray-${index}`}><span>OPG</span><i /></div><span className={`analysis-state ${analysis.status.toLowerCase()}`}>{analysis.status}</span><strong>{fullName(patient)}</strong><small>{shortDate(analysis.requested_at)}</small></button>)}{recentAnalyses.length === 0 && <div className="dashboard-empty wide">Analyses will appear here after the first OPG is processed.</div>}</div>
-            </section>
-
-            <section className="teta-schedule cardlike">
-              <div className="dashboard-section-title"><h3>Today's Follow-ups</h3><button type="button" onClick={() => setSection("followups")}>View all</button></div>
-              <div className="schedule-list">{dueFollowups.map(({ item, patient }, index) => <button type="button" key={`${patient.id}-${index}`} onClick={() => openPatient(patient.id, "followups")}><b>{followupDate(item)}</b><span><strong>{fullName(patient)}</strong><small>{followupReason(item)}</small></span><i>{String(item.status ?? "DUE")}</i></button>)}{dueFollowups.length === 0 && <div className="dashboard-empty">No follow-ups loaded yet.</div>}</div>
-            </section>
-
-            <section className="teta-radar-teaser cardlike">
-              <div><span className="teta-kicker">Radar AI</span><h3>Opportunity intelligence for your clinic</h3><p>Review social signals and turn relevant dental needs into an organized contact queue.</p><button className="teta-primary-button compact" type="button" onClick={() => setSection("radar")}>Open Radar AI</button></div><div className="mini-radar"><i /><i /><i /><span>T2</span></div>
-            </section>
-
-            <section className="teta-metrics-row">
-              <article><span>Patients</span><strong>{patients.length}</strong><small>accessible records</small></article><article><span>AI analyses</span><strong>{recentAnalyses.length}</strong><small>recently loaded</small></article><article><span>Findings</span><strong>{totalFindings}</strong><small>clinical findings</small></article>
-            </section>
-          </div>
-        )}
-
-        {section === "workspace" && (
-          <div className="teta-module">
-            <ModuleHeader eyebrow="DENTAI V5" title="AI Workspace" copy="Upload an OPG, initialize an analysis, and clinically review each finding." />
-            <PatientPicker patients={patients} selected={selectedPatientId} onChange={(id) => openPatient(id, "workspace")} />
-            {!profile ? <EmptyState title="Choose a patient" copy="Select a patient to open the AI workspace." /> : <>
-              <PatientBanner profile={profile} />
-              <div className="workspace-action-grid"><XrayUpload patientId={profile.patient.id} onUploaded={uploaded} /><section className="teta-study-queue cardlike"><div className="dashboard-section-title"><h3>Imaging queue</h3><span>{profile.xrays.length}</span></div><div className="study-list">{profile.xrays.map((xray) => <button className={selectedXrayId === xray.id ? "selected" : ""} type="button" key={xray.id} onClick={() => setSelectedXrayId(xray.id)}><span>XR</span><div><strong>{xray.original_filename}</strong><small>{shortDate(xray.uploaded_at)}</small></div><i>{xray.status}</i></button>)}</div><button className="teta-primary-button" type="button" disabled={!selectedXrayId || user.role !== "DOCTOR" || busy} onClick={() => void runAnalysis()}>{busy ? "Queueing…" : "Run Teta2 V5 Analysis"}</button></section></div>
-              {selectedAnalysis ? <AnalysisResults analysis={selectedAnalysis} xray={selectedXray} findings={selectedFindings} role={user.role} onReviewed={async () => { await loadPatientProfile(profile.patient.id); }} /> : <EmptyState title="No analysis selected" copy="Choose an X-ray and run a Teta2 V5 analysis." />}
-            </>}
-          </div>
-        )}
-
-        {section === "patients" && <div className="teta-module"><ModuleHeader eyebrow="Clinical records" title="My Patients" copy="Open a longitudinal patient profile and continue directly into imaging or follow-up." /><section className="teta-patient-grid">{patients.map((patient, index) => <button type="button" key={patient.id} onClick={() => openPatient(patient.id)}><span className={`patient-avatar big tone-${index % 5}`}>{initials(patient)}</span><div><strong>{fullName(patient)}</strong><small>{patient.patient_number}</small><p>{profiles[patient.id]?.ai_analyses.length ?? 0} AI analyses · {profiles[patient.id]?.findings.length ?? 0} findings</p></div><i>Open ›</i></button>)}</section></div>}
-
-        {section === "xrays" && <div className="teta-module"><ModuleHeader eyebrow="Imaging library" title="X-rays" copy="Manage radiographs per patient and open a study in the AI workspace." /><PatientPicker patients={patients} selected={selectedPatientId} onChange={(id) => openPatient(id, "xrays")} />{!profile ? <EmptyState title="Choose a patient" copy="Select a patient to view or upload radiographs." /> : <div className="workspace-action-grid"><XrayUpload patientId={profile.patient.id} onUploaded={uploaded} /><section className="teta-xray-library cardlike">{profile.xrays.map((xray) => <button type="button" key={xray.id} onClick={() => { setSelectedXrayId(xray.id); setSection("workspace"); }}><span>XR</span><div><strong>{xray.original_filename}</strong><small>{xray.mime_type} · {(xray.size_bytes / 1024 / 1024).toFixed(1)} MB</small></div><i>{xray.status}</i></button>)}</section></div>}</div>}
-
-        {section === "followups" && <div className="teta-module"><ModuleHeader eyebrow="Smart Recall" title="Follow-ups" copy="Keep monitoring, return visits, and care continuity visible in one timeline." /><PatientPicker patients={patients} selected={selectedPatientId} onChange={(id) => openPatient(id, "followups")} />{!profile ? <EmptyState title="Choose a patient" copy="Select a patient to inspect follow-up history." /> : <div className="followup-layout"><section className="cardlike teta-followup-list"><div className="dashboard-section-title"><h3>Patient timeline</h3><span>{profile.followups.length}</span></div>{profile.followups.map((item, index) => { const row = asRecord(item); return <article key={index}><b>{index + 1}</b><div><strong>{followupReason(row)}</strong><small>{followupDate(row)}</small></div><i>{String(row.status ?? "SCHEDULED")}</i></article>; })}{profile.followups.length === 0 && <div className="dashboard-empty">No follow-ups stored for this patient.</div>}</section><section className="followup-stats"><article><span>Future risk</span><strong>{profile.future_risk.length}</strong></article><article><span>Care plan</span><strong>{profile.future_care.length}</strong></article><article><span>Visits</span><strong>{profile.visits.length}</strong></article></section></div>}</div>}
-
-        {section === "radar" && <div className="teta-module radar-module"><ModuleHeader eyebrow="Opportunity intelligence" title="Radar AI" copy="Discover and triage social signals from people who may be looking for dental care." /><PatientRadar role={user.role} /></div>}
-
-        {section === "outreach" && <div className="teta-module"><ModuleHeader eyebrow="Patient communication" title="Outreach" copy="Manage clinic follow-up communication without leaving the patient context." /><PatientPicker patients={patients} selected={selectedPatientId} onChange={(id) => openPatient(id, "outreach")} />{!profile ? <EmptyState title="Choose a patient" copy="Select a patient to manage WhatsApp outreach." /> : <WhatsAppOutreachCard patient={profile.patient} onPatientUpdated={(patient) => { setPatients((current) => current.map((p) => p.id === patient.id ? patient : p)); setProfiles((current) => current[patient.id] ? { ...current, [patient.id]: { ...current[patient.id], patient } } : current); }} />}</div>}
-
-        {section === "settings" && <div className="teta-module"><ModuleHeader eyebrow="Clinic workspace" title="Settings & System" copy="Backend diagnostics and authenticated clinic context." /><div className="settings-grid"><section className="cardlike settings-card"><h3>Backend status</h3><BackendChecks /></section><section className="cardlike settings-card"><h3>Authenticated context</h3><dl><div><dt>User</dt><dd>{user.email}</dd></div><div><dt>Role</dt><dd>{user.role}</dd></div><div><dt>Clinic ID</dt><dd>{user.clinic_id}</dd></div><div><dt>Branch scope</dt><dd>{user.branch_scope.length}</dd></div></dl></section></div></div>}
-      </main>
-      <footer className="teta-app-footer">Teta2 · Teeth Evaluation & Treatment AI Assistant · clinician review required</footer>
-    </div>
-  );
+    <main className="clinic-main-v3">
+      {busy && <div className="top-progress"/>}{error && <div className="global-message error">{error}<button onClick={()=>setError("")}><X size={16}/></button></div>}
+      {section === "dashboard" && <DashboardView lang={lang} patients={patients} profiles={profiles} openPatient={openPatient} setSection={setSection}/>} 
+      {section === "patients" && <PatientsView lang={lang} patients={patients} profiles={profiles} openPatient={openPatient}/>} 
+      {section === "xrays" && <XraysView lang={lang} patients={patients} profile={profile} selectedPatientId={selectedPatientId} selectedXrayId={selectedXrayId} setSelectedXrayId={setSelectedXrayId} onPatient={(id)=>void openPatient(id,"xrays")} reload={loadProfile}/>} 
+      {section === "followups" && <FollowupsView lang={lang} patients={patients} profiles={profiles} onOpen={(id)=>void openPatient(id,"dashboard")}/>} 
+      {section === "radar" && <RadarView lang={lang}/>} 
+      {section === "outreach" && <OutreachView lang={lang} patients={patients} profile={profile} selectedPatientId={selectedPatientId} onPatient={(id)=>void openPatient(id,"outreach")}/>} 
+      {section === "settings" && <SettingsView lang={lang} setLang={setLang} user={user}/>} 
+    </main>
+  </div>;
 }
 
-function ModuleHeader({ eyebrow, title, copy }: { eyebrow: string; title: string; copy: string }) {
-  return <header className="teta-module-header"><div><span className="teta-kicker">{eyebrow}</span><h1>{title}</h1><p>{copy}</p></div></header>;
+function LanguageGate({ onSelect }: { onSelect: (lang: Lang) => void }) {
+  return <main className="language-gate"><div className="language-ambient one"/><div className="language-ambient two"/><section className="language-card"><Teta2Logo/><span className="language-kicker">WELCOME · ԲԱՐԻ ԳԱԼՈՒՍՏ</span><h1>Choose your language<br/><em>Ընտրեք լեզուն</em></h1><p>Select the language you want to use throughout Teta2.<br/>Ընտրեք Teta2-ի ամբողջ հարթակի լեզուն։</p><div className="language-options"><button onClick={()=>onSelect("en")}><span className="lang-code">EN</span><div><strong>English</strong><small>Continue in English</small></div><ChevronRight/></button><button onClick={()=>onSelect("hy")}><span className="lang-code armenian">ՀՅ</span><div><strong>Հայերեն</strong><small>Շարունակել հայերեն</small></div><ChevronRight/></button></div><footer><ShieldCheck size={15}/> Secure clinical workspace</footer></section></main>;
+}
+function RestoreScreen({lang}:{lang:Lang}){ return <div className="restore-v3"><Teta2Logo/><span className="restore-spinner"/><strong>{tr(lang).common.loading}</strong></div>; }
+
+function DashboardView({lang,patients,profiles,openPatient,setSection}:{lang:Lang;patients:Patient[];profiles:Record<string,PatientProfile>;openPatient:(id:string,destination?:Section)=>Promise<void>;setSection:(s:Section)=>void}) {
+  const c=tr(lang);
+  const analyses=useMemo(()=>Object.values(profiles).flatMap((p)=>p.ai_analyses.map((analysis)=>({analysis,patient:p.patient}))).sort((a,b)=>new Date(b.analysis.requested_at).getTime()-new Date(a.analysis.requested_at).getTime()).slice(0,4),[profiles]);
+  const followups=useMemo(()=>Object.values(profiles).flatMap((p)=>p.followups.map((item)=>({item:record(item),patient:p.patient}))).slice(0,5),[profiles]);
+  return <div className="reference-dashboard">
+    <section className="reference-workspace-card"><div className="reference-card-title"><h2>{c.dashboard.workspace}</h2><p>{c.dashboard.workspaceCopy}</p></div><button className="reference-dropzone" onClick={()=>setSection("xrays")}><span className="dropzone-icon"><UploadCloud size={28}/></span><strong>{c.dashboard.drop}</strong><small>{c.dashboard.or}</small><div className="dropzone-actions"><span className="filled"><UploadCloud size={16}/>{c.dashboard.upload}</span><span><Camera size={16}/>{c.dashboard.camera}</span><span><FolderOpen size={16}/>{c.dashboard.gallery}</span></div><em>{c.dashboard.supports}</em></button><div className="clinical-disclaimer"><ShieldCheck size={22}/><p>{c.dashboard.warning}</p></div></section>
+    <section className="reference-patients-card"><div className="reference-section-head"><h3>{c.dashboard.recentPatients}</h3><button onClick={()=>setSection("patients")}>{c.dashboard.viewAll}</button></div><div className="reference-patient-list">{patients.slice(0,5).map((patient,index)=><button key={patient.id} onClick={()=>void openPatient(patient.id,"dashboard")}><span className={`ref-avatar ref-tone-${index}`}>{initials(patient)}</span><div><strong>{fullName(patient)}</strong><small>ID: {patient.patient_number} · {patient.date_of_birth ? `${new Date().getFullYear()-new Date(patient.date_of_birth).getFullYear()} yrs` : "—"}</small></div><div className="ref-last"><small>{lang==="en"?"Last visit":"Վերջին այց"}</small><b>{dateText(record(profiles[patient.id]?.visits?.[0]).visit_date as string | undefined,lang)}</b></div><ChevronRight size={17}/></button>)}{patients.length===0&&<EmptyLine text={c.dashboard.noPatients}/>}</div></section>
+    <section className="reference-analyses-card"><div className="reference-section-head"><h3>{c.dashboard.analyses}</h3><button onClick={()=>setSection("xrays")}>{c.dashboard.viewAll}</button></div><div className="reference-analysis-grid">{analyses.map(({analysis,patient},index)=><button key={analysis.id} onClick={()=>void openPatient(patient.id,"dashboard")}><div className={`radiograph-preview preview-${index}`}><span className="xray-teeth"/><span className="xray-glow"/></div><StatusPill status={analysis.status} lang={lang}/><strong>{fullName(patient)}</strong><small>{dateText(analysis.requested_at,lang)}</small></button>)}{analyses.length===0&&<EmptyLine text={c.dashboard.noAnalyses}/>}</div></section>
+    <section className="reference-schedule-card"><div className="reference-section-head"><h3>{c.dashboard.schedule}</h3><button onClick={()=>setSection("followups")}>{c.dashboard.viewAll}</button></div><div className="reference-schedule-list">{followups.map(({item,patient},index)=><button key={`${patient.id}-${index}`} onClick={()=>void openPatient(patient.id,"followups")}><b>{followDate(item,lang)}</b><span><strong>{fullName(patient)}</strong><small>{followReason(item)}</small></span><i>{String(item.status||"UPCOMING")}</i></button>)}{followups.length===0&&<EmptyLine text={c.dashboard.noSchedule}/>}</div></section>
+    <section className="dashboard-radar-pulse"><div><span className="radar-title-chip"><Radar size={16}/>RADAR AI</span><h3>{c.dashboard.radarTitle}</h3><p>{c.dashboard.radarCopy}</p><button onClick={()=>setSection("radar")}>{c.dashboard.openRadar}<ChevronRight size={16}/></button></div><div className="pulse-radar"><i/><i/><i/><span><Radar/></span><b className="dot d1"/><b className="dot d2"/><b className="dot d3"/></div></section>
+  </div>;
 }
 
-function PatientPicker({ patients, selected, onChange }: { patients: Patient[]; selected: string; onChange: (id: string) => void }) {
-  return <label className="teta-patient-picker"><span>Patient</span><select value={selected} onChange={(event) => onChange(event.target.value)}><option value="">Select patient…</option>{patients.map((patient) => <option key={patient.id} value={patient.id}>{fullName(patient)} · {patient.patient_number}</option>)}</select></label>;
-}
+function PatientsView({lang,patients,profiles,openPatient}:{lang:Lang;patients:Patient[];profiles:Record<string,PatientProfile>;openPatient:(id:string,destination?:Section)=>Promise<void>}){ const c=tr(lang); const [query,setQuery]=useState(""); const filtered=patients.filter((p)=>`${fullName(p)} ${p.patient_number}`.toLowerCase().includes(query.toLowerCase())); return <ModuleFrame title={c.patients.title} subtitle={c.patients.subtitle} icon={<UsersRound/>}><div className="module-toolbar"><div className="module-search"><Search size={17}/><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder={c.common.search}/></div><span className="result-count">{filtered.length}</span></div><div className="patient-table-v3"><div className="table-head"><span>{c.common.patient}</span><span>{c.patients.visits}</span><span>{c.patients.xrays}</span><span>{c.patients.analyses}</span><span>{c.patients.findings}</span><span/></div>{filtered.map((p,index)=><button className="patient-table-row" key={p.id} onClick={()=>void openPatient(p.id,"dashboard")}><span className="patient-name-cell"><i className={`ref-avatar small ref-tone-${index%5}`}>{initials(p)}</i><span><strong>{fullName(p)}</strong><small>{c.patients.id}: {p.patient_number}</small></span></span><b>{profiles[p.id]?.visits.length??0}</b><b>{profiles[p.id]?.xrays.length??0}</b><b>{profiles[p.id]?.ai_analyses.length??0}</b><b>{profiles[p.id]?.findings.length??0}</b><ChevronRight size={17}/></button>)}</div></ModuleFrame>; }
 
-function PatientBanner({ profile }: { profile: PatientProfile }) {
-  return <section className="teta-patient-banner"><span className="patient-avatar big">{initials(profile.patient)}</span><div><h2>{fullName(profile.patient)}</h2><p>ID {profile.patient.patient_number} · {profile.patient.sex || "Sex not recorded"}</p></div><div className="patient-banner-stats"><span><b>{profile.xrays.length}</b>X-rays</span><span><b>{profile.ai_analyses.length}</b>Analyses</span><span><b>{profile.findings.length}</b>Findings</span><span><b>{profile.followups.length}</b>Follow-ups</span></div></section>;
-}
+function XraysView({lang,patients,profile,selectedPatientId,selectedXrayId,setSelectedXrayId,onPatient,reload}:{lang:Lang;patients:Patient[];profile:PatientProfile|null;selectedPatientId:string;selectedXrayId:string;setSelectedXrayId:(id:string)=>void;onPatient:(id:string)=>void;reload:(id:string)=>Promise<PatientProfile>}){ const c=tr(lang); const [uploading,setUploading]=useState(false); const [analysisBusy,setAnalysisBusy]=useState(false); const [selectedAnalysis,setSelectedAnalysis]=useState<AIAnalysis|null>(null); const [message,setMessage]=useState(""); const fileRef=useRef<HTMLInputElement|null>(null); useEffect(()=>{setSelectedAnalysis(profile?.ai_analyses.find(a=>a.id===profile?.ai_analyses[0]?.id)??profile?.ai_analyses[0]??null)},[profile]); async function uploadFile(e:ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0]; if(!file||!profile)return; setUploading(true);setMessage("");try{const x=await api.uploadXray(profile.patient.id,file);setSelectedXrayId(x.id);await reload(profile.patient.id)}catch(err){setMessage(errorMessage(err))}finally{setUploading(false);e.target.value=""}} async function analyze(){if(!selectedXrayId||!profile)return;setAnalysisBusy(true);try{const a=await api.createAnalysis(selectedXrayId);setSelectedAnalysis(a);let attempts=0;const poll=async()=>{const p=await reload(profile.patient.id);const current=p.ai_analyses.find(x=>x.id===a.id);if(current){setSelectedAnalysis(current);if(["QUEUED","PROCESSING"].includes(current.status)&&attempts++<150)setTimeout(()=>void poll(),2000)}};void poll()}catch(err){setMessage(errorMessage(err))}finally{setAnalysisBusy(false)}} const findings=profile?.findings.filter(f=>f.analysis_id===selectedAnalysis?.id)??[]; return <ModuleFrame title={c.xrays.title} subtitle={c.xrays.subtitle} icon={<Image/>}><PatientSelect c={c} patients={patients} value={selectedPatientId} onChange={onPatient}/>{!profile?<EmptyLine text={c.common.selectPatient}/>:<div className="xray-workspace-v3"><section className="xray-upload-card"><div className="module-subhead"><div><span>OPG</span><h3>{c.workspace.uploadTitle}</h3></div><UploadCloud/></div><input ref={fileRef} type="file" accept="image/png,image/jpeg,.dcm" hidden onChange={uploadFile}/><button className="big-upload-zone" onClick={()=>fileRef.current?.click()} disabled={uploading}><UploadCloud size={28}/><strong>{uploading?c.common.loading:c.dashboard.upload}</strong><small>{c.dashboard.supports}</small></button><div className="xray-study-list">{profile.xrays.map(x=><button key={x.id} className={selectedXrayId===x.id?"selected":""} onClick={()=>setSelectedXrayId(x.id)}><span className="study-icon"><Image size={17}/></span><div><strong>{x.original_filename}</strong><small>{dateText(x.uploaded_at,lang)} · {(x.size_bytes/1024/1024).toFixed(1)} MB</small></div><ChevronRight size={16}/></button>)}</div><button className="t2-btn primary wide" disabled={!selectedXrayId||analysisBusy} onClick={()=>void analyze()}><WandSparkles size={17}/>{analysisBusy?c.workspace.running:c.workspace.run}</button>{message&&<p className="inline-error">{message}</p>}</section><section className="analysis-review-v3"><div className="module-subhead"><div><span>AI REVIEW</span><h3>{c.workspace.findings}</h3></div>{selectedAnalysis&&<StatusPill status={selectedAnalysis.status} lang={lang}/>}</div>{!selectedAnalysis?<div className="analysis-empty"><BrainGraphic/><h3>{c.workspace.noAnalysis}</h3><p>{c.workspace.noAnalysisCopy}</p></div>:<><div className="analysis-summary"><div><span>{c.patients.findings}</span><strong>{findings.length}</strong></div><div><span>{lang==="en"?"Model":"Մոդել"}</span><strong>{selectedAnalysis.model_name}</strong></div><div><span>{c.common.status}</span><strong>{selectedAnalysis.status}</strong></div></div><FindingsTable findings={findings} lang={lang}/></>}</section></div>}</ModuleFrame>; }
 
-function EmptyState({ title, copy }: { title: string; copy: string }) {
-  return <section className="teta-empty-state cardlike"><span>✦</span><h3>{title}</h3><p>{copy}</p></section>;
-}
+function FindingsTable({findings,lang}:{findings:DentalFinding[];lang:Lang}){const c=tr(lang);return <div className="findings-table-v3"><div className="findings-head"><span>{c.workspace.tooth}</span><span>{c.workspace.finding}</span><span>{c.workspace.confidence}</span><span>{c.workspace.review}</span></div>{findings.map(f=><div className="finding-row-v3" key={f.id}><b>{f.tooth_code||"—"}</b><span><strong>{f.finding_type.replaceAll("_"," ")}</strong><small>{f.description}</small></span><em>{typeof f.confidence==="number"?`${Math.round(f.confidence*100)}%`:"—"}</em><StatusPill status={f.review_status} lang={lang}/></div>)}{findings.length===0&&<EmptyLine text={c.common.noData}/>}</div>}
+
+function FollowupsView({lang,patients,profiles,onOpen}:{lang:Lang;patients:Patient[];profiles:Record<string,PatientProfile>;onOpen:(id:string)=>void}){const c=tr(lang);const rows=Object.values(profiles).flatMap(p=>p.followups.map(item=>({patient:p.patient,item:record(item)})));return <ModuleFrame title={c.followups.title} subtitle={c.followups.subtitle} icon={<CalendarDays/>}><div className="followup-board-v3">{rows.map(({patient,item},i)=><button key={`${patient.id}-${i}`} onClick={()=>onOpen(patient.id)}><span className="follow-date-block"><b>{followDate(item,lang)}</b><small>{String(item.priority||"NORMAL")}</small></span><span className="patient-avatar-inline">{initials(patient)}</span><div><strong>{fullName(patient)}</strong><small>{followReason(item)}</small></div><StatusPill status={String(item.status||"UPCOMING")} lang={lang}/><ChevronRight size={17}/></button>)}{rows.length===0&&<EmptyLine text={c.followups.noData}/>}</div><div className="followup-metrics-v3"><article><HeartPulse/><div><strong>{rows.length}</strong><span>{c.nav.followups}</span></div></article><article><UsersRound/><div><strong>{patients.length}</strong><span>{c.nav.patients}</span></div></article><article><Sparkles/><div><strong>{Object.values(profiles).reduce((s,p)=>s+p.findings.length,0)}</strong><span>{c.patients.findings}</span></div></article></div></ModuleFrame>}
+
+function RadarView({lang}:{lang:Lang}){const c=tr(lang);const [dashboard,setDashboard]=useState<Record<string,unknown>|null>(null);const [items,setItems]=useState<Array<Record<string,unknown>>>([]);const [runtime,setRuntime]=useState<Record<string,unknown>|null>(null);const [loading,setLoading]=useState(true);const [error,setError]=useState("");async function load(){setLoading(true);setError("");try{const [d,o,r]=await Promise.all([api.radarDashboard(),api.radarOpportunities(),api.radarRuntime()]);setDashboard(d as unknown as Record<string,unknown>);setItems((o.items||[]) as unknown as Array<Record<string,unknown>>);setRuntime(r as unknown as Record<string,unknown>)}catch(err){setError(errorMessage(err))}finally{setLoading(false)}}useEffect(()=>{void load()},[]);const hot=items.filter(i=>String(i.tier)==="HOT").length;const warm=items.filter(i=>String(i.tier)==="WARM").length;return <ModuleFrame title={c.radar.title} subtitle={c.radar.subtitle} icon={<Radar/>}><div className="radar-metrics-v3"><article><span className="radar-metric-icon"><Sparkles/></span><div><small>{c.radar.opportunities}</small><strong>{items.length}</strong></div></article><article><span className="radar-metric-icon hot"><HeartPulse/></span><div><small>{c.radar.hot}</small><strong>{hot}</strong></div></article><article><span className="radar-metric-icon warm"><Wifi/></span><div><small>{c.radar.warm}</small><strong>{warm}</strong></div></article><article><span className="radar-metric-icon source"><Radar/></span><div><small>{c.radar.sources}</small><strong>{String(runtime?.active_sources??dashboard?.active_sources??0)}</strong></div></article></div><section className="radar-board-v3"><div className="radar-visual-panel"><div className="radar-radar"><i/><i/><i/><span><Radar/></span>{items.slice(0,4).map((_,i)=><b key={i} className={`lead-dot ld-${i}`}/>)}</div><div><span className="radar-live-chip"><i/> LIVE INTELLIGENCE</span><h3>{lang==="en"?"Treatment demand, organized for action.":"Բուժման պահանջարկ՝ կազմակերպված գործողության համար։"}</h3><p>{c.radar.subtitle}</p></div></div><div className="opportunity-list-v3">{loading?<EmptyLine text={c.common.loading}/>:error?<div className="inline-error">{error}</div>:items.slice(0,8).map((item,index)=><article key={String(item.id||index)}><span className={`opportunity-rank ${String(item.tier||"WARM").toLowerCase()}`}>{String(item.tier||"WARM")}</span><div><strong>{String(item.treatment||item.treatment_signal||item.title||"Dental opportunity")}</strong><small>{String(item.platform||"SOCIAL")} · {String(item.location||item.location_hint||"Armenia")}</small></div><em>{String(item.score||item.priority_score||item.confidence||"—")}</em><ChevronRight size={17}/></article>)}{!loading&&!error&&items.length===0&&<EmptyLine text={c.radar.noData}/>}</div></section></ModuleFrame>}
+
+function OutreachView({lang,patients,profile,selectedPatientId,onPatient}:{lang:Lang;patients:Patient[];profile:PatientProfile|null;selectedPatientId:string;onPatient:(id:string)=>void}){const c=tr(lang);const [status,setStatus]=useState<{connected:boolean;sender?:string|null}|null>(null);const [message,setMessage]=useState("");useEffect(()=>{void api.whatsappStatus().then(s=>setStatus(s)).catch(()=>setStatus(null))},[]);async function test(){if(!profile)return;setMessage(c.common.loading);try{await api.sendWhatsAppTest(profile.patient.id,false);setMessage(lang==="en"?"Test message queued.":"Փորձնական հաղորդագրությունը հերթագրված է։")}catch(err){setMessage(errorMessage(err))}}return <ModuleFrame title={c.outreach.title} subtitle={c.outreach.subtitle} icon={<HeartPulse/>}><PatientSelect c={c} patients={patients} value={selectedPatientId} onChange={onPatient}/><div className="outreach-grid-v3"><section className="communication-card-v3"><span className={`connection-icon ${status?.connected?"connected":""}`}><Wifi/></span><div><small>{c.outreach.connection}</small><h3>{status?.connected?c.outreach.connected:c.outreach.disconnected}</h3><p>{status?.sender||"Teta2 embedded WhatsApp service"}</p></div><StatusPill status={status?.connected?"CONNECTED":"OFFLINE"} lang={lang}/></section><section className="communication-card-v3 patient"><span className="connection-icon"><CircleUserRound/></span><div><small>{c.common.patient}</small><h3>{profile?fullName(profile.patient):c.common.selectPatient}</h3><p>{profile?.patient.whatsapp_phone||profile?.patient.phone||"—"}</p></div><button className="t2-btn primary" disabled={!profile} onClick={()=>void test()}>{c.outreach.test}</button></section></div>{message&&<div className="global-message neutral">{message}</div>}</ModuleFrame>}
+
+function SettingsView({lang,setLang,user}:{lang:Lang;setLang:(lang:Lang)=>void;user:CurrentUser}){const c=tr(lang);return <ModuleFrame title={c.settings.title} subtitle={c.settings.subtitle} icon={<Settings/>}><div className="settings-grid-v3"><section><div className="settings-icon"><ShieldCheck/></div><h3>{lang==="en"?"Authenticated context":"Նույնականացված միջավայր"}</h3><dl><div><dt>{c.settings.clinic}</dt><dd>{user.clinic_id}</dd></div><div><dt>{c.settings.role}</dt><dd>{user.role}</dd></div><div><dt>{c.settings.branches}</dt><dd>{user.branch_scope.length}</dd></div></dl></section><section><div className="settings-icon"><Languages/></div><h3>{c.settings.language}</h3><p>{lang==="en"?"Choose the interface language. Your choice is saved on this device.":"Ընտրեք ինտերֆեյսի լեզուն։ Ընտրությունը պահպանվում է այս սարքում։"}</p><div className="settings-language"><button className={lang==="en"?"active":""} onClick={()=>setLang("en")}>English</button><button className={lang==="hy"?"active":""} onClick={()=>setLang("hy")}>Հայերեն</button></div></section></div></ModuleFrame>}
+
+function ModuleFrame({title,subtitle,icon,children}:{title:string;subtitle:string;icon:React.ReactNode;children:React.ReactNode}){return <div className="module-page-v3"><header className="module-header-v3"><span>{icon}</span><div><h2>{title}</h2><p>{subtitle}</p></div></header>{children}</div>}
+function PatientSelect({c,patients,value,onChange}:{c:ReturnType<typeof tr>;patients:Patient[];value:string;onChange:(id:string)=>void}){return <label className="patient-select-v3"><CircleUserRound size={17}/><span>{c.common.patient}</span><select value={value} onChange={(e)=>onChange(e.target.value)}><option value="">{c.common.selectPatient}</option>{patients.map(p=><option key={p.id} value={p.id}>{fullName(p)} · {p.patient_number}</option>)}</select><ChevronDown size={15}/></label>}
+function StatusPill({status,lang}:{status:string;lang:Lang}){const c=tr(lang);const key=status.toLowerCase().replaceAll("_","-");const label=status==="COMPLETED"?c.dashboard.completed:status==="PROCESSING"?c.dashboard.processing:status==="PENDING"?c.common.pending:status==="CONFIRMED"?c.workspace.confirmed:status==="REJECTED"?c.workspace.rejected:status.replaceAll("_"," ");return <span className={`status-pill-v3 status-${key}`}>{label}</span>}
+function EmptyLine({text}:{text:string}){return <div className="empty-line-v3"><Sparkles size={18}/><span>{text}</span></div>}
+function BrainGraphic(){return <div className="brain-graphic"><span><Sparkles/></span><i/><i/></div>}
