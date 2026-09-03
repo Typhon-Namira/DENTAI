@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 from alembic import command
 from alembic.config import Config
 from cryptography.fernet import Fernet
+from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.auth.security import hash_password
@@ -41,6 +42,13 @@ def migrate_tenant(database_url: str) -> None:
             os.environ["MIGRATION_PLANE"] = previous_plane
 
 
+def validate_email(value: str) -> str:
+    try:
+        return str(TypeAdapter(EmailStr).validate_python(value)).lower()
+    except ValidationError as exc:
+        raise SystemExit(f"Invalid --email value: {value}") from exc
+
+
 async def main(a):
     tenant_url = os.environ["DATABASE_URL"]
     control_url = os.environ["CONTROL_DATABASE_URL"]
@@ -52,7 +60,7 @@ async def main(a):
         await db.flush()
         user = User(
             username=a.username,
-            email=a.email.lower(),
+            email=a.email,
             password_hash=hash_password(a.password),
             role=Role.DIRECTOR,
             first_name=a.first_name,
@@ -95,5 +103,6 @@ if __name__ == "__main__":
         p.add_argument(f"--{x}", required=True)
     p.add_argument("--origin", action="append", required=True)
     args = p.parse_args()
+    args.email = validate_email(args.email)
     migrate_tenant(os.environ["DATABASE_URL"])
     asyncio.run(main(args))
