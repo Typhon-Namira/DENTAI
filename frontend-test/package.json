@@ -1,11 +1,12 @@
 {
   "name": "teta2-dental-platform",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "preview": "vite preview"
   },
