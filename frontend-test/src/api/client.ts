@@ -21,8 +21,7 @@ import type {
   WhatsAppOutreach
 } from "./types";
 
-const rawBaseUrl = import.meta.env.VITE_DENTAI_API_BASE_URL?.trim() ?? "";
-export const API_BASE_URL = rawBaseUrl.replace(/\/$/, "");
+export const API_BASE_URL = "";
 const SESSION_KEY = "dentai-test-auth";
 
 interface StoredSession {
