@@ -12,6 +12,7 @@ import {
   extractVisionToothGeometry,
   filterFindings,
   groupFindingsByTooth,
+  isResolvedFdi,
   resolveSelectedGroupKey,
   type FindingFilter
 } from "../utils/opg";
@@ -45,9 +46,13 @@ export function AnalysisResults({
     () => parseClinicalSummary(analysis?.structured_result?.clinical_summary),
     [analysis?.structured_result]
   );
+  const resolvedFindings = useMemo(
+    () => findings.filter((finding) => isResolvedFdi(finding.tooth_code)),
+    [findings]
+  );
   const filteredFindings = useMemo(
-    () => filterFindings(findings, filter),
-    [findings, filter]
+    () => filterFindings(resolvedFindings, filter),
+    [resolvedFindings, filter]
   );
   const toothDetections = useMemo(
     () => extractVisionToothDetections(analysis?.structured_result ?? null),
@@ -66,8 +71,8 @@ export function AnalysisResults({
     [filteredFindings, visionGeometry]
   );
   const pending = useMemo(
-    () => findings.filter((finding) => finding.review_status === "PENDING"),
-    [findings]
+    () => resolvedFindings.filter((finding) => finding.review_status === "PENDING"),
+    [resolvedFindings]
   );
   const decidedCount = pending.filter((finding) => decisions[finding.id]).length;
   const canSubmit = pending.length > 0 && decidedCount === pending.length;
