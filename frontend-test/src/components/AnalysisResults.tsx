@@ -8,6 +8,7 @@ import type {
   XRay
 } from "../api/types";
 import {
+  extractVisionToothDetections,
   extractVisionToothGeometry,
   filterFindings,
   groupFindingsByTooth,
@@ -47,6 +48,10 @@ export function AnalysisResults({
   const filteredFindings = useMemo(
     () => filterFindings(findings, filter),
     [findings, filter]
+  );
+  const toothDetections = useMemo(
+    () => extractVisionToothDetections(analysis?.structured_result ?? null),
+    [analysis?.structured_result]
   );
   const visionGeometry = useMemo(
     () => extractVisionToothGeometry(analysis?.structured_result ?? null),
@@ -123,6 +128,7 @@ export function AnalysisResults({
     <OPGAnalysisViewer
       xray={xray}
       groups={groups}
+      detections={toothDetections}
       clinicalSummary={clinicalSummary}
       filter={filter}
       selectedGroupKey={selectedGroupKey}
