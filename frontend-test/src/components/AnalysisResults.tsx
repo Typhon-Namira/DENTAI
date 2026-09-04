@@ -13,8 +13,6 @@ import {
   filterFindings,
   findingGroupKey,
   groupFindingsByTooth,
-  isFindingProductVisible,
-  MODEL_SCORE_DISPLAY_THRESHOLD,
   resolveSelectedGroupKey,
   type FindingFilter
 } from "../utils/opg";
@@ -58,13 +56,13 @@ export function AnalysisResults({
     [analysis?.structured_result]
   );
   const summaryPresentation = clinicalSummaryPresentation(clinicalSummary);
-  const productVisibleFindings = useMemo(
-    () => findings.filter(isFindingProductVisible),
-    [findings]
-  );
+
+  // All findings returned by DENTAI remain visible and reviewable. Confidence is
+  // evidence for the clinician, not a frontend gate that silently removes a finding.
+  const reviewFindings = findings;
   const filteredFindings = useMemo(
-    () => filterFindings(productVisibleFindings, filter),
-    [productVisibleFindings, filter]
+    () => filterFindings(reviewFindings, filter),
+    [reviewFindings, filter]
   );
   const visionGeometry = useMemo(
     () => extractVisionToothGeometry(analysis?.structured_result ?? null),
@@ -83,8 +81,8 @@ export function AnalysisResults({
     [filteredFindings, visionGeometry]
   );
   const pending = useMemo(
-    () => productVisibleFindings.filter((finding) => finding.review_status === "PENDING"),
-    [productVisibleFindings]
+    () => reviewFindings.filter((finding) => finding.review_status === "PENDING"),
+    [reviewFindings]
   );
   const decidedCount = pending.filter((finding) => decisions[finding.id]).length;
   const canSubmit = pending.length > 0 && decidedCount === pending.length;
@@ -148,7 +146,7 @@ export function AnalysisResults({
           <div>
             <p className="eyebrow">DENTAI V5 · {armenian ? "Կլինիկական վերանայում" : "Clinical review"}</p>
             <h2>{armenian ? "AI-ով աջակցվող ռենտգենային վերանայում" : "AI-assisted radiographic review"}</h2>
-            <p>{displayDate(analysis.completed_at ?? analysis.requested_at)} · {toothDetections.length} {armenian ? "հայտնաբերված ատամ" : "detected teeth"} · {productVisibleFindings.length} {armenian ? "տեսանելի արդյունք" : "visible findings"}</p>
+            <p>{displayDate(analysis.completed_at ?? analysis.requested_at)} · {toothDetections.length} {armenian ? "հայտնաբերված ատամ" : "detected teeth"} · {reviewFindings.length} {armenian ? "AI արդյունք" : "AI findings"}</p>
           </div>
         </div>
         <StatusBadge value={analysis.status} />
@@ -236,13 +234,13 @@ export function AnalysisResults({
 
       <details className="finding-library-fold card">
         <summary>
-          <span>{armenian ? "Բոլոր տեսանելի արդյունքները" : "All visible findings"}</span>
-          <small>{armenian ? `Մոդելի գնահատական ≥ ${MODEL_SCORE_DISPLAY_THRESHOLD.toFixed(2)} · փակ է լռելյայն` : `Model score ≥ ${MODEL_SCORE_DISPLAY_THRESHOLD.toFixed(2)} · hidden by default`}</small>
+          <span>{armenian ? "Բոլոր AI արդյունքները" : "All AI findings"}</span>
+          <small>{armenian ? "Ցածր գնահատականով արդյունքներն էլ մնում են բժշկի վերանայման համար" : "Low-score findings stay visible for clinician review"}</small>
         </summary>
         <div className="finding-library-list">
-          {productVisibleFindings.map((finding) => (
+          {reviewFindings.map((finding) => (
             <button key={finding.id} type="button" onClick={() => inspectFinding(finding)}>
-              <span className="tooth-code">{finding.tooth_code}</span>
+              <span className="tooth-code">{finding.tooth_code ?? "?"}</span>
               <span><strong>{humanizeFindingType(finding.finding_type)}</strong><small>{finding.review_status.replaceAll("_", " ")}</small></span>
               <span>›</span>
             </button>
