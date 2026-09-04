@@ -180,7 +180,12 @@ export function OPGAnalysisViewer({
   const projectedRegions = useMemo(() => {
     if (!imageSize) return [];
     return groups.flatMap((group) => {
-      const exactBox = boundingBoxForFindingGroup(group, detections);
+      const exactBox = boundingBoxForFindingGroup(
+        group,
+        detections,
+        imageSize.width,
+        imageSize.height
+      );
       if (!exactBox) return [];
       const projected = normalizeBoundingBoxToImage(exactBox, imageSize.width, imageSize.height);
       if (!projected) return [];
