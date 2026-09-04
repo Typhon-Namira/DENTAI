@@ -8,6 +8,7 @@ import type {
   XRay
 } from "../api/types";
 import {
+  extractVisionToothDetections,
   extractVisionToothGeometry,
   filterFindings,
   findingGroupKey,
@@ -50,6 +51,7 @@ export function AnalysisResults({
   const [reviewDone, setReviewDone] = useState("");
   const [filter, setFilter] = useState<FindingFilter>("ALL");
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
+  const armenian = document.documentElement.lang === "hy";
 
   const clinicalSummary = useMemo(
     () => parseClinicalSummary(analysis?.structured_result?.clinical_summary),
@@ -66,6 +68,10 @@ export function AnalysisResults({
   );
   const visionGeometry = useMemo(
     () => extractVisionToothGeometry(analysis?.structured_result ?? null),
+    [analysis?.structured_result]
+  );
+  const toothDetections = useMemo(
+    () => extractVisionToothDetections(analysis?.structured_result ?? null),
     [analysis?.structured_result]
   );
   const groups = useMemo(
@@ -102,8 +108,8 @@ export function AnalysisResults({
     return (
       <section className="card empty-state">
         <span className="empty-icon" aria-hidden="true">◎</span>
-        <h3>No analysis selected</h3>
-        <p>Select an uploaded X-ray and run DENTAI V5, or choose an existing analysis.</p>
+        <h3>{armenian ? "Վերլուծություն ընտրված չէ" : "No analysis selected"}</h3>
+        <p>{armenian ? "Ընտրեք վերբեռնված ռենտգենը և գործարկեք DENTAI V5-ը կամ բացեք առկա վերլուծությունը։" : "Select an uploaded X-ray and run DENTAI V5, or choose an existing analysis."}</p>
       </section>
     );
   }
@@ -120,7 +126,7 @@ export function AnalysisResults({
           decision: decisions[finding.id] as ReviewDecision
         }))
       });
-      setReviewDone("Վերանայման որոշումները պահպանվել են։");
+      setReviewDone(armenian ? "Վերանայման որոշումները պահպանվել են։" : "Review decisions saved.");
       await onReviewed();
     } catch (reason) {
       setReviewError(errorMessage(reason));
@@ -140,9 +146,9 @@ export function AnalysisResults({
         <div>
           <span className="analysis-spark" aria-hidden="true">✦</span>
           <div>
-            <p className="eyebrow">DENTAI V5 · Clinical review</p>
-            <h2>AI-assisted radiographic review</h2>
-            <p>{displayDate(analysis.completed_at ?? analysis.requested_at)} · {productVisibleFindings.length} product-visible findings</p>
+            <p className="eyebrow">DENTAI V5 · {armenian ? "Կլինիկական վերանայում" : "Clinical review"}</p>
+            <h2>{armenian ? "AI-ով աջակցվող ռենտգենային վերանայում" : "AI-assisted radiographic review"}</h2>
+            <p>{displayDate(analysis.completed_at ?? analysis.requested_at)} · {toothDetections.length} {armenian ? "հայտնաբերված ատամ" : "detected teeth"} · {productVisibleFindings.length} {armenian ? "տեսանելի արդյունք" : "visible findings"}</p>
           </div>
         </div>
         <StatusBadge value={analysis.status} />
@@ -150,37 +156,37 @@ export function AnalysisResults({
 
       {analysis.status === "FAILED" && (
         <div className="error-panel" role="alert">
-          Analysis failed{analysis.error_code ? `: ${analysis.error_code}` : "."}
+          {armenian ? "Վերլուծությունը ձախողվել է" : "Analysis failed"}{analysis.error_code ? `: ${analysis.error_code}` : "."}
         </div>
       )}
 
       {summaryPresentation.showPanel && clinicalSummary && (
-        <section className="clinical-briefing" lang="hy">
+        <section className="clinical-briefing" lang={armenian ? "hy" : "en"}>
           <div className="briefing-orbit" aria-hidden="true">
             <span>AI</span><i /><i />
           </div>
           <div className="briefing-copy">
-            <p className="eyebrow">Կլինիկական ամփոփում</p>
+            <p className="eyebrow">{armenian ? "Կլինիկական ամփոփում" : "Clinical summary"}</p>
             <h3>{clinicalSummary.doctor_summary}</h3>
-            <p className="briefing-safety">DENTAI-ի կառուցվածքային տվյալների բացատրություն է և չի փոխարինում բժշկի գնահատմանը։</p>
+            <p className="briefing-safety">{armenian ? "DENTAI-ի կառուցվածքային տվյալների բացատրություն է և չի փոխարինում բժշկի գնահատմանը։" : "Interpretation of DENTAI structured evidence; it does not replace clinician assessment."}</p>
           </div>
           <div className="briefing-signals">
             {clinicalSummary.important_changes[0] && (
               <article>
                 <span className="signal-icon">◉</span>
-                <div><small>Հիմնական դիտարկում</small><strong>{clinicalSummary.important_changes[0]}</strong></div>
+                <div><small>{armenian ? "Հիմնական դիտարկում" : "Key observation"}</small><strong>{clinicalSummary.important_changes[0]}</strong></div>
               </article>
             )}
             {clinicalSummary.monitoring_points[0] && (
               <article>
                 <span className="signal-icon">⌁</span>
-                <div><small>Հսկողություն</small><strong>{clinicalSummary.monitoring_points[0]}</strong></div>
+                <div><small>{armenian ? "Հսկողություն" : "Monitoring"}</small><strong>{clinicalSummary.monitoring_points[0]}</strong></div>
               </article>
             )}
             {clinicalSummary.questions_for_doctor[0] && (
               <article>
                 <span className="signal-icon">?</span>
-                <div><small>Բժշկի համար</small><strong>{clinicalSummary.questions_for_doctor[0]}</strong></div>
+                <div><small>{armenian ? "Բժշկի համար" : "For the clinician"}</small><strong>{clinicalSummary.questions_for_doctor[0]}</strong></div>
               </article>
             )}
           </div>
@@ -193,6 +199,7 @@ export function AnalysisResults({
       <OPGAnalysisViewer
         xray={xray}
         groups={groups}
+        detections={toothDetections}
         clinicalSummary={clinicalSummary}
         filter={filter}
         selectedGroupKey={selectedGroupKey}
@@ -211,8 +218,8 @@ export function AnalysisResults({
             <span>{decidedCount}/{pending.length}</span>
           </div>
           <div>
-            <strong>Բժշկի հաստատում</strong>
-            <p>Ընտրեք յուրաքանչյուր բացված արդյունքի «Հաստատել» կամ «Մերժել» տարբերակը։</p>
+            <strong>{armenian ? "Բժշկի հաստատում" : "Clinician confirmation"}</strong>
+            <p>{armenian ? "Յուրաքանչյուր արդյունքի համար ընտրեք «Հաստատել» կամ «Մերժել»։" : "Confirm or reject each pending finding before saving the review."}</p>
           </div>
           {reviewError && <span className="review-inline-error" role="alert">{reviewError}</span>}
           {reviewDone && <span className="review-inline-success" role="status">{reviewDone}</span>}
@@ -222,15 +229,15 @@ export function AnalysisResults({
             disabled={!canSubmit || reviewing}
             onClick={() => void submitReview()}
           >
-            {reviewing ? "Պահպանվում է…" : "Պահպանել վերանայումը"}
+            {reviewing ? (armenian ? "Պահպանվում է…" : "Saving…") : (armenian ? "Պահպանել վերանայումը" : "Save review")}
           </button>
         </section>
       )}
 
       <details className="finding-library-fold card">
         <summary>
-          <span>All visible findings</span>
-          <small>Model score ≥ {MODEL_SCORE_DISPLAY_THRESHOLD.toFixed(2)} · hidden by default</small>
+          <span>{armenian ? "Բոլոր տեսանելի արդյունքները" : "All visible findings"}</span>
+          <small>{armenian ? `Մոդելի գնահատական ≥ ${MODEL_SCORE_DISPLAY_THRESHOLD.toFixed(2)} · փակ է լռելյայն` : `Model score ≥ ${MODEL_SCORE_DISPLAY_THRESHOLD.toFixed(2)} · hidden by default`}</small>
         </summary>
         <div className="finding-library-list">
           {productVisibleFindings.map((finding) => (
@@ -244,12 +251,12 @@ export function AnalysisResults({
       </details>
 
       <details className="technical-fold card">
-        <summary>Technical analysis data</summary>
+        <summary>{armenian ? "Տեխնիկական վերլուծության տվյալներ" : "Technical analysis data"}</summary>
         <div className="technical-mini-grid">
           <span><small>Analysis ID</small><strong>{analysis.id}</strong></span>
-          <span><small>Provider</small><strong>{analysis.provider}</strong></span>
-          <span><small>Model version</small><strong>{analysis.model_version}</strong></span>
-          <span><small>Review</small><strong>{analysis.review_status.replaceAll("_", " ")}</strong></span>
+          <span><small>{armenian ? "Մատակարար" : "Provider"}</small><strong>{analysis.provider}</strong></span>
+          <span><small>{armenian ? "Մոդելի տարբերակ" : "Model version"}</small><strong>{analysis.model_version}</strong></span>
+          <span><small>{armenian ? "Վերանայում" : "Review"}</small><strong>{analysis.review_status.replaceAll("_", " ")}</strong></span>
         </div>
         <details className="raw-json nested-raw-json"><summary>Raw JSON</summary><pre>{JSON.stringify({ analysis, xray, findings }, null, 2)}</pre></details>
       </details>
