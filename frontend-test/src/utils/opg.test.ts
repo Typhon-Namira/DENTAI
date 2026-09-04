@@ -9,6 +9,7 @@ import {
   expectedPanoramicSide,
   extractBoundingBox,
   extractVisionToothBoxes,
+  extractVisionToothDetections,
   extractVisionToothGeometry,
   filterFindings,
   groupFindingsByTooth,
@@ -85,6 +86,61 @@ describe("OPG finding utilities", () => {
     expect(normalizeBoundingBoxToImage([100, 200, 300, 400], 2000, 1000))
       .toEqual([100, 200, 300, 400]);
     expect(normalizeBoundingBoxToImage([100, 200, 2300, 400], 2000, 1000)).toBeNull();
+  });
+
+  it("keeps every valid model tooth detection available independently of visible findings", () => {
+    const structured = {
+      vision_evidence: {
+        teeth: [
+          {
+            fdi: "44",
+            review_required: false,
+            tooth_detection: {
+              instance_id: 1,
+              bbox_xyxy: [220, 500, 340, 820],
+              confidence: 0.91
+            }
+          },
+          {
+            fdi: "47",
+            review_required: true,
+            tooth_detection: {
+              instance_id: 2,
+              bbox_xyxy: [100, 400, 240, 760],
+              confidence: 0.95
+            }
+          },
+          {
+            fdi: null,
+            review_required: true,
+            tooth_detection: {
+              instance_id: 3,
+              bbox_xyxy: [400, 400, 480, 720],
+              confidence: 0.72
+            }
+          },
+          {
+            fdi: "36",
+            tooth_detection: {
+              instance_id: 4,
+              bbox_xyxy: [10, 20, 5, 30],
+              confidence: 0.99
+            }
+          }
+        ]
+      }
+    } as AIAnalysisStructuredResult;
+
+    const detections = extractVisionToothDetections(structured);
+    expect(detections).toHaveLength(3);
+    expect(detections.map((item) => item.toothCode)).toEqual(["44", "47", null]);
+    expect(detections.map((item) => item.key)).toEqual([
+      "detected:1",
+      "detected:2",
+      "detected:3"
+    ]);
+    expect(detections[1]?.reviewRequired).toBe(true);
+    expect(detections[1]?.confidence).toBe(0.95);
   });
 
   it("uses canonical vision evidence for tooth 44 instead of a wrong-side provenance box", () => {
@@ -314,13 +370,14 @@ describe("OPG finding utilities", () => {
     expect(isStandardPanoramicSideConsistent("36", [1500, 10, 1600, 200], 2000)).toBe(true);
   });
 
-  it("keeps a valid selected tooth and resets missing selections deterministically", () => {
+  it("never auto-selects a tooth; modal selection is always explicit", () => {
     const groups = groupFindingsByTooth([
       finding("a", "11", "PENDING", [1, 1, 2, 2]),
       finding("b", "36", "PENDING", [3, 3, 4, 4])
     ]);
     expect(resolveSelectedGroupKey(groups, "tooth:36")).toBe("tooth:36");
-    expect(resolveSelectedGroupKey(groups, "tooth:99")).toBe("tooth:11");
+    expect(resolveSelectedGroupKey(groups, "tooth:99")).toBeNull();
+    expect(resolveSelectedGroupKey(groups, null)).toBeNull();
   });
 
   it("uses the historical analysis xray_id rather than current selection", () => {
@@ -364,20 +421,23 @@ describe("OPG finding utilities", () => {
     })).toBe(false);
   });
 
-  it("does not create a tooth group or canonical overlay for a hidden tooth 44 finding", () => {
+  it("does not create a finding group for a hidden finding while its detector box remains available", () => {
     const findings = [
       finding("tooth-44", "44", "PENDING", [1500, 500, 1600, 800], 0.3206733167171478),
       finding("tooth-47", "47", "PENDING", [100, 400, 240, 760], 0.6287)
     ];
-    const productVisible = findings.filter(isFindingProductVisible);
-    const visionBoxes = extractVisionToothBoxes(structuredTeeth([
+    const structured = structuredTeeth([
       { fdi: "44", box: [220, 500, 340, 820] },
       { fdi: "47", box: [100, 400, 240, 760] }
-    ]));
+    ]);
+    const productVisible = findings.filter(isFindingProductVisible);
+    const visionBoxes = extractVisionToothBoxes(structured);
     const groups = groupFindingsByTooth(productVisible, visionBoxes);
+    const detections = extractVisionToothDetections(structured);
 
     expect(groups.map((group) => group.toothCode)).toEqual(["47"]);
     expect(groups.some((group) => group.toothCode === "44")).toBe(false);
+    expect(detections.map((item) => item.toothCode)).toEqual(["44", "47"]);
   });
 
   it("hides unresolved and invalid-FDI findings from every product-derived collection", () => {
