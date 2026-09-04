@@ -37,6 +37,14 @@ export interface ToothFindingGroup {
   geometryAmbiguous: boolean;
 }
 
+export interface VisionToothDetection {
+  key: string;
+  toothCode: string | null;
+  boundingBox: BoundingBox;
+  confidence: number | null;
+  reviewRequired: boolean;
+}
+
 export interface VisionToothGeometry {
   boxes: Map<string, BoundingBox>;
   ambiguousToothCodes: Set<string>;
@@ -68,28 +76,51 @@ function unionBoundingBoxes(boxes: BoundingBox[]): BoundingBox | null {
   ];
 }
 
-export function extractVisionToothGeometry(
+export function extractVisionToothDetections(
   structuredResult: AIAnalysisStructuredResult | null
-): VisionToothGeometry {
-  const boxesByTooth = new Map<string, BoundingBox[]>();
+): VisionToothDetection[] {
   const teeth = structuredResult?.vision_evidence?.teeth;
-  if (!Array.isArray(teeth)) {
-    return { boxes: new Map(), ambiguousToothCodes: new Set() };
-  }
+  if (!Array.isArray(teeth)) return [];
 
-  for (const value of teeth) {
-    if (!value || typeof value !== "object") continue;
+  return teeth.flatMap((value, index) => {
+    if (!value || typeof value !== "object") return [];
     const tooth = value as {
       fdi?: unknown;
-      tooth_detection?: { bbox_xyxy?: unknown };
+      review_required?: unknown;
+      tooth_detection?: {
+        instance_id?: unknown;
+        bbox_xyxy?: unknown;
+        confidence?: unknown;
+      };
     };
+    const boundingBox = parseBoundingBox(tooth.tooth_detection?.bbox_xyxy);
+    if (!boundingBox) return [];
     const toothCode =
       typeof tooth.fdi === "string" || typeof tooth.fdi === "number"
         ? String(tooth.fdi)
         : null;
-    const box = parseBoundingBox(tooth.tooth_detection?.bbox_xyxy);
-    if (!toothCode || !box) continue;
-    boxesByTooth.set(toothCode, [...(boxesByTooth.get(toothCode) ?? []), box]);
+    const instanceId = tooth.tooth_detection?.instance_id;
+    const confidence = tooth.tooth_detection?.confidence;
+    return [{
+      key: `detected:${typeof instanceId === "number" ? instanceId : index}`,
+      toothCode,
+      boundingBox,
+      confidence: typeof confidence === "number" && Number.isFinite(confidence) ? confidence : null,
+      reviewRequired: tooth.review_required === true
+    }];
+  });
+}
+
+export function extractVisionToothGeometry(
+  structuredResult: AIAnalysisStructuredResult | null
+): VisionToothGeometry {
+  const boxesByTooth = new Map<string, BoundingBox[]>();
+  for (const detection of extractVisionToothDetections(structuredResult)) {
+    if (!detection.toothCode) continue;
+    boxesByTooth.set(
+      detection.toothCode,
+      [...(boxesByTooth.get(detection.toothCode) ?? []), detection.boundingBox]
+    );
   }
 
   const boxes = new Map<string, BoundingBox>();
@@ -236,8 +267,8 @@ export function resolveSelectedGroupKey(
   groups: ToothFindingGroup[],
   requestedKey: string | null
 ): string | null {
-  if (requestedKey && groups.some((group) => group.key === requestedKey)) return requestedKey;
-  return groups.find((group) => group.boundingBox)?.key ?? groups[0]?.key ?? null;
+  if (!requestedKey) return null;
+  return groups.some((group) => group.key === requestedKey) ? requestedKey : null;
 }
 
 export function xrayForAnalysis(
