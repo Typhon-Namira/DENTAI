@@ -1,0 +1,50 @@
+/* Findings-only OPG layer: the radiograph is the primary clinical surface. */
+.v4-dash-review{display:none!important}
+.findings-only-opg{padding:0!important;overflow:visible!important}
+.findings-only-opg .medical-opg-header{border-radius:22px 22px 0 0}
+.findings-only-opg .finding-stage{position:relative;isolation:isolate}
+.findings-only-opg .finding-only-overlay{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:3;pointer-events:none;overflow:visible}
+.findings-only-opg .clinical-finding-region{pointer-events:auto;cursor:pointer;outline:none}
+.findings-only-opg .clinical-finding-region .finding-region-box{transition:stroke-width .16s ease,fill .16s ease,opacity .16s ease,filter .16s ease}
+.findings-only-opg .clinical-finding-region:hover .finding-region-box,
+.findings-only-opg .clinical-finding-region:focus .finding-region-box,
+.findings-only-opg .clinical-finding-region.active .finding-region-box{stroke-width:3.2!important}
+.findings-only-opg .clinical-finding-region.pathology:hover .finding-region-box,
+.findings-only-opg .clinical-finding-region.pathology:focus .finding-region-box,
+.findings-only-opg .clinical-finding-region.pathology.active .finding-region-box{fill:rgba(239,68,68,.31)!important}
+.findings-only-opg .clinical-finding-region.restorative:hover .finding-region-box,
+.findings-only-opg .clinical-finding-region.restorative:focus .finding-region-box,
+.findings-only-opg .clinical-finding-region.restorative.active .finding-region-box{fill:rgba(34,197,94,.26)!important}
+.findings-only-opg .finding-confidence-pulse{transform-box:fill-box;transform-origin:center;animation:findingConfidencePulse 2.15s ease-in-out infinite}
+.findings-only-opg .finding-region-label{pointer-events:none;filter:drop-shadow(0 3px 7px rgba(0,0,0,.42))}
+.findings-only-opg .finding-region-label text{paint-order:stroke;stroke:rgba(5,8,18,.92);stroke-width:2px;stroke-linejoin:round}
+@keyframes findingConfidencePulse{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:1;transform:scale(1.035)}}
+.findings-only-opg .finding-legend{gap:13px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.findings-only-opg .finding-legend span{display:flex;align-items:center;gap:5px}
+.findings-only-opg .finding-legend i{width:7px;height:7px;border-radius:50%;display:block}
+.findings-only-opg .legend-green{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.9)}
+.findings-only-opg .legend-red{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.9)}
+.findings-only-opg .opg-report-button{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);border-radius:10px;padding:7px 10px;font-size:9px;font-weight:800;cursor:pointer}
+.findings-only-opg .opg-report-button.active,.findings-only-opg .opg-report-button:hover{background:rgba(112,94,255,.28);border-color:rgba(171,160,255,.55);color:#fff}
+.findings-only-opg .opg-report-panel{position:absolute;z-index:7;top:16px;right:16px;width:min(360px,calc(100% - 32px));max-height:calc(100% - 86px);overflow:auto;border:1px solid rgba(255,255,255,.16);border-radius:18px;background:rgba(12,15,32,.89);backdrop-filter:blur(18px);box-shadow:0 24px 70px rgba(0,0,0,.38);color:#fff;padding:18px}
+.findings-only-opg .opg-report-panel>button{position:absolute;right:11px;top:10px;width:30px;height:30px;border:0;border-radius:9px;background:rgba(255,255,255,.09);color:#fff;font-size:19px;cursor:pointer}
+.findings-only-opg .opg-report-panel h4{margin:7px 30px 12px 0;font-size:16px;line-height:1.45}
+.findings-only-opg .opg-report-panel p{margin:8px 0;padding:9px 10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.055);font-size:10px;line-height:1.55;color:rgba(255,255,255,.78)}
+.findings-only-opg .opg-report-panel p strong{display:block;margin-bottom:3px;color:#fff;font-size:9px}
+.findings-only-opg .opg-report-panel small{display:block;margin-top:10px;color:rgba(255,255,255,.48);font-size:8px}
+.findings-only-opg .opg-review-dock{position:absolute;z-index:6;left:16px;bottom:16px;display:flex;align-items:center;gap:8px;max-width:calc(100% - 32px);padding:8px 9px 8px 12px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(8,11,27,.78);backdrop-filter:blur(14px);box-shadow:0 12px 34px rgba(0,0,0,.25);color:rgba(255,255,255,.78);font-size:9px}
+.findings-only-opg .opg-review-dock em{font-style:normal;color:#ffb4bc;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.findings-only-opg .opg-review-dock em.success{color:#86efac}
+.findings-only-opg .opg-review-dock button{border:0;border-radius:8px;background:#6752ff;color:#fff;padding:7px 10px;font-size:9px;font-weight:800;cursor:pointer}
+.findings-only-opg .opg-review-dock button:disabled{opacity:.42;cursor:not-allowed}
+.findings-only-opg .finding-dialog-visual.pathology .finding-visual-target{--focus:#ef4444}
+.findings-only-opg .finding-dialog-visual.restorative .finding-visual-target{--focus:#22c55e}
+.findings-only-opg .finding-confidence-list{display:grid;gap:7px;margin:12px 0}
+.findings-only-opg .finding-confidence-list>div{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;border:1px solid #eceaf8;border-radius:11px;padding:9px 10px;background:#fafaff}
+.findings-only-opg .finding-confidence-list span{font-size:11px;font-weight:750}
+.findings-only-opg .finding-confidence-list strong{font-size:12px;color:#4338ca}
+.findings-only-opg .finding-confidence-list small{font-size:8px;color:#8b91aa}
+html[lang=hy] .findings-only-opg .medical-opg-header h3{line-height:1.5}
+html[lang=hy] .findings-only-opg .medical-opg-header>div:first-child>p:last-child{line-height:1.55}
+@media(prefers-reduced-motion:reduce){.findings-only-opg .finding-confidence-pulse{animation:none!important}}
+@media(max-width:760px){.findings-only-opg .medical-opg-header{align-items:flex-start;flex-direction:column}.findings-only-opg .medical-viewer-actions{width:100%;flex-wrap:wrap}.findings-only-opg .opg-review-dock{right:12px;left:12px;bottom:12px;flex-wrap:wrap}.findings-only-opg .finding-legend{display:none}}
