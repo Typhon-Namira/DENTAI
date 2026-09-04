@@ -39,6 +39,7 @@ export interface ToothFindingGroup {
 
 export interface VisionToothDetection {
   key: string;
+  instanceId: number | null;
   toothCode: string | null;
   boundingBox: BoundingBox;
   confidence: number | null;
@@ -76,6 +77,23 @@ function unionBoundingBoxes(boxes: BoundingBox[]): BoundingBox | null {
   ];
 }
 
+function boxArea(box: BoundingBox): number {
+  return Math.max(0, box[2] - box[0]) * Math.max(0, box[3] - box[1]);
+}
+
+function intersectionArea(left: BoundingBox, right: BoundingBox): number {
+  const width = Math.max(0, Math.min(left[2], right[2]) - Math.max(left[0], right[0]));
+  const height = Math.max(0, Math.min(left[3], right[3]) - Math.max(left[1], right[1]));
+  return width * height;
+}
+
+function intersectionOverUnion(left: BoundingBox, right: BoundingBox): number {
+  const intersection = intersectionArea(left, right);
+  if (intersection <= 0) return 0;
+  const union = boxArea(left) + boxArea(right) - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
 export function extractVisionToothDetections(
   structuredResult: AIAnalysisStructuredResult | null
 ): VisionToothDetection[] {
@@ -99,10 +117,14 @@ export function extractVisionToothDetections(
       typeof tooth.fdi === "string" || typeof tooth.fdi === "number"
         ? String(tooth.fdi)
         : null;
-    const instanceId = tooth.tooth_detection?.instance_id;
+    const rawInstanceId = tooth.tooth_detection?.instance_id;
+    const instanceId = typeof rawInstanceId === "number" && Number.isInteger(rawInstanceId)
+      ? rawInstanceId
+      : null;
     const confidence = tooth.tooth_detection?.confidence;
     return [{
-      key: `detected:${typeof instanceId === "number" ? instanceId : index}`,
+      key: `detected:${instanceId ?? index}`,
+      instanceId,
       toothCode,
       boundingBox,
       confidence: typeof confidence === "number" && Number.isFinite(confidence) ? confidence : null,
@@ -202,6 +224,58 @@ export function groupFindingsByTooth(
       numeric: true
     })
   );
+}
+
+/**
+ * Resolve a finding group to the detector rectangle that actually produced it.
+ * Provenance instance IDs are authoritative; FDI matching is only a fallback.
+ * This prevents a finding from being drawn on a neighboring or duplicate-FDI box.
+ */
+export function detectorForFindingGroup(
+  group: Pick<ToothFindingGroup, "toothCode" | "findings" | "provenanceBoxes">,
+  detections: VisionToothDetection[]
+): VisionToothDetection | null {
+  const instanceIds = Array.from(new Set(
+    group.findings
+      .map((finding) => finding.provenance?.tooth_detection_instance_id)
+      .filter((value): value is number =>
+        typeof value === "number" && Number.isInteger(value) && value >= 0
+      )
+  ));
+
+  if (instanceIds.length === 1) {
+    const exact = detections.find((detection) => detection.instanceId === instanceIds[0]);
+    if (exact) return exact;
+  }
+
+  const sameTooth = group.toothCode
+    ? detections.filter((detection) => detection.toothCode === group.toothCode)
+    : [];
+  if (sameTooth.length === 1) return sameTooth[0];
+
+  const reference = unionBoundingBoxes(group.provenanceBoxes);
+  const candidates = sameTooth.length > 1 ? sameTooth : detections;
+  if (reference && candidates.length > 0) {
+    const ranked = candidates
+      .map((detection) => ({
+        detection,
+        overlap: intersectionOverUnion(reference, detection.boundingBox)
+      }))
+      .sort((left, right) => right.overlap - left.overlap);
+    if (ranked[0]?.overlap > 0) return ranked[0].detection;
+  }
+
+  return null;
+}
+
+export function boundingBoxForFindingGroup(
+  group: ToothFindingGroup,
+  detections: VisionToothDetection[]
+): BoundingBox | null {
+  const detector = detectorForFindingGroup(group, detections);
+  if (detector) return detector.boundingBox;
+  if (group.boundingBox) return group.boundingBox;
+  return unionBoundingBoxes(group.provenanceBoxes);
 }
 
 export function normalizeBoundingBoxToImage(
