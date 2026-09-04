@@ -94,10 +94,6 @@ function intersectionOverUnion(left: BoundingBox, right: BoundingBox): number {
   return union > 0 ? intersection / union : 0;
 }
 
-function boxCenter(box: BoundingBox): [number, number] {
-  return [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
-}
-
 export function extractVisionToothDetections(
   structuredResult: AIAnalysisStructuredResult | null
 ): VisionToothDetection[] {
@@ -231,94 +227,22 @@ export function groupFindingsByTooth(
   );
 }
 
-function jawDivider(detections: VisionToothDetection[]): number | null {
-  if (detections.length < 2) return null;
-  const ys = detections.map((detection) => boxCenter(detection.boundingBox)[1]);
-  let upperMean = Math.min(...ys);
-  let lowerMean = Math.max(...ys);
-
-  for (let iteration = 0; iteration < 10; iteration += 1) {
-    const upper: number[] = [];
-    const lower: number[] = [];
-    for (const y of ys) {
-      if (Math.abs(y - upperMean) <= Math.abs(y - lowerMean)) upper.push(y);
-      else lower.push(y);
-    }
-    if (upper.length > 0) {
-      upperMean = upper.reduce((sum, value) => sum + value, 0) / upper.length;
-    }
-    if (lower.length > 0) {
-      lowerMean = lower.reduce((sum, value) => sum + value, 0) / lower.length;
-    }
-  }
-
-  if (!Number.isFinite(upperMean) || !Number.isFinite(lowerMean) || upperMean >= lowerMean) {
-    return null;
-  }
-  return (upperMean + lowerMean) / 2;
-}
-
-function viewerSideForDetection(
-  detection: VisionToothDetection,
-  imageWidth: number
-): PanoramicSide | null {
-  if (imageWidth <= 0) return null;
-  const [cx] = boxCenter(detection.boundingBox);
-  const midpoint = imageWidth / 2;
-  const deadZone = imageWidth * 0.04;
-
-  if (cx < midpoint - deadZone) return "LEFT";
-  if (cx > midpoint + deadZone) return "RIGHT";
-
-  if (isResolvedFdi(detection.toothCode)) {
-    return expectedPanoramicSide(detection.toothCode);
-  }
-  return cx < midpoint ? "LEFT" : "RIGHT";
-}
-
 /**
- * Correct only the quadrant digit from the physical position of the detector.
- * The second FDI digit (tooth position within a quadrant) remains model-derived.
- * This fixes the known class of errors where a lower-jaw FDI is attached to an
- * upper-jaw detector (or vice versa) while preserving the detector's exact box.
- */
-export function geometryCorrectedFdiForDetection(
-  detection: VisionToothDetection,
-  detections: VisionToothDetection[],
-  imageWidth: number
-): string | null {
-  if (!isResolvedFdi(detection.toothCode) || imageWidth <= 0) return null;
-  const divider = jawDivider(detections);
-  if (divider === null) return null;
-
-  const [, cy] = boxCenter(detection.boundingBox);
-  const upperJaw = cy <= divider;
-  const side = viewerSideForDetection(detection, imageWidth);
-  if (!side) return null;
-
-  const quadrant = upperJaw
-    ? (side === "LEFT" ? "1" : "2")
-    : (side === "LEFT" ? "4" : "3");
-  return quadrant + detection.toothCode[1];
-}
-
-/**
- * Match a finding to a detector only after correcting detector jaw/side geometry.
- * A lower-jaw finding can therefore never be drawn over an upper-jaw detector.
- * Ambiguous or missing geometry is deliberately withheld rather than guessed.
+ * Resolve only against a detector carrying the same resolved FDI number.
+ * The frontend never guesses a neighboring tooth from anatomy or from a foreign
+ * detector instance: a missing/ambiguous match is intentionally not rendered.
  */
 export function detectorForFindingGroup(
   group: Pick<ToothFindingGroup, "toothCode" | "findings" | "provenanceBoxes">,
-  detections: VisionToothDetection[],
-  imageWidth?: number
+  detections: VisionToothDetection[]
 ): VisionToothDetection | null {
-  if (!isResolvedFdi(group.toothCode) || !imageWidth || imageWidth <= 0) return null;
+  if (!isResolvedFdi(group.toothCode)) return null;
 
-  const candidates = detections.filter(
-    (detection) => geometryCorrectedFdiForDetection(detection, detections, imageWidth) === group.toothCode
+  const sameTooth = detections.filter(
+    (detection) => detection.toothCode === group.toothCode
   );
-  if (candidates.length === 0) return null;
-  if (candidates.length === 1) return candidates[0];
+  if (sameTooth.length === 0) return null;
+  if (sameTooth.length === 1) return sameTooth[0];
 
   const instanceIds = Array.from(new Set(
     group.findings
@@ -328,14 +252,14 @@ export function detectorForFindingGroup(
       )
   ));
   if (instanceIds.length === 1) {
-    const exact = candidates.find((detection) => detection.instanceId === instanceIds[0]);
+    const exact = sameTooth.find((detection) => detection.instanceId === instanceIds[0]);
     if (exact) return exact;
   }
 
   const reference = unionBoundingBoxes(group.provenanceBoxes);
   if (!reference) return null;
 
-  const ranked = candidates
+  const ranked = sameTooth
     .map((detection) => ({
       detection,
       overlap: intersectionOverUnion(reference, detection.boundingBox)
@@ -369,11 +293,11 @@ function insetDetectorBox(box: BoundingBox): BoundingBox {
 export function boundingBoxForFindingGroup(
   group: ToothFindingGroup,
   detections: VisionToothDetection[],
-  imageWidth?: number,
+  _imageWidth?: number,
   _imageHeight?: number
 ): BoundingBox | null {
-  if (!isResolvedFdi(group.toothCode) || !imageWidth || imageWidth <= 0) return null;
-  const detector = detectorForFindingGroup(group, detections, imageWidth);
+  if (!isResolvedFdi(group.toothCode)) return null;
+  const detector = detectorForFindingGroup(group, detections);
   return detector ? insetDetectorBox(detector.boundingBox) : null;
 }
 
