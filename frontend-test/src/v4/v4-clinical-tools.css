@@ -93,6 +93,70 @@
 .v4-clinical-feature details>summary{cursor:pointer}
 .v4-clinical-feature .compact-review-dock{position:sticky;bottom:16px;z-index:8;box-shadow:0 20px 50px rgba(59,47,144,.16)}
 
+/* Every DENTAI tooth detector region is rendered independently of findings. */
+.v4-clinical-feature .tooth-detection-overlay{
+  pointer-events:none;
+  opacity:.86;
+}
+.v4-clinical-feature .tooth-detection-overlay.has-finding{
+  pointer-events:auto;
+  cursor:pointer;
+  outline:none;
+}
+.v4-clinical-feature .tooth-detection-overlay rect{
+  fill:rgba(74,221,215,.035);
+  stroke:rgba(105,232,227,.82);
+  stroke-width:1.35;
+  vector-effect:non-scaling-stroke;
+  stroke-dasharray:7 5;
+  filter:drop-shadow(0 0 4px rgba(86,225,220,.42));
+  transition:fill .16s ease,stroke .16s ease,stroke-width .16s ease,opacity .16s ease;
+  animation:v4ToothScan 3.4s ease-in-out infinite;
+}
+.v4-clinical-feature .tooth-detection-overlay path{
+  fill:none;
+  stroke:#8ff1ed;
+  stroke-width:2.2;
+  stroke-linecap:round;
+  filter:drop-shadow(0 0 4px rgba(105,232,227,.55));
+}
+.v4-clinical-feature .tooth-detection-overlay text{
+  fill:#eaffff;
+  font-weight:850;
+  paint-order:stroke;
+  stroke:rgba(6,10,20,.96);
+  stroke-width:3px;
+  stroke-linejoin:round;
+  pointer-events:none;
+  letter-spacing:.02em;
+}
+.v4-clinical-feature .tooth-detection-overlay.has-finding rect{
+  stroke:rgba(177,164,255,.95);
+  fill:rgba(111,83,255,.055);
+  stroke-dasharray:0;
+}
+.v4-clinical-feature .tooth-detection-overlay.has-finding path{stroke:#c2b7ff}
+.v4-clinical-feature .tooth-detection-overlay.has-finding text{fill:#fff}
+.v4-clinical-feature .tooth-detection-overlay.has-finding:hover rect,
+.v4-clinical-feature .tooth-detection-overlay.has-finding:focus rect,
+.v4-clinical-feature .tooth-detection-overlay.active rect{
+  fill:rgba(111,83,255,.14);
+  stroke:#cfc5ff;
+  stroke-width:2.4;
+  filter:drop-shadow(0 0 8px rgba(146,128,255,.8));
+}
+.v4-clinical-feature .medical-finding-hotspot{pointer-events:auto}
+.v4-clinical-feature .medical-overlay{overflow:visible}
+@keyframes v4ToothScan{
+  0%,100%{opacity:.66;stroke-dashoffset:0}
+  50%{opacity:1;stroke-dashoffset:12}
+}
+@media(prefers-reduced-motion:reduce){
+  .v4-clinical-feature .tooth-detection-overlay rect,
+  .v4-clinical-feature .hotspot-aura-outer,
+  .v4-clinical-feature .hotspot-node{animation:none!important}
+}
+
 /* Outreach: reuse the proven QR + test-message workflow in the current V4 visual language. */
 .v4-outreach-enhanced{
   display:grid;
@@ -229,6 +293,14 @@
   font-weight:750;
 }
 @keyframes v4QrIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+
+html[lang=hy] .v4-clinical-feature .eyebrow,
+html[lang=hy] .v4-outreach-tool .eyebrow{letter-spacing:.025em;text-transform:none}
+html[lang=hy] .v4-clinical-feature .medical-opg-header h3,
+html[lang=hy] .v4-clinical-feature .briefing-copy h3,
+html[lang=hy] .v4-outreach-tool .section-heading h3{line-height:1.55}
+html[lang=hy] .v4-clinical-feature .medical-opg-header>div:first-child>p:last-child,
+html[lang=hy] .v4-outreach-tool .muted{line-height:1.65}
 
 @media(max-width:980px){
   .v4-outreach-enhanced{grid-template-columns:1fr}
