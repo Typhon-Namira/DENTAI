@@ -2,19 +2,18 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { api, errorMessage } from "../api/client";
 import type { GroqClinicalSummary, ReviewDecision, XRay } from "../api/types";
 import {
-  findingModelScore,
-  formatModelScore,
-  isStandardPanoramicSideConsistent,
   normalizeBoundingBoxToImage,
-  observedImageSide,
   type FindingFilter,
-  type ToothFindingGroup,
-  type VisionToothDetection
+  type ToothFindingGroup
 } from "../utils/opg";
 import {
+  groupFindingConfidence,
+  groupFindingTone,
+  primaryFinding
+} from "../utils/findingVisuals";
+import {
   explanationForGroup,
-  humanizeFindingType,
-  technicalDetailsForFinding
+  humanizeFindingType
 } from "../utils/clinicalSummary";
 
 const DISPLAYABLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -22,12 +21,18 @@ const DISPLAYABLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"
 interface OPGAnalysisViewerProps {
   xray: XRay | null;
   groups: ToothFindingGroup[];
-  detections: VisionToothDetection[];
   clinicalSummary: GroqClinicalSummary | null;
   filter: FindingFilter;
   selectedGroupKey: string | null;
   canReview: boolean;
   decisions: Record<string, ReviewDecision | "">;
+  pendingCount: number;
+  decidedCount: number;
+  reviewing: boolean;
+  reviewError: string;
+  reviewDone: string;
+  canSubmitReview: boolean;
+  onSubmitReview: () => void;
   onDecisionChange: (findingId: string, decision: ReviewDecision | "") => void;
   onFilterChange: (filter: FindingFilter) => void;
   onSelectedGroupChange: (key: string | null) => void;
@@ -38,20 +43,21 @@ interface ImageSize {
   height: number;
 }
 
-function detailValue(value: string | number | boolean | null | undefined, armenian: boolean): string {
-  if (value === null || value === undefined || value === "") return armenian ? "Տրված չէ" : "Not provided";
-  return String(value);
-}
-
 export function OPGAnalysisViewer({
   xray,
   groups,
-  detections,
   clinicalSummary,
   filter,
   selectedGroupKey,
   canReview,
   decisions,
+  pendingCount,
+  decidedCount,
+  reviewing,
+  reviewError,
+  reviewDone,
+  canSubmitReview,
+  onSubmitReview,
   onDecisionChange,
   onFilterChange,
   onSelectedGroupChange
@@ -61,6 +67,7 @@ export function OPGAnalysisViewer({
   const [imageError, setImageError] = useState("");
   const [overlaysVisible, setOverlaysVisible] = useState(true);
   const [hoveredGroupKey, setHoveredGroupKey] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const armenian = document.documentElement.lang === "hy";
 
   const filters: Array<{ value: FindingFilter; label: string }> = armenian
@@ -87,59 +94,50 @@ export function OPGAnalysisViewer({
   );
   const activeGroupKey = hoveredGroupKey ?? selectedGroupKey;
   const displayable = xray ? DISPLAYABLE_IMAGE_TYPES.has(xray.mime_type) : false;
-  const debugOpg = new URLSearchParams(window.location.search).get("debugOpg") === "1";
 
-  const projectedGroups = useMemo(
-    () => groups.map((group) => ({
-      ...group,
-      projectedBoundingBox:
-        group.boundingBox && imageSize
-          ? normalizeBoundingBoxToImage(group.boundingBox, imageSize.width, imageSize.height)
-          : null
-    })),
-    [groups, imageSize]
+  const projectedRegions = useMemo(() => {
+    if (!imageSize) return [];
+    return groups.flatMap((group) => {
+      const sourceBoxes = group.boundingBox
+        ? [group.boundingBox]
+        : group.provenanceBoxes;
+      return sourceBoxes.flatMap((box, index) => {
+        const projected = normalizeBoundingBoxToImage(box, imageSize.width, imageSize.height);
+        if (!projected) return [];
+        return [{
+          key: `${group.key}:${index}`,
+          group,
+          box: projected,
+          tone: groupFindingTone(group),
+          confidence: groupFindingConfidence(group),
+          primary: primaryFinding(group)
+        }];
+      });
+    });
+  }, [groups, imageSize]);
+
+  const selectedRegion = useMemo(
+    () => projectedRegions.find((region) => region.group.key === selectedGroupKey) ?? null,
+    [projectedRegions, selectedGroupKey]
   );
 
-  const projectedDetections = useMemo(
-    () => detections.map((detection) => ({
-      ...detection,
-      projectedBoundingBox: imageSize
-        ? normalizeBoundingBoxToImage(detection.boundingBox, imageSize.width, imageSize.height)
-        : null
-    })),
-    [detections, imageSize]
-  );
-
-  const groupsByTooth = useMemo(() => {
-    const map = new Map<string, ToothFindingGroup>();
-    for (const group of groups) {
-      if (group.toothCode && !map.has(group.toothCode)) map.set(group.toothCode, group);
-    }
-    return map;
-  }, [groups]);
-
-  const selectedProjected = useMemo(
-    () => projectedGroups.find((group) => group.key === selectedGroupKey) ?? null,
-    [projectedGroups, selectedGroupKey]
-  );
   const focusPosition = useMemo(() => {
-    if (!selectedProjected?.projectedBoundingBox || !imageSize) return "50% 50%";
-    const [x1, y1, x2, y2] = selectedProjected.projectedBoundingBox;
+    if (!selectedRegion || !imageSize) return "50% 50%";
+    const [x1, y1, x2, y2] = selectedRegion.box;
     const x = (((x1 + x2) / 2) / imageSize.width) * 100;
     const y = (((y1 + y2) / 2) / imageSize.height) * 100;
     return `${x}% ${y}%`;
-  }, [selectedProjected, imageSize]);
+  }, [selectedRegion, imageSize]);
 
   useEffect(() => {
     let active = true;
     setImageUrl("");
     setImageSize(null);
     setImageError("");
+    setReportOpen(false);
 
     if (!xray || !DISPLAYABLE_IMAGE_TYPES.has(xray.mime_type)) {
-      return () => {
-        active = false;
-      };
+      return () => { active = false; };
     }
 
     api.xrayDownload(xray.id)
@@ -150,9 +148,7 @@ export function OPGAnalysisViewer({
         if (active) setImageError(errorMessage(reason));
       });
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [xray?.id, xray?.mime_type]);
 
   useEffect(() => {
@@ -171,15 +167,38 @@ export function OPGAnalysisViewer({
     }
   }
 
+  function regionColors(tone: "RESTORATIVE" | "PATHOLOGY", confidence: number) {
+    if (tone === "RESTORATIVE") {
+      return {
+        fill: "rgba(34, 197, 94, 0.16)",
+        stroke: "rgba(74, 222, 128, 0.96)",
+        glow: "rgba(34, 197, 94, 0.72)",
+        badge: "#22c55e"
+      };
+    }
+    const strength = Math.max(0.2, Math.min(1, confidence));
+    return {
+      fill: `rgba(239, 68, 68, ${0.07 + strength * 0.24})`,
+      stroke: `rgba(248, 80, 80, ${0.55 + strength * 0.45})`,
+      glow: `rgba(239, 68, 68, ${0.18 + strength * 0.68})`,
+      badge: `rgba(239, 68, 68, ${0.75 + strength * 0.25})`
+    };
+  }
+
   return (
-    <section className="opg-workspace medical-opg card">
+    <section className="opg-workspace medical-opg card findings-only-opg">
       <div className="medical-opg-header">
         <div>
           <p className="eyebrow">{armenian ? "Ինտերակտիվ OPG" : "Interactive OPG"}</p>
-          <h3>{armenian ? "DENTAI-ի հայտնաբերած ատամներն ու արդյունքները սկզբնական ռենտգենի վրա" : "DENTAI tooth detections and findings on the original radiograph"}</h3>
-          <p>{armenian ? "Բոլոր հայտնաբերված ատամները նշված են։ Խնդրահարույց լուսարձակվող շրջանը բացեք միայն ձեր ընտրությամբ։" : "Every detected tooth is marked. Open a luminous finding region only when you choose it."}</p>
+          <h3>{armenian ? "DENTAI-ի կլինիկական արդյունքները ռենտգենի վրա" : "DENTAI clinical findings on the radiograph"}</h3>
+          <p>{armenian ? "Կանաչ՝ վերականգնված/բուժված ատամներ · կարմիր՝ պաթոլոգիկ արդյունքներ · ավելի մուգ կարմիրը ցույց է տալիս ավելի բարձր վստահություն։" : "Green = restored/treated teeth · red = pathological findings · stronger red indicates higher model confidence."}</p>
         </div>
         <div className="medical-viewer-actions">
+          {clinicalSummary && (
+            <button className={`opg-report-button${reportOpen ? " active" : ""}`} type="button" onClick={() => setReportOpen((value) => !value)}>
+              ✦ {armenian ? "AI զեկույց" : "AI report"}
+            </button>
+          )}
           <label className="medical-switch">
             <input type="checkbox" checked={overlaysVisible} onChange={(event) => setOverlaysVisible(event.target.checked)} />
             <span aria-hidden="true" />
@@ -196,15 +215,13 @@ export function OPGAnalysisViewer({
       </div>
 
       <div className="opg-cinematic-shell">
-        {!xray && <div className="opg-placeholder">{armenian ? "Այս վերլուծության ռենտգեն պատկերը պացիենտի քարտում հասանելի չէ։" : "The X-ray referenced by this analysis is not present in the patient profile."}</div>}
-        {xray && !displayable && (
-          <div className="opg-placeholder dicom-state"><strong>DICOM</strong><span>{xray.original_filename}</span><p>{armenian ? "DICOM-ի ինտերակտիվ դիտարկիչը դեռ առանձին փուլ է։" : "Interactive browser rendering is reserved for a future DICOM viewer."}</p></div>
-        )}
-        {xray && displayable && !imageUrl && !imageError && <div className="opg-placeholder">{armenian ? "Ստացվում է ռենտգենի ժամանակավոր անվտանգ հասանելիությունը…" : "Authorizing temporary X-ray access…"}</div>}
+        {!xray && <div className="opg-placeholder">{armenian ? "Այս վերլուծության ռենտգենը հասանելի չէ։" : "The X-ray for this analysis is not available."}</div>}
+        {xray && !displayable && <div className="opg-placeholder dicom-state"><strong>DICOM</strong><span>{xray.original_filename}</span></div>}
+        {xray && displayable && !imageUrl && !imageError && <div className="opg-placeholder">{armenian ? "Բեռնվում է ռենտգենը…" : "Loading radiograph…"}</div>}
         {imageError && <div className="opg-placeholder error-panel">{imageError}</div>}
 
         {imageUrl && (
-          <div className="opg-image-stage cinematic-stage">
+          <div className="opg-image-stage cinematic-stage finding-stage">
             <img
               src={imageUrl}
               alt="Original OPG for the selected DENTAI analysis"
@@ -212,116 +229,128 @@ export function OPGAnalysisViewer({
                 setImageSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
                 setImageError("");
               }}
-              onError={() => setImageError(armenian ? "Ռենտգենի ժամանակավոր հղումը չհաջողվեց բեռնել։" : "The temporary X-ray image URL could not be loaded.")}
+              onError={() => setImageError(armenian ? "Ռենտգենի պատկերը չհաջողվեց բեռնել։" : "The radiograph could not be loaded.")}
             />
             <div className="stage-vignette" aria-hidden="true" />
-            {overlaysVisible && imageSize && (
-              <svg className="opg-overlay medical-overlay" viewBox={`0 0 ${imageSize.width} ${imageSize.height}`} preserveAspectRatio="xMidYMid meet" aria-label="DENTAI tooth detection overlay">
-                <defs>
-                  <filter id="dentaiGlow" x="-80%" y="-80%" width="260%" height="260%">
-                    <feGaussianBlur stdDeviation="8" result="blur" />
-                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                  </filter>
-                </defs>
 
-                {projectedDetections.map((detection) => {
-                  if (!detection.projectedBoundingBox) return null;
-                  const [x1, y1, x2, y2] = detection.projectedBoundingBox;
+            {overlaysVisible && imageSize && (
+              <svg className="opg-overlay medical-overlay finding-only-overlay" viewBox={`0 0 ${imageSize.width} ${imageSize.height}`} preserveAspectRatio="xMidYMid meet" aria-label="DENTAI clinical finding overlay">
+                {projectedRegions.map((region) => {
+                  const [x1, y1, x2, y2] = region.box;
                   const width = x2 - x1;
                   const height = y2 - y1;
-                  const relatedGroup = detection.toothCode ? groupsByTooth.get(detection.toothCode) : undefined;
-                  const hasFinding = Boolean(relatedGroup);
-                  const active = relatedGroup ? activeGroupKey === relatedGroup.key : false;
-                  const strokeWidth = Math.max(1.5, imageSize.width / 1150);
-                  const fontSize = Math.max(13, imageSize.width / 115);
-                  const label = detection.toothCode ?? "?";
-                  const clickable = Boolean(relatedGroup);
+                  const active = activeGroupKey === region.group.key;
+                  const colors = regionColors(region.tone, region.confidence);
+                  const confidenceLabel = `${Math.round(region.confidence * 100)}%`;
+                  const label = region.group.toothCode ?? "?";
+                  const pad = Math.max(2, imageSize.width / 700);
+                  const fontSize = Math.max(13, imageSize.width / 105);
                   return (
                     <g
-                      className={`tooth-detection-overlay${hasFinding ? " has-finding" : ""}${active ? " active" : ""}`}
-                      key={detection.key}
-                      role={clickable ? "button" : undefined}
-                      tabIndex={clickable ? 0 : undefined}
-                      aria-label={detection.toothCode ? `${armenian ? "Ատամ" : "Tooth"} ${detection.toothCode}` : undefined}
-                      onClick={clickable ? () => onSelectedGroupChange(relatedGroup!.key) : undefined}
-                      onKeyDown={clickable ? (event) => selectFromKeyboard(event, relatedGroup!.key) : undefined}
-                      onMouseEnter={clickable ? () => setHoveredGroupKey(relatedGroup!.key) : undefined}
-                      onMouseLeave={clickable ? () => setHoveredGroupKey(null) : undefined}
-                    >
-                      <rect x={x1} y={y1} width={width} height={height} rx={Math.max(5, strokeWidth * 2.2)} vectorEffect="non-scaling-stroke" />
-                      <path d={`M ${x1} ${y1 + Math.min(height * .22, 18)} V ${y1} H ${x1 + Math.min(width * .24, 18)}`} vectorEffect="non-scaling-stroke" />
-                      <path d={`M ${x2 - Math.min(width * .24, 18)} ${y2} H ${x2} V ${y2 - Math.min(height * .22, 18)}`} vectorEffect="non-scaling-stroke" />
-                      <text x={x1 + Math.max(4, strokeWidth * 2)} y={Math.max(y1 + fontSize + 3, fontSize + 3)} fontSize={fontSize}>{label}</text>
-                    </g>
-                  );
-                })}
-
-                {projectedGroups.map((group) => {
-                  if (!group.projectedBoundingBox || !group.toothCode) return null;
-                  const [x1, y1, x2, y2] = group.projectedBoundingBox;
-                  const cx = (x1 + x2) / 2;
-                  const cy = (y1 + y2) / 2;
-                  const rx = Math.max((x2 - x1) * 0.62, imageSize.width / 90);
-                  const ry = Math.max((y2 - y1) * 0.62, imageSize.height / 45);
-                  const active = activeGroupKey === group.key;
-                  const nodeRadius = Math.max(4, imageSize.width / 360);
-                  return (
-                    <g
-                      className={`medical-finding-hotspot${active ? " active" : ""}`}
-                      key={`finding:${group.key}`}
+                      className={`clinical-finding-region ${region.tone === "RESTORATIVE" ? "restorative" : "pathology"}${active ? " active" : ""}`}
+                      key={region.key}
                       role="button"
                       tabIndex={0}
-                      aria-label={`${armenian ? "Բացել ատամ" : "Open tooth"} ${group.toothCode}`}
-                      onClick={() => onSelectedGroupChange(group.key)}
-                      onKeyDown={(event) => selectFromKeyboard(event, group.key)}
-                      onMouseEnter={() => setHoveredGroupKey(group.key)}
+                      aria-label={`${armenian ? "Ատամ" : "Tooth"} ${label}: ${region.primary ? humanizeFindingType(region.primary.finding_type) : "finding"}`}
+                      onClick={() => onSelectedGroupChange(region.group.key)}
+                      onKeyDown={(event) => selectFromKeyboard(event, region.group.key)}
+                      onMouseEnter={() => setHoveredGroupKey(region.group.key)}
                       onMouseLeave={() => setHoveredGroupKey(null)}
                     >
-                      <ellipse className="hotspot-aura hotspot-aura-outer" cx={cx} cy={cy} rx={rx * 1.16} ry={ry * 1.16} filter="url(#dentaiGlow)" />
-                      <ellipse className="hotspot-aura hotspot-aura-inner" cx={cx} cy={cy} rx={rx} ry={ry} />
-                      <circle className="hotspot-node" cx={cx + rx * 0.68} cy={cy - ry * 0.68} r={nodeRadius} />
+                      {region.tone === "PATHOLOGY" && (
+                        <rect
+                          className="finding-confidence-pulse"
+                          x={x1 - pad}
+                          y={y1 - pad}
+                          width={width + pad * 2}
+                          height={height + pad * 2}
+                          rx={Math.max(7, width * 0.12)}
+                          fill="none"
+                          stroke={colors.glow}
+                          strokeWidth={Math.max(2, imageSize.width / 700)}
+                          vectorEffect="non-scaling-stroke"
+                          opacity={0.3 + region.confidence * 0.7}
+                        />
+                      )}
+                      <rect
+                        className="finding-region-box"
+                        x={x1}
+                        y={y1}
+                        width={width}
+                        height={height}
+                        rx={Math.max(6, width * 0.1)}
+                        fill={colors.fill}
+                        stroke={colors.stroke}
+                        strokeWidth={active ? 3 : 2}
+                        vectorEffect="non-scaling-stroke"
+                        style={{ filter: `drop-shadow(0 0 ${active ? 14 : 8}px ${colors.glow})` }}
+                      />
+                      <g className="finding-region-label" transform={`translate(${x1 + 5} ${Math.max(y1 + fontSize + 5, fontSize + 5)})`}>
+                        <rect x="-3" y={-fontSize + 1} width={Math.max(48, fontSize * 4.1)} height={fontSize + 7} rx={(fontSize + 7) / 2} fill="rgba(7, 10, 22, 0.84)" stroke={colors.stroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                        <circle cx={fontSize * 0.15} cy={-fontSize * 0.38} r={fontSize * 0.22} fill={colors.badge} />
+                        <text x={fontSize * 0.55} y={-fontSize * 0.12} fontSize={fontSize * 0.78} fill="#fff" fontWeight="850">{label} · {confidenceLabel}</text>
+                      </g>
                     </g>
                   );
                 })}
               </svg>
             )}
-            <div className="opg-stage-guide"><span className="guide-pulse" />{armenian ? "Փիրուզագույն շրջանակ՝ հայտնաբերված ատամ · լուսարձակվող շրջան՝ AI արդյունք" : "Teal boxes = detected teeth · luminous regions = AI findings"}</div>
+
+            {clinicalSummary && reportOpen && (
+              <aside className="opg-report-panel">
+                <button type="button" onClick={() => setReportOpen(false)} aria-label={armenian ? "Փակել" : "Close"}>×</button>
+                <span className="eyebrow">{armenian ? "AI կլինիկական զեկույց" : "AI clinical report"}</span>
+                <h4>{clinicalSummary.doctor_summary}</h4>
+                {clinicalSummary.important_changes[0] && <p><strong>{armenian ? "Հիմնական դիտարկում" : "Key observation"}</strong>{clinicalSummary.important_changes[0]}</p>}
+                {clinicalSummary.monitoring_points[0] && <p><strong>{armenian ? "Հսկողություն" : "Monitoring"}</strong>{clinicalSummary.monitoring_points[0]}</p>}
+                {clinicalSummary.questions_for_doctor[0] && <p><strong>{armenian ? "Բժշկի համար" : "For the clinician"}</strong>{clinicalSummary.questions_for_doctor[0]}</p>}
+                <small>{armenian ? "AI-ի ամփոփումը չի փոխարինում բժշկի գնահատմանը։" : "AI summary does not replace clinician assessment."}</small>
+              </aside>
+            )}
+
+            {canReview && pendingCount > 0 && (
+              <div className="opg-review-dock">
+                <span>{armenian ? "Վերանայում" : "Review"} {decidedCount}/{pendingCount}</span>
+                {reviewError && <em>{reviewError}</em>}
+                {reviewDone && <em className="success">{reviewDone}</em>}
+                <button type="button" disabled={!canSubmitReview || reviewing} onClick={onSubmitReview}>
+                  {reviewing ? (armenian ? "Պահպանվում է…" : "Saving…") : (armenian ? "Պահպանել" : "Save review")}
+                </button>
+              </div>
+            )}
+
+            <div className="opg-stage-guide finding-legend">
+              <span><i className="legend-green" />{armenian ? "Բուժված / վերականգնված" : "Treated / restored"}</span>
+              <span><i className="legend-red" />{armenian ? "Պաթոլոգիկ արդյունք" : "Pathological finding"}</span>
+            </div>
           </div>
         )}
 
         <div className="opg-caption medical-caption">
           <span>{xray?.original_filename ?? (armenian ? "Ռենտգեն չկա" : "No X-ray available")}</span>
-          <span>{projectedDetections.filter((item) => item.projectedBoundingBox).length} {armenian ? "հայտնաբերված ատամ" : "detected teeth"} · {projectedGroups.filter((group) => group.projectedBoundingBox && group.toothCode).length} {armenian ? "AI արդյունք" : "finding regions"}</span>
+          <span>{projectedRegions.length} {armenian ? "կլինիկական շրջան" : "clinical regions"}</span>
         </div>
       </div>
-
-      {debugOpg && imageSize && (
-        <details className="opg-debug-panel"><summary>OPG coordinate debug</summary><span>Image: {imageSize.width} × {imageSize.height}</span>{projectedGroups.map((group) => (
-          <code key={group.key}>{group.toothCode ?? group.key} · source={group.boundingBoxSource ?? "NONE"}{" · canonical="}{group.geometryAmbiguous ? "AMBIGUOUS_DUPLICATE_FDI" : "UNAMBIGUOUS"}{" · raw="}{JSON.stringify(group.boundingBox)}{" · projected="}{JSON.stringify(group.projectedBoundingBox)}{group.toothCode && group.projectedBoundingBox ? ` · side=${observedImageSide(group.projectedBoundingBox, imageSize.width)} · standard=${String(isStandardPanoramicSideConsistent(group.toothCode, group.projectedBoundingBox, imageSize.width))}` : ""}</code>
-        ))}</details>
-      )}
 
       {selectedGroup && (
         <div className="finding-dialog-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.currentTarget === event.target) onSelectedGroupChange(null);
         }}>
-          <section className="finding-dialog" role="dialog" aria-modal="true" aria-label={`Tooth ${selectedGroup.toothCode} AI finding`} lang={armenian ? "hy" : "en"}>
+          <section className="finding-dialog" role="dialog" aria-modal="true" aria-label={`${armenian ? "Ատամ" : "Tooth"} ${selectedGroup.toothCode ?? "?"}`} lang={armenian ? "hy" : "en"}>
             <button className="finding-dialog-close" type="button" onClick={() => onSelectedGroupChange(null)} aria-label={armenian ? "Փակել" : "Close"}>×</button>
-
-            <div className="finding-dialog-visual">
+            <div className={`finding-dialog-visual ${groupFindingTone(selectedGroup) === "RESTORATIVE" ? "restorative" : "pathology"}`}>
               {imageUrl && <img src={imageUrl} alt="Focused radiographic region" style={{ objectPosition: focusPosition }} />}
               <div className="finding-visual-shade" />
-              <div className="finding-visual-target" aria-hidden="true"><i /><i /><span>{selectedGroup.toothCode}</span></div>
+              <div className="finding-visual-target" aria-hidden="true"><i /><i /><span>{selectedGroup.toothCode ?? "?"}</span></div>
               <div className="finding-visual-label"><span>✦</span><strong>{armenian ? "DENTAI կլինիկական կենտրոնացում" : "DENTAI clinical focus"}</strong></div>
             </div>
-
             <div className="finding-dialog-content">
               <header className="finding-dialog-heading">
                 <div>
-                  <p className="eyebrow">{armenian ? "Ընտրված ատամ" : "Selected tooth"} · FDI {selectedGroup.toothCode}</p>
-                  <h2>{selectedExplanation?.headline ?? humanizeFindingType(selectedGroup.findings[0]?.finding_type ?? "")}</h2>
+                  <p className="eyebrow">{armenian ? "Ընտրված շրջան" : "Selected region"} · FDI {selectedGroup.toothCode ?? "?"}</p>
+                  <h2>{selectedExplanation?.headline ?? humanizeFindingType(primaryFinding(selectedGroup)?.finding_type ?? "")}</h2>
                 </div>
-                <span className="finding-count-badge">{selectedGroup.findings.length} {armenian ? "դիտարկում" : "finding(s)"}</span>
+                <span className="finding-count-badge">{Math.round(groupFindingConfidence(selectedGroup) * 100)}%</span>
               </header>
 
               <div className="finding-chip-row premium-finding-chips">
@@ -331,23 +360,27 @@ export function OPGAnalysisViewer({
               <div className="clinical-story-grid">
                 <article className="clinical-story-card primary-story">
                   <span className="story-icon">◉</span>
-                  <div><small>{armenian ? "Ինչ է նկատել համակարգը" : "What the system observed"}</small><p>{selectedExplanation?.clinical_explanation ?? (armenian ? `DENTAI-ն այս ատամի շրջանում նշել է ${selectedGroup.findings.map((finding) => humanizeFindingType(finding.finding_type)).join(", ")}։ Արդյունքը պետք է համադրել կլինիկական զննման հետ։` : `DENTAI flagged ${selectedGroup.findings.map((finding) => humanizeFindingType(finding.finding_type)).join(", ")} in this tooth region. Correlate with the clinical examination.`)}</p></div>
+                  <div><small>{armenian ? "Ինչ է նկատել համակարգը" : "What the system observed"}</small><p>{selectedExplanation?.clinical_explanation ?? selectedGroup.findings.map((finding) => finding.description).filter(Boolean).join(" ")}</p></div>
                 </article>
                 <article className="clinical-story-card">
                   <span className="story-icon">✓</span>
-                  <div><small>{armenian ? "Բժշկի գնահատում" : "Clinician assessment"}</small><p>{selectedExplanation?.review_explanation ?? (armenian ? "Այս դիտարկումը նախատեսված է բժշկի վերանայման համար և ինքնուրույն վերջնական ախտորոշում չէ։" : "This observation requires clinician review and is not a final diagnosis on its own.")}</p></div>
+                  <div><small>{armenian ? "Բժշկի գնահատում" : "Clinician assessment"}</small><p>{selectedExplanation?.review_explanation ?? (armenian ? "Արդյունքը պետք է համադրել կլինիկական զննման հետ։" : "Correlate this result with the clinical examination.")}</p></div>
                 </article>
-                {clinicalSummary?.monitoring_points[0] && (
-                  <article className="clinical-story-card">
-                    <span className="story-icon">⌁</span>
-                    <div><small>{armenian ? "Հսկողության կետ" : "Monitoring point"}</small><p>{clinicalSummary.monitoring_points[0]}</p></div>
-                  </article>
-                )}
+              </div>
+
+              <div className="finding-confidence-list">
+                {selectedGroup.findings.map((finding) => (
+                  <div key={finding.id}>
+                    <span>{humanizeFindingType(finding.finding_type)}</span>
+                    <strong>{typeof finding.confidence === "number" ? `${Math.round(finding.confidence * 100)}%` : "—"}</strong>
+                    <small>{finding.review_status.replaceAll("_", " ")}</small>
+                  </div>
+                ))}
               </div>
 
               {canReview && selectedGroup.findings.some((finding) => finding.review_status === "PENDING") && (
                 <section className="micro-review-card">
-                  <div><strong>{armenian ? "Բժշկի որոշում" : "Clinician decision"}</strong><small>{armenian ? "Հաստատեք կամ մերժեք յուրաքանչյուր առանձին արդյունք։" : "Confirm or reject each individual finding."}</small></div>
+                  <div><strong>{armenian ? "Բժշկի որոշում" : "Clinician decision"}</strong><small>{armenian ? "Յուրաքանչյուր արդյունք հաստատեք կամ մերժեք։" : "Confirm or reject each finding."}</small></div>
                   <div className="micro-review-items">
                     {selectedGroup.findings.filter((finding) => finding.review_status === "PENDING").map((finding) => (
                       <div key={finding.id} className="micro-review-item">
@@ -361,30 +394,6 @@ export function OPGAnalysisViewer({
                   </div>
                 </section>
               )}
-
-              <details className="technical-details premium-technical-details">
-                <summary>{armenian ? "Տեխնիկական տվյալներ" : "Technical details"}</summary>
-                <div className="technical-finding-stack">
-                  {selectedGroup.findings.map((finding) => {
-                    const score = findingModelScore(finding);
-                    const technical = technicalDetailsForFinding(finding);
-                    return (
-                      <article key={finding.id}>
-                        <h4>{humanizeFindingType(finding.finding_type)}</h4>
-                        <dl>
-                          <div><dt>{armenian ? "Մոդելի գնահատական" : "Model score"}</dt><dd>{formatModelScore(score)}</dd></div>
-                          <div><dt>{armenian ? "Վերանայման վիճակ" : "Review status"}</dt><dd>{technical.review_status}</dd></div>
-                          <div><dt>{armenian ? "Վերանայում պահանջվում է" : "Review required"}</dt><dd>{detailValue(technical.review_required, armenian)}</dd></div>
-                          <div><dt>{armenian ? "Անորոշություն" : "Uncertainty"}</dt><dd>{detailValue(technical.uncertainty, armenian)}</dd></div>
-                          <div><dt>{armenian ? "Աղբյուր մոդել" : "Source model"}</dt><dd>{detailValue(technical.source_model, armenian)}</dd></div>
-                          <div><dt>{armenian ? "Մոդելի տարբերակ" : "Model version"}</dt><dd>{detailValue(technical.model_version, armenian)}</dd></div>
-                          <div><dt>Bounding box</dt><dd>{technical.bounding_box ? JSON.stringify(technical.bounding_box) : (armenian ? "Տրված չէ" : "Not provided")}</dd></div>
-                        </dl>
-                      </article>
-                    );
-                  })}
-                </div>
-              </details>
             </div>
           </section>
         </div>
