@@ -127,14 +127,14 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
   return (
     <section className="card whatsapp-card">
       <div className="section-heading">
-        <div><p className="eyebrow">{armenian ? "Պացիենտի հսկողություն" : "Patient monitoring"}</p><h3>{armenian ? "WhatsApp հաղորդակցություն" : "WhatsApp Outreach"}</h3></div>
+        <div><p className="eyebrow">{armenian ? "Teta2 Care · Հետագա վերահսկում" : "Teta2 Care · Follow-up"}</p><h3>{armenian ? "Պացիենտի հետագա հաղորդագրություններ" : "Patient follow-up messages"}</h3></div>
         <span className={"connection-dot " + (connection.connected ? "connected" : "")}>
           {connection.connected ? (armenian ? "Միացված" : "Connected") : (armenian ? "Անջատված" : "Disconnected")}
         </span>
       </div>
       <div className="whatsapp-grid">
         <div>
-          <span className="field-label">{armenian ? "Ուղարկող հաշիվ" : "Sender"}</span>
+          <span className="field-label">{armenian ? "Կլինիկայի ուղարկող հաշիվ" : "Clinic sender"}</span>
           <strong>{connection.sender ?? (armenian ? "Միացված չէ" : "Not connected")}</strong>
         </div>
         <div>
@@ -144,7 +144,7 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
       </div>
       <div className="whatsapp-phone-row">
         <label>
-          {armenian ? "Պացիենտի WhatsApp համարը" : "WhatsApp number"}
+          {armenian ? "Պացիենտի WhatsApp համարը" : "Patient WhatsApp number"}
           <input
             inputMode="tel"
             placeholder="+374..."
@@ -158,7 +158,7 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
       </div>
       <div className="whatsapp-actions">
         {!connection.connected ? (
-          <button className="button button-primary" onClick={() => setQrOpen(true)}>{armenian ? "Միացնել WhatsApp-ը" : "Connect WhatsApp"}</button>
+          <button className="button button-primary" onClick={() => setQrOpen(true)}>{armenian ? "Միացնել կլինիկայի WhatsApp-ը" : "Connect clinic WhatsApp"}</button>
         ) : (
           <button className="button button-quiet" disabled={busy === "logout"} onClick={() => void disconnect()}>
             {armenian ? "Անջատել" : "Disconnect"}
@@ -166,14 +166,14 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
         )}
         <label className="image-option">
           <input type="checkbox" checked={includeImage} onChange={(event) => setIncludeImage(event.target.checked)} />
-          {armenian ? "Կցել DENTAI արդյունքի պատկերը" : "Include DENTAI finding image"}
+          {armenian ? "Կցել DENTAI հնարավոր հայտնաբերման պատկերը" : "Include possible-finding image"}
         </label>
         <button
           className="button button-accent"
           disabled={!connection.connected || !patient.whatsapp_phone || busy === "send"}
           onClick={() => void sendTest()}
         >
-          {busy === "send" ? (armenian ? "Ուղարկվում է…" : "Sending…") : (armenian ? "Ուղարկել փորձնական WhatsApp հաղորդագրություն" : "Send WhatsApp test now")}
+          {busy === "send" ? (armenian ? "Ուղարկվում է…" : "Sending…") : (armenian ? "Ուղարկել փորձնական հետագա հաղորդագրություն" : "Send follow-up test")}
         </button>
       </div>
       {deliveryState && (
@@ -181,16 +181,16 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
           {armenian ? "Առաքման վիճակ" : "Delivery"}: <strong>{formatOutreachStatus(deliveryState)}</strong>
         </p>
       )}
-      <p className="muted">{armenian ? "Արդյունքի պատկերը կամընտիր է և լռելյայն անջատված է։ Ամբողջական OPG պատկերը երբեք ինքնաբերաբար չի ուղարկվում։" : "Finding image is optional and off by default. The full OPG is never sent automatically."}</p>
+      <p className="muted">{armenian ? "Հնարավոր հայտնաբերման պատկերը կամընտիր է և լռելյայն անջատված է։ Ամբողջական OPG-ն երբեք ինքնաբերաբար չի ուղարկվում։" : "The possible-finding image is optional and off by default. The full OPG is never sent automatically."}</p>
       {error && <div className="error-panel" role="alert">{error}</div>}
       {result && (
         <div className="whatsapp-result" role="status">
-          <h4>{armenian ? "Փորձնական WhatsApp հաղորդագրություն" : "WhatsApp test"}</h4>
+          <h4>{armenian ? "Հետագա հաղորդագրության փորձարկում" : "Follow-up message test"}</h4>
           <dl>
             <div><dt>{armenian ? "Ստացող" : "Recipient"}</dt><dd>{maskPhone(patient.whatsapp_phone)}</dd></div>
-            <div><dt>{armenian ? "Արդյունք" : "Finding"}</dt><dd>{result.tooth_fdi} · {result.finding_type}</dd></div>
-            <div><dt>{armenian ? "Առաջարկվող ստուգում" : "Recommended check"}</dt><dd>{displayDate(result.target_followup_at)}</dd></div>
-            <div><dt>{armenian ? "WhatsApp հիշեցում" : "WhatsApp reminder"}</dt><dd>{displayDate(result.scheduled_send_at)}</dd></div>
+            <div><dt>{armenian ? "Հնարավոր հայտնաբերում" : "Possible finding"}</dt><dd>{result.tooth_fdi} · {result.finding_type}</dd></div>
+            <div><dt>{armenian ? "Առաջարկվող հետագա ստուգում" : "Recommended follow-up"}</dt><dd>{displayDate(result.target_followup_at)}</dd></div>
+            <div><dt>{armenian ? "Հաղորդագրության ժամկետ" : "Message timing"}</dt><dd>{displayDate(result.scheduled_send_at)}</dd></div>
             <div><dt>{armenian ? "Կարգավիճակ" : "Status"}</dt><dd>{formatOutreachStatus(result.status)}</dd></div>
             <div><dt>Message ID</dt><dd>{result.provider_message_id ?? "—"}</dd></div>
             <div><dt>{armenian ? "Ուղարկվել է" : "Sent"}</dt><dd>{displayDate(result.sent_at)}</dd></div>
@@ -202,7 +202,7 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
         <div className="qr-backdrop" role="dialog" aria-modal="true" aria-label="Connect clinic WhatsApp">
           <div className="qr-modal">
             <button className="qr-close" aria-label={armenian ? "Փակել" : "Close"} onClick={() => setQrOpen(false)}>×</button>
-            <p className="eyebrow">{armenian ? "Կլինիկայի անվտանգ կապ" : "Secure clinic connection"}</p>
+            <p className="eyebrow">{armenian ? "Կլինիկայի անվտանգ WhatsApp կապ" : "Secure clinic WhatsApp connection"}</p>
             <h2>{armenian ? "Սքանավորեք WhatsApp-ով" : "Scan with WhatsApp"}</h2>
             {qr ? <img src={qr} alt="WhatsApp connection QR code" /> : <div className="qr-loading">{armenian ? "QR կոդը ստեղծվում է…" : "Generating QR…"}</div>}
             <p>{armenian ? "Կլինիկայի հեռախոսում բացեք WhatsApp-ը, ընտրեք Linked devices և սքանավորեք այս կոդը։" : "Open WhatsApp on the clinic phone, choose Linked devices, and scan this code."}</p>
