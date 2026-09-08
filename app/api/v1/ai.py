@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.ai.providers import ai_provider
 from app.audit.service import audit
 from app.auth.dependencies import AuthContext, authorized_patient, current_context
+from app.care.service import activate_reviewed_plan, ensure_care_plan
 from app.common.serialization import model_dict
 from app.core.config import get_settings
 from app.core.errors import AppError
@@ -115,6 +116,8 @@ async def create(
                     **item,
                 )
             )
+        await ctx.session.flush()
+        await ensure_care_plan(ctx.session, analysis)
         await audit(
             ctx.session,
             ctx.user,
@@ -189,6 +192,13 @@ async def review(
     analysis.review_status = ReviewStatus.REVIEWED
     analysis.reviewed_by = ctx.user.id
     analysis.reviewed_at = datetime.now(UTC)
+    await ctx.session.flush()
+    await activate_reviewed_plan(
+        ctx.session,
+        clinic_id=ctx.clinic.id,
+        clinic_name=ctx.clinic.name,
+        analysis=analysis,
+    )
     await audit(ctx.session, ctx.user, "AI_ANALYSIS_REVIEWED", "AIAnalysis", analysis.id)
     await ctx.session.commit()
     return model_dict(analysis)
