@@ -58,13 +58,24 @@ async def list_patients(
 
 @router.post("", status_code=201)
 async def create_patient(
-    body: PatientCreate, ctx: Annotated[AuthContext, Depends(roles(Role.DIRECTOR, Role.MANAGER))]
+    body: PatientCreate,
+    ctx: Annotated[AuthContext, Depends(roles(Role.DIRECTOR, Role.MANAGER, Role.DOCTOR))],
 ):
-    if ctx.user.role == Role.MANAGER and body.branch_id not in ctx.branch_ids:
+    if ctx.user.role != Role.DIRECTOR and body.branch_id not in ctx.branch_ids:
         raise AppError("BRANCH_NOT_AUTHORIZED", "Branch is outside your scope.", 403)
     patient = Patient(**body.model_dump())
     ctx.session.add(patient)
     await ctx.session.flush()
+    if ctx.user.role == Role.DOCTOR:
+        ctx.session.add(
+            PatientDoctorAssignment(
+                patient_id=patient.id,
+                doctor_id=ctx.user.id,
+                branch_id=patient.branch_id,
+                assigned_by=ctx.user.id,
+            )
+        )
+        await ctx.session.flush()
     await audit(ctx.session, ctx.user, "PATIENT_CREATED", "Patient", patient.id, patient.branch_id)
     await ctx.session.commit()
     return model_dict(patient)
