@@ -38,3 +38,5 @@ The active backend persists WhatsApp authentication in the named Docker volume `
 ## Vercel configuration
 
 `frontend-test/vercel.json` contains the explicit backend origin. `VITE_DENTAI_API_BASE_URL` is honored by the client and should remain empty for the same-origin production deployment. If the backend origin changes, update the three rewrite destinations in one reviewed commit and run the authenticated smoke test against both origins.
+
+Delete any Vercel project value such as `VITE_DENTAI_API_BASE_URL=https://api-domain` rather than substituting a placeholder. The client defensively rejects placeholder or malformed origins and uses the same-origin rewrite, and CI rejects known placeholders compiled into `dist`.

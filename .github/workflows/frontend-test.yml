@@ -35,3 +35,10 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+      - name: Reject placeholder API destinations
+        run: |
+          if grep -R -E "https?://api-domain|your-dentai-production-domain\\.example" dist; then
+            echo "A placeholder API destination was compiled into the frontend."
+            exit 1
+          fi
