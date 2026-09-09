@@ -129,4 +129,5 @@ class CareAppointment(UUIDMixin, TimestampMixin, Base):
 
     __table_args__ = (
         UniqueConstraint("branch_id", "starts_at", "patient_id", name="uq_care_appointment_patient_slot"),
+        UniqueConstraint("branch_id", "doctor_id", "starts_at", name="uq_care_appointment_doctor_slot"),
     )
