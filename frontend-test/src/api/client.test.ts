@@ -1,6 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api } from "./client";
+import { api, resolveApiBaseUrl } from "./client";
+
+describe("API origin configuration", () => {
+  it("uses the same-origin proxy for empty, malformed, and placeholder values", () => {
+    expect(resolveApiBaseUrl(undefined)).toBe("");
+    expect(resolveApiBaseUrl("api-domain")).toBe("");
+    expect(resolveApiBaseUrl("https://api-domain")).toBe("");
+    expect(resolveApiBaseUrl("https://your-dentai-production-domain.example")).toBe("");
+    expect(resolveApiBaseUrl("not a URL")).toBe("");
+  });
+
+  it("accepts explicit valid origins and same-host path prefixes", () => {
+    expect(resolveApiBaseUrl("https://api.teta2.com/")).toBe("https://api.teta2.com");
+    expect(resolveApiBaseUrl("/backend/")).toBe("/backend");
+  });
+});
 
 describe("login transport resilience", () => {
   beforeEach(() => {

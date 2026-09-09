@@ -21,7 +21,22 @@ import type {
   WhatsAppOutreach
 } from "./types";
 
-export const API_BASE_URL = (import.meta.env.VITE_DENTAI_API_BASE_URL ?? "").replace(/\/$/, "");
+export function resolveApiBaseUrl(value: string | undefined): string {
+  const candidate = (value ?? "").trim().replace(/\/$/, "");
+  if (!candidate) return "";
+  if (/^(?:https?:\/\/)?api-domain(?::|\/|$)/i.test(candidate) || /\.example(?::|\/|$)/i.test(candidate)) {
+    return "";
+  }
+  if (candidate.startsWith("/")) return candidate;
+  try {
+    const url = new URL(candidate);
+    return url.protocol === "https:" || url.protocol === "http:" ? candidate : "";
+  } catch {
+    return "";
+  }
+}
+
+export const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_DENTAI_API_BASE_URL);
 const SESSION_KEY = "dentai-test-auth";
 
 interface StoredSession {

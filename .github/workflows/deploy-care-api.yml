@@ -31,7 +31,11 @@ jobs:
       - run: uv sync --frozen --extra dev
       - run: uv run ruff format --check . && uv run ruff check . && uv run mypy app && uv run pytest
       - working-directory: frontend-test
-        run: npm ci --no-audit --no-fund && npm test -- --run && npm run build
+        run: |
+          npm ci --no-audit --no-fund
+          npm test -- --run
+          npm run build
+          ! grep -R -E "https?://api-domain|your-dentai-production-domain\\.example" dist
       - working-directory: whatsapp_service
         run: npm install --no-audit --no-fund && npm test
       - run: docker build -t dentai-care:${{ github.sha }} .
