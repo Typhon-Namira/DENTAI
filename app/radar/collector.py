@@ -117,7 +117,8 @@ class _TelegramParser(HTMLParser):
         elif tag == "time" and values.get("datetime"):
             try:
                 raw_datetime = values["datetime"]
-                assert raw_datetime is not None
+                if raw_datetime is None:
+                    return
                 parsed = datetime.fromisoformat(raw_datetime.replace("Z", "+00:00"))
                 self.current_datetime = parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
             except ValueError:

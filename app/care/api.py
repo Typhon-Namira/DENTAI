@@ -272,7 +272,8 @@ async def request_reschedule(
     row.doctor_note = body.doctor_note
     row.reschedule_count += 1
     phone = patient.whatsapp_phone or patient.phone
-    assert phone is not None
+    if phone is None:
+        raise AppError("PATIENT_PHONE_REQUIRED", "Patient WhatsApp number is required.", 422)
     language = language_for_phone(phone, "en")
     if body.preferred_start:
         proposed = body.preferred_start.strftime("%Y-%m-%d %H:%M")
@@ -329,7 +330,8 @@ async def approve_appointment(
     local_time = row.starts_at.astimezone(ZoneInfo(row.timezone)).strftime("%Y-%m-%d %H:%M")
     message = f"Your check-up is confirmed for {local_time} ({row.timezone})."
     phone = patient.whatsapp_phone or patient.phone
-    assert phone is not None
+    if phone is None:
+        raise AppError("PATIENT_PHONE_REQUIRED", "Patient WhatsApp number is required.", 422)
     try:
         sent = await WhatsAppServiceClient().send_message(
             ctx.clinic.id,
