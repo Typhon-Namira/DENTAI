@@ -75,7 +75,9 @@ export function clearSession(): void {
 async function request<T>(
   path: string,
   init: RequestInit = {},
-  authenticated = true
+  authenticated = true,
+  networkAttempts = 1,
+  timeoutMs = 20_000
 ): Promise<T> {
   const headers = new Headers(init.headers);
   const session = getSession();
@@ -86,7 +88,29 @@ async function request<T>(
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(API_BASE_URL + path, { ...init, headers });
+  let response: Response | undefined;
+  let lastNetworkError: unknown;
+  for (let attempt = 1; attempt <= networkAttempts; attempt += 1) {
+    const timeout = new AbortController();
+    const timer = globalThis.setTimeout(() => timeout.abort(), timeoutMs);
+    const abort = () => timeout.abort();
+    init.signal?.addEventListener("abort", abort, { once: true });
+    try {
+      response = await fetch(API_BASE_URL + path, { ...init, headers, signal: timeout.signal });
+      break;
+    } catch (error) {
+      lastNetworkError = error;
+      if (init.signal?.aborted || attempt === networkAttempts) break;
+      await new Promise((resolve) => globalThis.setTimeout(resolve, 250 * attempt));
+    } finally {
+      globalThis.clearTimeout(timer);
+      init.signal?.removeEventListener("abort", abort);
+    }
+  }
+  if (!response) {
+    const detail = lastNetworkError instanceof Error ? lastNetworkError.message : "Network request failed";
+    throw new ApiError(0, "API_UNAVAILABLE", `The clinic service is temporarily unavailable. Please retry. (${detail})`);
+  }
   const contentType = response.headers.get("content-type") ?? "";
   const payload = contentType.includes("application/json")
     ? await response.json()
@@ -123,7 +147,9 @@ export const api = {
     const tokens = await request<TokenPair>(
       "/api/v1/auth/login",
       { method: "POST", body: JSON.stringify(body) },
-      false
+      false,
+      3,
+      8_000
     );
     saveSession(tokens);
     return tokens;

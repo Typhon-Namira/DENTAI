@@ -31,9 +31,14 @@ def request(base: str, path: str, *, token: str | None = None, body: dict | None
 
 
 def check_origin(base: str) -> None:
-    status, health = request(base, "/health")
-    if status != 200 or health.get("status") != "ok":
-        raise RuntimeError(f"Health check failed for {base}")
+    # A single successful request can hide a partially wedged worker or proxy route.
+    for probe in range(1, 6):
+        status, health = request(base, "/health")
+        if status != 200 or health.get("status") != "ok":
+            raise RuntimeError(f"Health check {probe}/5 failed for {base}")
+    status, ready = request(base, "/ready")
+    if status != 200 or ready.get("status") != "ready":
+        raise RuntimeError(f"Readiness check failed for {base}")
     _, tokens = request(
         base,
         "/api/v1/auth/login",

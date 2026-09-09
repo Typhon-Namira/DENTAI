@@ -18,6 +18,8 @@ Create a protected GitHub environment named `production`, require an approving r
 
 Runtime secrets remain only in `EC2_ENV_FILE`. At minimum it must contain the variables documented in `.env.example`, production token secrets, `CONTROL_DATABASE_URL`, `TENANT_DSN_ENCRYPTION_KEY`, object-storage credentials, the real AI provider configuration, Groq configuration, and WhatsApp service credentials.
 
+Set `WEB_CONCURRENCY=2` or higher for production. The startup script also defaults to two API workers so a single blocked worker cannot make authentication and health endpoints unavailable.
+
 ## Release procedure
 
 Run the **Deploy Care API** workflow manually against the protected environment. It:
