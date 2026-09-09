@@ -10,13 +10,25 @@ export type FollowUpPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 export interface FollowUp { id: string; patient_id: string; doctor_id: string | null; branch_id: string; reason: string; due_at: string; status: FollowUpStatus; priority: FollowUpPriority | string; notes: string | null; created_by?: string; completed_at?: string | null; created_at?: string; updated_at?: string; [key: string]: unknown; }
 export interface FollowUpPage { items: FollowUp[]; page: number; page_size: number; }
 
+export interface PatientCreateInput {
+  patient_number: string;
+  first_name: string;
+  last_name: string;
+  branch_id: string;
+  date_of_birth?: string | null;
+  sex?: string | null;
+  phone?: string | null;
+  whatsapp_phone?: string | null;
+  email?: string | null;
+}
+
 export interface CareSettings {
   id: string; branch_id: string; timezone: string; working_days: number[]; day_start: string; day_end: string;
   appointment_minutes: number; slot_interval_minutes: number; min_booking_notice_minutes: number; booking_horizon_days: number;
   buffer_minutes: number; preferred_times: unknown[]; blocked_windows: unknown[]; auto_followup_enabled: boolean;
   auto_outreach_after_review: boolean; attach_tooth_image: boolean; default_language: string; booking_instructions: string | null;
 }
-export interface CarePlanItem { id: string; tooth_fdi: string; finding_type: string; confidence: number | null; recommended_window: string; target_followup_at: string; status: string; rationale: string; message_preview: string | null; }
+export interface CarePlanItem { id: string; finding_id: string; tooth_fdi: string; finding_type: string; confidence: number | null; recommended_window: string; target_followup_at: string; status: string; rationale: string; message_preview: string | null; }
 export interface CarePlan { id: string; patient_id: string; analysis_id: string; branch_id: string; doctor_id: string | null; status: string; language: string; summary: string | null; created_at: string; items: CarePlanItem[]; }
 export interface CareAppointment { id: string; patient_id: string; branch_id: string; doctor_id: string | null; conversation_id: string | null; care_plan_item_id: string | null; starts_at: string; ends_at: string; timezone: string; status: string; source: string; tooth_fdi: string | null; finding_type: string | null; reason: string; doctor_note: string | null; reschedule_count: number; patient?: Patient | null; }
 export interface CareConversation { id: string; patient_id: string; care_plan_id: string | null; branch_id: string; whatsapp_phone: string; language: string; status: string; summary: string | null; last_message_at: string | null; patient?: Patient | null; latest_appointment?: CareAppointment | null; }
@@ -52,7 +64,7 @@ async function productRequest<T>(path: string, init: RequestInit = {}): Promise<
 export const productApi = {
   dashboard(role: Role) { return productRequest<DashboardSummary>(`/api/v1/dashboard/${role.toLowerCase()}`); },
   branches() { return productRequest<BranchSummary[]>("/api/v1/branches"); },
-  createPatient(body: { patient_number: string; first_name: string; last_name: string; branch_id: string; }) { return productRequest<Patient>("/api/v1/patients", { method: "POST", body: JSON.stringify(body) }); },
+  createPatient(body: PatientCreateInput) { return productRequest<Patient>("/api/v1/patients", { method: "POST", body: JSON.stringify(body) }); },
   listFollowUps(status?: FollowUpStatus) { const params = new URLSearchParams({ page: "1", page_size: "100" }); if (status) params.set("status", status); return productRequest<FollowUpPage>(`/api/v1/follow-ups?${params.toString()}`); },
   createFollowUp(patientId: string, body: { reason: string; due_at: string; priority: FollowUpPriority; notes?: string | null; doctor_id?: string | null; }) { return productRequest<FollowUp>(`/api/v1/patients/${encodeURIComponent(patientId)}/follow-ups`, { method: "POST", body: JSON.stringify(body) }); },
   updateFollowUp(followUpId: string, status: FollowUpStatus) { return productRequest<FollowUp>(`/api/v1/follow-ups/${encodeURIComponent(followUpId)}`, { method: "PATCH", body: JSON.stringify({ status }) }); },
