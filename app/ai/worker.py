@@ -1,4 +1,5 @@
 """Dedicated DENTAI V5 analysis worker; run with ``python -m app.ai.worker``."""
+
 import asyncio
 import os
 import socket

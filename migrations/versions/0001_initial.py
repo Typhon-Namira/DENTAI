@@ -17,10 +17,18 @@ depends_on = None
 def selected():
     """Return tables for the selected migration plane in FK dependency order."""
     control = os.getenv("MIGRATION_PLANE", "clinic") == "control"
+    later_care_tables = {
+        "clinic_care_settings",
+        "care_plans",
+        "care_plan_items",
+        "care_conversations",
+        "care_conversation_messages",
+        "care_appointments",
+    }
     return [
         table
         for table in Base.metadata.sorted_tables
-        if (table.name == "clinic_registry") == control
+        if (table.name == "clinic_registry") == control and table.name not in later_care_tables
     ]
 
 

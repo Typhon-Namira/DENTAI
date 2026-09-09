@@ -124,9 +124,7 @@ class DENTAIRealOPGProvider(DentalAIProvider):
         for tooth in raw["teeth"]:
             review = bool(tooth["review_required"])
             uncertainty = (
-                UncertaintyLevel.LOW_CONFIDENCE
-                if review
-                else UncertaintyLevel.MODERATE_CONFIDENCE
+                UncertaintyLevel.LOW_CONFIDENCE if review else UncertaintyLevel.MODERATE_CONFIDENCE
             )
             reason = "; ".join(tooth["review_reasons"]) if review else None
             findings = []

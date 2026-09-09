@@ -13,16 +13,13 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_unique_constraint(
-        "uq_care_appointment_doctor_slot",
-        "care_appointments",
-        ["branch_id", "doctor_id", "starts_at"],
-    )
+    with op.batch_alter_table("care_appointments") as batch_op:
+        batch_op.create_unique_constraint(
+            "uq_care_appointment_doctor_slot",
+            ["branch_id", "doctor_id", "starts_at"],
+        )
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "uq_care_appointment_doctor_slot",
-        "care_appointments",
-        type_="unique",
-    )
+    with op.batch_alter_table("care_appointments") as batch_op:
+        batch_op.drop_constraint("uq_care_appointment_doctor_slot", type_="unique")

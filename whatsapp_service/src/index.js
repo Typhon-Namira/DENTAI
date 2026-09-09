@@ -74,28 +74,30 @@ export function createService(deps = {}) {
     const text = messageText(message);
     if (!text) return;
     const phone = `+${remoteJid.split("@")[0].split(":")[0]}`;
-    try {
-      const response = await fetch(CARE_CALLBACK_URL, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(INTERNAL_TOKEN ? { authorization: `Bearer ${INTERNAL_TOKEN}` } : {})
-        },
-        body: JSON.stringify({
-          account_id: accountId,
-          phone,
-          text,
-          message_id: message?.key?.id || null
-        })
-      });
-      if (!response.ok) {
-        logger.warn({ event: "care_inbound_callback_failed", account: accountId, status: response.status });
-      } else {
-        logger.info({ event: "care_inbound_forwarded", account: accountId, message_id: message?.key?.id || null });
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const response = await fetch(CARE_CALLBACK_URL, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(INTERNAL_TOKEN ? { authorization: `Bearer ${INTERNAL_TOKEN}` } : {})
+          },
+          body: JSON.stringify({ account_id: accountId, phone, text, message_id: message?.key?.id || null })
+        });
+        if (response.ok) {
+          logger.info({ event: "care_inbound_forwarded", account: accountId, message_id: message?.key?.id || null, attempt });
+          return;
+        }
+        if (response.status < 500) {
+          logger.warn({ event: "care_inbound_callback_rejected", account: accountId, status: response.status });
+          return;
+        }
+      } catch (error) {
+        logger.warn({ event: "care_inbound_callback_unavailable", account: accountId, attempt, error: error?.name || "Error" });
       }
-    } catch (error) {
-      logger.warn({ event: "care_inbound_callback_unavailable", account: accountId, error: error?.name || "Error" });
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
     }
+    logger.error({ event: "care_inbound_callback_failed", account: accountId, message_id: message?.key?.id || null });
   }
 
   async function startClient(accountId) {

@@ -1,55 +1,53 @@
 import json
+from collections import Counter
 from pathlib import Path
-from collections import Counter, defaultdict
 
 import torch
+from PIL import Image
 from torch.utils.data import DataLoader
+from torchvision.transforms.functional import to_tensor
 
 from ai_engine.inference.dentai_unified_v2 import (
     DEVICE,
-    load_tooth,
-    load_fdi,
-    load_disease,
-    infer_fdi,
-    resolve_arch,
     infer_disease,
+    infer_fdi,
+    load_disease,
+    load_fdi,
+    load_tooth,
+    resolve_arch,
+)
+from ai_engine.inference.dentai_unified_v3 import (
+    load_restoration_detector,
 )
 from ai_engine.training.train_restoration_detector_v1 import (
     RestorationDetectionDataset,
     collate_fn,
     evaluate_detector,
 )
-from ai_engine.inference.dentai_unified_v3 import (
-    load_restoration_detector,
-)
-
-from PIL import Image
-from torchvision.transforms.functional import to_tensor
-
 
 TEST = Path("data/splits/tooth_v2/test.json")
 
 
-def box_iou(a,b):
-    ax1,ay1,ax2,ay2 = a
-    bx1,by1,bx2,by2 = b
+def box_iou(a, b):
+    ax1, ay1, ax2, ay2 = a
+    bx1, by1, bx2, by2 = b
 
-    ix1=max(ax1,bx1)
-    iy1=max(ay1,by1)
-    ix2=min(ax2,bx2)
-    iy2=min(ay2,by2)
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
 
-    iw=max(0,ix2-ix1)
-    ih=max(0,iy2-iy1)
+    iw = max(0, ix2 - ix1)
+    ih = max(0, iy2 - iy1)
 
-    inter=iw*ih
+    inter = iw * ih
 
-    aa=max(0,ax2-ax1)*max(0,ay2-ay1)
-    bb=max(0,bx2-bx1)*max(0,by2-by1)
+    aa = max(0, ax2 - ax1) * max(0, ay2 - ay1)
+    bb = max(0, bx2 - bx1) * max(0, by2 - by1)
 
-    union=aa+bb-inter
+    union = aa + bb - inter
 
-    return inter/union if union>0 else 0.0
+    return inter / union if union > 0 else 0.0
 
 
 def load_test():
@@ -103,36 +101,31 @@ def evaluate_tooth_fdi_disease():
                 box_list,
             )
 
-            pred_teeth.append({
-                "bbox_xyxy": box_list,
-                "fdi_number": fdi,
-                "fdi_confidence": conf,
-            })
+            pred_teeth.append(
+                {
+                    "bbox_xyxy": box_list,
+                    "fdi_number": fdi,
+                    "fdi_confidence": conf,
+                }
+            )
 
             if conf < 0.70:
                 low_conf_fdi += 1
 
-        raw_counts = Counter(
-            x["fdi_number"]
-            for x in pred_teeth
-        )
+        raw_counts = Counter(x["fdi_number"] for x in pred_teeth)
 
         if any(v > 1 for v in raw_counts.values()):
             raw_duplicate_images += 1
 
         pred_teeth = resolve_arch(pred_teeth)
 
-        resolved_counts = Counter(
-            x["resolved_fdi_number"]
-            for x in pred_teeth
-        )
+        resolved_counts = Counter(x["resolved_fdi_number"] for x in pred_teeth)
 
         if any(v > 1 for v in resolved_counts.values()):
             resolved_duplicate_images += 1
 
         gt_instances = [
-            x for x in record.get("instances", [])
-            if x.get("canonical_class") == "TOOTH"
+            x for x in record.get("instances", []) if x.get("canonical_class") == "TOOTH"
         ]
 
         gt_tooth_total += len(gt_instances)
@@ -204,48 +197,29 @@ def evaluate_tooth_fdi_disease():
                     disease_cc[disease_gt] += 1
 
         if idx % 20 == 0:
-            print(
-                f"[MASTER] processed {idx}/{len(data['records'])}"
-            )
+            print(f"[MASTER] processed {idx}/{len(data['records'])}")
 
     return {
-        "tooth_recall": (
-            gt_tooth_matched / gt_tooth_total
-            if gt_tooth_total else 0
-        ),
+        "tooth_recall": (gt_tooth_matched / gt_tooth_total if gt_tooth_total else 0),
         "gt_teeth": gt_tooth_total,
         "matched_teeth": gt_tooth_matched,
-
-        "fdi_raw_acc": (
-            fdi_correct_raw / fdi_total
-            if fdi_total else 0
-        ),
-        "fdi_resolved_acc": (
-            fdi_correct_resolved / fdi_total
-            if fdi_total else 0
-        ),
+        "fdi_raw_acc": (fdi_correct_raw / fdi_total if fdi_total else 0),
+        "fdi_resolved_acc": (fdi_correct_resolved / fdi_total if fdi_total else 0),
         "fdi_total": fdi_total,
         "low_conf_fdi": low_conf_fdi,
         "raw_duplicate_images": raw_duplicate_images,
         "resolved_duplicate_images": resolved_duplicate_images,
-
-        "disease_acc": (
-            disease_correct / disease_total
-            if disease_total else 0
-        ),
+        "disease_acc": (disease_correct / disease_total if disease_total else 0),
         "disease_total": disease_total,
         "disease_recall": {
-            k: (
-                disease_cc[k] / disease_ct[k]
-                if disease_ct[k] else 0
-            )
+            k: (disease_cc[k] / disease_ct[k] if disease_ct[k] else 0)
             for k in [
                 "Caries",
                 "Deep Caries",
                 "Impacted",
                 "Periapical Lesion",
             ]
-        }
+        },
     }
 
 
@@ -279,106 +253,62 @@ def evaluate_restoration():
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("DENTAI MASTER EVALUATION V1")
     print("Device:", DEVICE)
-    print("="*70)
+    print("=" * 70)
 
     core = evaluate_tooth_fdi_disease()
     rest = evaluate_restoration()
 
     print()
-    print("="*70)
+    print("=" * 70)
     print("MASTER RESULTS")
-    print("="*70)
+    print("=" * 70)
 
     print("\n[TOOTH]")
     print(
         "Detection recall @ IoU0.50:",
-        round(core["tooth_recall"],4),
-        f'({core["matched_teeth"]}/{core["gt_teeth"]})'
+        round(core["tooth_recall"], 4),
+        f"({core['matched_teeth']}/{core['gt_teeth']})",
     )
 
     print("\n[FDI]")
-    print(
-        "Raw accuracy:",
-        round(core["fdi_raw_acc"],4)
-    )
-    print(
-        "Resolved accuracy:",
-        round(core["fdi_resolved_acc"],4)
-    )
-    print(
-        "Low-confidence predictions:",
-        core["low_conf_fdi"]
-    )
-    print(
-        "Images with duplicate FDI before resolver:",
-        core["raw_duplicate_images"]
-    )
-    print(
-        "Images with duplicate FDI after resolver:",
-        core["resolved_duplicate_images"]
-    )
+    print("Raw accuracy:", round(core["fdi_raw_acc"], 4))
+    print("Resolved accuracy:", round(core["fdi_resolved_acc"], 4))
+    print("Low-confidence predictions:", core["low_conf_fdi"])
+    print("Images with duplicate FDI before resolver:", core["raw_duplicate_images"])
+    print("Images with duplicate FDI after resolver:", core["resolved_duplicate_images"])
 
     print("\n[DISEASE — labeled teeth only]")
-    print(
-        "Accuracy:",
-        round(core["disease_acc"],4),
-        f'| n={core["disease_total"]}'
-    )
+    print("Accuracy:", round(core["disease_acc"], 4), f"| n={core['disease_total']}")
 
-    for k,v in core["disease_recall"].items():
-        print(
-            f"{k:22}",
-            round(v,4)
-        )
+    for k, v in core["disease_recall"].items():
+        print(f"{k:22}", round(v, 4))
 
     print("\n[RESTORATION DETECTOR]")
-    print(
-        "Macro F1:",
-        round(rest["macro_f1"],4)
-    )
+    print("Macro F1:", round(rest["macro_f1"], 4))
 
-    for k,m in rest["metrics"].items():
-        print(
-            f"{k:10} "
-            f'P={m["precision"]:.4f} '
-            f'R={m["recall"]:.4f} '
-            f'F1={m["f1"]:.4f}'
-        )
+    for k, m in rest["metrics"].items():
+        print(f"{k:10} P={m['precision']:.4f} R={m['recall']:.4f} F1={m['f1']:.4f}")
 
     summary = {
         "tooth": core,
         "restoration": rest,
     }
 
-    out = Path(
-        "artifacts/evaluation"
-    )
+    out = Path("artifacts/evaluation")
 
-    out.mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    out.mkdir(parents=True, exist_ok=True)
 
     path = out / "master_eval_v1.json"
 
-    path.write_text(
-        json.dumps(
-            summary,
-            indent=2
-        ),
-        encoding="utf-8"
-    )
+    path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     print()
-    print(
-        "Report:",
-        path
-    )
+    print("Report:", path)
 
-    print("="*70)
+    print("=" * 70)
 
 
 if __name__ == "__main__":

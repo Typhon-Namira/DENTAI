@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base, TimestampMixin, UUIDMixin, utc_now
@@ -100,7 +100,17 @@ class CareConversationMessage(UUIDMixin, Base):
     status: Mapped[str] = mapped_column(String(32), default="RECORDED", index=True)
     provider_message_id: Mapped[str | None] = mapped_column(String(200), index=True)
     message_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "conversation_id",
+            "provider_message_id",
+            name="uq_care_message_provider_id",
+        ),
+    )
 
 
 class CareAppointment(UUIDMixin, TimestampMixin, Base):
@@ -128,6 +138,10 @@ class CareAppointment(UUIDMixin, TimestampMixin, Base):
     reschedule_count: Mapped[int] = mapped_column(Integer, default=0)
 
     __table_args__ = (
-        UniqueConstraint("branch_id", "starts_at", "patient_id", name="uq_care_appointment_patient_slot"),
-        UniqueConstraint("branch_id", "doctor_id", "starts_at", name="uq_care_appointment_doctor_slot"),
+        UniqueConstraint(
+            "branch_id", "starts_at", "patient_id", name="uq_care_appointment_patient_slot"
+        ),
+        UniqueConstraint(
+            "branch_id", "doctor_id", "starts_at", name="uq_care_appointment_doctor_slot"
+        ),
     )

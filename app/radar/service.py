@@ -214,9 +214,7 @@ def _opportunity_summary(
                 else 0
             ),
             "score_history": history,
-            "semantic_classifier": classification.evidence.get(
-                "semantic_classifier", "heuristic"
-            ),
+            "semantic_classifier": classification.evidence.get("semantic_classifier", "heuristic"),
         }
     )
     return summary
@@ -260,10 +258,10 @@ async def ingest_signal(
         )
     )
     if existing:
-        opportunity = None
+        existing_opportunity = None
         if existing.opportunity_id:
-            opportunity = await db.get(RadarOpportunity, existing.opportunity_id)
-        return IngestResult(existing, opportunity, True)
+            existing_opportunity = await db.get(RadarOpportunity, existing.opportunity_id)
+        return IngestResult(existing, existing_opportunity, True)
 
     classification = classification or classify_signal(
         text,
@@ -490,9 +488,7 @@ async def dashboard_summary(db: AsyncSession) -> dict[str, Any]:
     ).all()
     counts = {tier: int(count) for tier, count in tier_rows}
     active_sources = int(
-        await db.scalar(
-            select(func.count(RadarSource.id)).where(RadarSource.is_active.is_(True))
-        )
+        await db.scalar(select(func.count(RadarSource.id)).where(RadarSource.is_active.is_(True)))
         or 0
     )
     now = datetime.now(UTC)
@@ -526,9 +522,7 @@ async def runtime_summary(db: AsyncSession) -> dict[str, Any]:
     )
     active = [source for source in sources if source.is_active]
     due = [
-        source
-        for source in active
-        if source.next_check_at is None or source.next_check_at <= now
+        source for source in active if source.next_check_at is None or source.next_check_at <= now
     ]
     action_required = [
         source for source in active if source_runtime(source)["state"] == "ACTION_REQUIRED"
@@ -581,9 +575,7 @@ async def list_opportunities(
             raise AppError("RADAR_STATUS_INVALID", "Unsupported opportunity status.", 422)
         filters.append(RadarOpportunity.status == normalized_status)
 
-    total = int(
-        await db.scalar(select(func.count(RadarOpportunity.id)).where(and_(*filters))) or 0
-    )
+    total = int(await db.scalar(select(func.count(RadarOpportunity.id)).where(and_(*filters))) or 0)
     rows = (
         await db.scalars(
             select(RadarOpportunity)

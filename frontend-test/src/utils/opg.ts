@@ -273,23 +273,6 @@ export function detectorForFindingGroup(
   return best.detection;
 }
 
-function insetDetectorBox(box: BoundingBox): BoundingBox {
-  const [x1, y1, x2, y2] = box;
-  const width = x2 - x1;
-  const height = y2 - y1;
-  const insetX = Math.min(4, width * 0.025);
-  const insetY = Math.min(3, height * 0.015);
-  const tightened: BoundingBox = [
-    x1 + insetX,
-    y1 + insetY,
-    x2 - insetX,
-    y2 - insetY
-  ];
-  return tightened[2] > tightened[0] && tightened[3] > tightened[1]
-    ? tightened
-    : box;
-}
-
 export function boundingBoxForFindingGroup(
   group: ToothFindingGroup,
   detections: VisionToothDetection[],
@@ -298,7 +281,7 @@ export function boundingBoxForFindingGroup(
 ): BoundingBox | null {
   if (!isResolvedFdi(group.toothCode)) return null;
   const detector = detectorForFindingGroup(group, detections);
-  return detector ? insetDetectorBox(detector.boundingBox) : null;
+  return detector?.boundingBox ?? null;
 }
 
 export function normalizeBoundingBoxToImage(

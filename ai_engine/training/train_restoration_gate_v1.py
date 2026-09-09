@@ -1,16 +1,16 @@
 import json
 import math
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
-from torchvision import models, transforms
 from PIL import Image
+from torch import nn
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
+from torchvision import models, transforms
 
 CLASSES = ["ABSENT", "PRESENT"]
-CLASS_TO_IDX = {c:i for i,c in enumerate(CLASSES)}
+CLASS_TO_IDX = {c: i for i, c in enumerate(CLASSES)}
 
 CANONICAL = Path("data/canonical/akudental/git-92e2cc3/instances.json")
 SPLIT_DIR = Path("data/splits/tooth_v2")
@@ -30,8 +30,8 @@ def iou(a, b):
 
     inter = iw * ih
 
-    aa = max(0.0, ax2-ax1) * max(0.0, ay2-ay1)
-    ab = max(0.0, bx2-bx1) * max(0.0, by2-by1)
+    aa = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    ab = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
 
     union = aa + ab - inter
 
@@ -65,10 +65,7 @@ class RestorationGateDataset(Dataset):
             if image_to_split.get(image_id) != split:
                 continue
 
-            image_path = (
-                Path("data/raw/akudental/current/source_repo/AKUDENTAL/images")
-                / image_id
-            )
+            image_path = Path("data/raw/akudental/current/source_repo/AKUDENTAL/images") / image_id
 
             tooth_boxes = []
             restoration_boxes = []
@@ -89,56 +86,48 @@ class RestorationGateDataset(Dataset):
             # Positive samples:
             # use tooth boxes that overlap a restoration object.
             for tooth_bbox in tooth_boxes:
-                overlaps = [
-                    (rb, rc, iou(tooth_bbox, rb))
-                    for rb, rc in restoration_boxes
-                ]
+                overlaps = [(rb, rc, iou(tooth_bbox, rb)) for rb, rc in restoration_boxes]
 
                 best = max(overlaps, key=lambda x: x[2]) if overlaps else None
 
                 if best and best[2] >= 0.02:
-                    self.samples.append({
-                        "image_path": str(image_path),
-                        "bbox": tooth_bbox,
-                        "label": CLASS_TO_IDX["PRESENT"],
-                        "class_name": "PRESENT",
-                    })
+                    self.samples.append(
+                        {
+                            "image_path": str(image_path),
+                            "bbox": tooth_bbox,
+                            "label": CLASS_TO_IDX["PRESENT"],
+                            "class_name": "PRESENT",
+                        }
+                    )
                 else:
-                    self.samples.append({
-                        "image_path": str(image_path),
-                        "bbox": tooth_bbox,
-                        "label": CLASS_TO_IDX["ABSENT"],
-                        "class_name": "ABSENT",
-                    })
+                    self.samples.append(
+                        {
+                            "image_path": str(image_path),
+                            "bbox": tooth_bbox,
+                            "label": CLASS_TO_IDX["ABSENT"],
+                            "class_name": "ABSENT",
+                        }
+                    )
 
         if train:
-            self.tf = transforms.Compose([
-                transforms.Resize((224,224)),
-                transforms.RandomRotation(4),
-                transforms.RandomAffine(
-                    degrees=0,
-                    translate=(0.02,0.02),
-                    scale=(0.96,1.04)
-                ),
-                transforms.ColorJitter(
-                    brightness=0.05,
-                    contrast=0.08
-                ),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485,0.456,0.406],
-                    std=[0.229,0.224,0.225]
-                ),
-            ])
+            self.tf = transforms.Compose(
+                [
+                    transforms.Resize((224, 224)),
+                    transforms.RandomRotation(4),
+                    transforms.RandomAffine(degrees=0, translate=(0.02, 0.02), scale=(0.96, 1.04)),
+                    transforms.ColorJitter(brightness=0.05, contrast=0.08),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
         else:
-            self.tf = transforms.Compose([
-                transforms.Resize((224,224)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485,0.456,0.406],
-                    std=[0.229,0.224,0.225]
-                ),
-            ])
+            self.tf = transforms.Compose(
+                [
+                    transforms.Resize((224, 224)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
 
     def __len__(self):
         return len(self.samples)
@@ -149,20 +138,22 @@ class RestorationGateDataset(Dataset):
         img = Image.open(s["image_path"]).convert("RGB")
         W, H = img.size
 
-        x1,y1,x2,y2 = map(float, s["bbox"])
+        x1, y1, x2, y2 = map(float, s["bbox"])
 
-        bw = max(x2-x1,1)
-        bh = max(y2-y1,1)
+        bw = max(x2 - x1, 1)
+        bh = max(y2 - y1, 1)
 
-        pad_x = max(16, int(bw*0.35))
-        pad_y = max(16, int(bh*0.35))
+        pad_x = max(16, int(bw * 0.35))
+        pad_y = max(16, int(bh * 0.35))
 
-        crop = img.crop((
-            max(0,int(x1)-pad_x),
-            max(0,int(y1)-pad_y),
-            min(W,int(x2)+pad_x),
-            min(H,int(y2)+pad_y),
-        ))
+        crop = img.crop(
+            (
+                max(0, int(x1) - pad_x),
+                max(0, int(y1) - pad_y),
+                min(W, int(x2) + pad_x),
+                min(H, int(y2) + pad_y),
+            )
+        )
 
         return self.tf(crop), s["label"]
 
@@ -173,19 +164,15 @@ def evaluate(model, loader, device):
     correct = 0
     total = 0
 
-    cc = [0]*len(CLASSES)
-    ct = [0]*len(CLASSES)
+    cc = [0] * len(CLASSES)
+    ct = [0] * len(CLASSES)
 
     with torch.no_grad():
-        for image,label in loader:
+        for image, label in loader:
             image = image.to(device, non_blocking=True)
             label = label.to(device, non_blocking=True)
 
-            with torch.amp.autocast(
-                "cuda",
-                enabled=device.type=="cuda",
-                dtype=torch.bfloat16
-            ):
+            with torch.amp.autocast("cuda", enabled=device.type == "cuda", dtype=torch.bfloat16):
                 logits = model(image)
 
             pred = logits.argmax(1)
@@ -193,18 +180,14 @@ def evaluate(model, loader, device):
             correct += (pred == label).sum().item()
             total += label.size(0)
 
-            for y,p in zip(label,pred):
+            for y, p in zip(label, pred):
                 yi = int(y.item())
                 ct[yi] += 1
                 cc[yi] += int(y == p)
 
-    acc = correct / max(total,1)
+    acc = correct / max(total, 1)
 
-    per_class = {
-        CLASSES[i]:
-            cc[i]/ct[i] if ct[i] else 0.0
-        for i in range(len(CLASSES))
-    }
+    per_class = {CLASSES[i]: cc[i] / ct[i] if ct[i] else 0.0 for i in range(len(CLASSES))}
 
     macro = sum(per_class.values()) / len(CLASSES)
 
@@ -212,17 +195,12 @@ def evaluate(model, loader, device):
 
 
 def main():
-    device = torch.device(
-        "cuda" if torch.cuda.is_available()
-        else "cpu"
-    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     train_ds = RestorationGateDataset("train", train=True)
     val_ds = RestorationGateDataset("validation", train=False)
 
-    counts = Counter(
-        s["class_name"] for s in train_ds.samples
-    )
+    counts = Counter(s["class_name"] for s in train_ds.samples)
 
     print("====================================")
     print("RESTORATION GATE V1")
@@ -241,15 +219,9 @@ def main():
 
     for s in train_ds.samples:
         n = counts[s["class_name"]]
-        sample_weights.append(
-            math.sqrt(len(train_ds) / max(n,1))
-        )
+        sample_weights.append(math.sqrt(len(train_ds) / max(n, 1)))
 
-    sampler = WeightedRandomSampler(
-        sample_weights,
-        num_samples=len(train_ds),
-        replacement=True
-    )
+    sampler = WeightedRandomSampler(sample_weights, num_samples=len(train_ds), replacement=True)
 
     train_loader = DataLoader(
         train_ds,
@@ -257,7 +229,7 @@ def main():
         sampler=sampler,
         num_workers=4,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
     )
 
     val_loader = DataLoader(
@@ -266,47 +238,25 @@ def main():
         shuffle=False,
         num_workers=4,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
     )
 
-    model = models.resnet18(
-        weights=models.ResNet18_Weights.IMAGENET1K_V1
-    )
+    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
 
-    model.fc = nn.Sequential(
-        nn.Dropout(0.30),
-        nn.Linear(model.fc.in_features, len(CLASSES))
-    )
+    model.fc = nn.Sequential(nn.Dropout(0.30), nn.Linear(model.fc.in_features, len(CLASSES)))
 
     model = model.to(device)
 
     # Moderate extra weight for PRESENT.
-    class_weights = torch.tensor(
-        [1.0, 1.8],
-        dtype=torch.float32,
-        device=device
-    )
+    class_weights = torch.tensor([1.0, 1.8], dtype=torch.float32, device=device)
 
-    loss_fn = nn.CrossEntropyLoss(
-        weight=class_weights,
-        label_smoothing=0.03
-    )
+    loss_fn = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.03)
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=1e-4,
-        weight_decay=1e-4
-    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
 
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=10
-    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
 
-    scaler = torch.amp.GradScaler(
-        "cuda",
-        enabled=device.type=="cuda"
-    )
+    scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
 
     out = Path("checkpoints/restoration_gate_v1")
     out.mkdir(parents=True, exist_ok=True)
@@ -322,19 +272,15 @@ def main():
         total = 0
         loss_sum = 0
 
-        for image,label in train_loader:
+        for image, label in train_loader:
             image = image.to(device, non_blocking=True)
             label = label.to(device, non_blocking=True)
 
             optimizer.zero_grad(set_to_none=True)
 
-            with torch.amp.autocast(
-                "cuda",
-                enabled=device.type=="cuda",
-                dtype=torch.bfloat16
-            ):
+            with torch.amp.autocast("cuda", enabled=device.type == "cuda", dtype=torch.bfloat16):
                 logits = model(image)
-                loss = loss_fn(logits,label)
+                loss = loss_fn(logits, label)
 
             scaler.scale(loss).backward()
             scaler.step(optimizer)
@@ -346,22 +292,18 @@ def main():
             total += label.size(0)
             loss_sum += loss.item() * label.size(0)
 
-        train_acc = correct / max(total,1)
+        train_acc = correct / max(total, 1)
 
-        val_acc, macro, per_class = evaluate(
-            model,
-            val_loader,
-            device
-        )
+        val_acc, macro, per_class = evaluate(model, val_loader, device)
 
         scheduler.step()
 
-        score = 0.45*val_acc + 0.55*macro
+        score = 0.45 * val_acc + 0.55 * macro
 
         print()
         print(
-            f"epoch={epoch+1} "
-            f"loss={loss_sum/max(total,1):.4f} "
+            f"epoch={epoch + 1} "
+            f"loss={loss_sum / max(total, 1):.4f} "
             f"train_acc={train_acc:.4f} "
             f"val_acc={val_acc:.4f} "
             f"macro={macro:.4f} "
@@ -369,34 +311,27 @@ def main():
         )
 
         for c in CLASSES:
-            print(
-                f"  {c}: "
-                f"{per_class[c]:.4f}"
-            )
+            print(f"  {c}: {per_class[c]:.4f}")
 
         state = {
-            "epoch": epoch+1,
+            "epoch": epoch + 1,
             "model": model.state_dict(),
             "classes": CLASSES,
             "val_acc": val_acc,
             "macro_recall": macro,
             "per_class": per_class,
-            "score": score
+            "score": score,
         }
 
-        torch.save(state, out/"latest.pt")
+        torch.save(state, out / "latest.pt")
 
         if score > best_score:
             best_score = score
             stale = 0
 
-            torch.save(state, out/"best.pt")
+            torch.save(state, out / "best.pt")
 
-            print(
-                "*** NEW BEST:",
-                round(score,4),
-                "***"
-            )
+            print("*** NEW BEST:", round(score, 4), "***")
         else:
             stale += 1
 
@@ -408,10 +343,7 @@ def main():
     print("====================================")
     print("RESTORATION GATE V1 COMPLETE")
     print("BEST SCORE:", best_score)
-    print(
-        "MODEL:",
-        "checkpoints/restoration_gate_v1/best.pt"
-    )
+    print("MODEL:", "checkpoints/restoration_gate_v1/best.pt")
     print("====================================")
 
 

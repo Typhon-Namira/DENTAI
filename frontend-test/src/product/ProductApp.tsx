@@ -33,6 +33,7 @@ import type { AIAnalysis, CurrentUser, DentalFinding, Patient, PatientProfile, W
 import { AnalysisResults } from "../components/AnalysisResults";
 import { WhatsAppOutreachCard } from "../components/WhatsAppOutreachCard";
 import { productCopy, type ProductLang } from "./content";
+import ClinicalCareApp from "./ClinicalCareApp";
 
 const LANG_KEY = "teta2-product-language";
 const OPG_HERO_URL = "https://images.squarespace-cdn.com/content/v1/57e01f4c2e69cf3a18c52ac1/09f04224-c53b-4362-aff2-52ae4d2cc114/OPG.jpg";
@@ -184,7 +185,7 @@ export default function ProductApp() {
 
   if (!lang) return <LanguageGate onSelect={setLang} />;
   if (restoring) return <div className="product-restore"><TetaLogo /><span className="product-spinner" /></div>;
-  if (user) return <ClinicProduct lang={lang} setLang={setLang} user={user} onLogout={() => setUser(null)} />;
+  if (user) return <ClinicalCareApp onSignedOut={() => setUser(null)} />;
   if (route === "/login") return <LoginPage lang={lang} setLang={setLang} onAuthenticated={setUser} go={go} />;
   if (route === "/register") return <AccessPage lang={lang} go={go} />;
   return <PublicProduct lang={lang} setLang={setLang} route={route} go={go} />;

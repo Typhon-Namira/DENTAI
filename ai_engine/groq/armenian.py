@@ -33,10 +33,10 @@ Use standard, natural terminology used by Armenian dental clinicians. In particu
   requires. Never use «ֆիլինգ».
 - For CROWN, use «պսակ». Never use «կրոն».
 - For ROOT_CANAL_TREATMENT, use «արմատախողովակային բուժում». «Էնդոդոնտիկ բուժում» may
-  be used only when it expresses exactly the same supplied evidence. Never use «ռուտային
-  թերապիա».
-- For DEEP_CARIES, use «խորը կարիես». Never invent or transliterate terms such as «խորը
-  աքսիդներ».
+  be used only when it expresses exactly the same supplied evidence. Never use
+  «ռուտային թերապիա».
+- For DEEP_CARIES, use «խորը կարիես». Never invent or transliterate terms such as
+  «խորը աքսիդներ».
 - Describe radiographic evidence naturally as «ռենտգենյան պատկերում», «ռադիոգրաֆիկ
   պատկերում» or another standard Armenian clinical construction appropriate to the
   sentence. Do not force an English noun-by-noun translation.

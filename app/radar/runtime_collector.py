@@ -64,9 +64,7 @@ async def _remote(
         "mode": "read_only",
     }
     try:
-        async with httpx.AsyncClient(
-            timeout=settings.radar_collector_timeout_seconds
-        ) as client:
+        async with httpx.AsyncClient(timeout=settings.radar_collector_timeout_seconds) as client:
             response = await client.post(
                 settings.radar_collector_url.rstrip("/") + "/v1/collect",
                 headers=headers,
@@ -115,19 +113,13 @@ async def _remote(
             except ValueError:
                 pass
         external_signal_id = (
-            str(raw.get("external_signal_id"))
-            if raw.get("external_signal_id")
-            else None
+            str(raw.get("external_signal_id")) if raw.get("external_signal_id") else None
         )
         author_external_id = (
-            str(raw.get("author_external_id"))
-            if raw.get("author_external_id")
-            else None
+            str(raw.get("author_external_id")) if raw.get("author_external_id") else None
         )
         author_profile_url = (
-            str(raw.get("author_profile_url"))[:1000]
-            if raw.get("author_profile_url")
-            else None
+            str(raw.get("author_profile_url"))[:1000] if raw.get("author_profile_url") else None
         )
         signals.append(
             CollectedSignal(
@@ -152,9 +144,7 @@ async def _remote(
         discovered_sources=list(data.get("discovered_sources") or [])[:100],
         collector=str(data.get("collector") or "authorized"),
         fetched_at=now,
-        source_revision=(
-            str(data.get("source_revision")) if data.get("source_revision") else None
-        ),
+        source_revision=(str(data.get("source_revision")) if data.get("source_revision") else None),
     )
 
 
@@ -171,9 +161,6 @@ async def collect_source(
     try:
         return await collect_builtin(platform, source.source_url)
     except RadarCollectorError as exc:
-        if (
-            exc.code == "RADAR_AUTH_SESSION_REQUIRED"
-            and get_settings().radar_collector_url
-        ):
+        if exc.code == "RADAR_AUTH_SESSION_REQUIRED" and get_settings().radar_collector_url:
             return await _remote(clinic_id=clinic_id, source=source, db=db)
         raise

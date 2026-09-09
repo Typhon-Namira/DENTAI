@@ -39,6 +39,8 @@ async def latest_eligible_finding(session: AsyncSession, patient_id):
 
 def timing_for_finding(analysis: AIAnalysis, finding: DentalFinding) -> FollowupTiming:
     analysis_at = analysis.completed_at or analysis.requested_at or datetime.now(UTC)
+    if not finding.tooth_code:
+        raise ValueError("A resolved tooth FDI is required for follow-up timing.")
     return FollowupTimingEngine().calculate(
         finding_type=finding.finding_type,
         tooth_fdi=finding.tooth_code,

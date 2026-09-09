@@ -45,11 +45,7 @@ def ensure_postgres_status_values() -> None:
     if bind.dialect.name != "postgresql":
         return
     for value in ("CLAIMED", "SEND_UNKNOWN"):
-        op.execute(
-            sa.text(
-                f"ALTER TYPE whatsappoutreachstatus ADD VALUE IF NOT EXISTS '{value}'"
-            )
-        )
+        op.execute(sa.text(f"ALTER TYPE whatsappoutreachstatus ADD VALUE IF NOT EXISTS '{value}'"))
 
 
 def outreach_status_enum() -> sa.Enum:

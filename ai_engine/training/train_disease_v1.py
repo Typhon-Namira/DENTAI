@@ -1,12 +1,12 @@
 import json
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader
-from torchvision import models, transforms
 from PIL import Image
+from torch import nn
+from torch.utils.data import DataLoader, Dataset
+from torchvision import models, transforms
 
 CLASSES = [
     "Caries",
@@ -32,43 +32,27 @@ class DiseaseDataset(Dataset):
                 bbox = inst.get("bbox_xyxy")
 
                 if disease in CLASS_TO_IDX and bbox:
-                    self.samples.append(
-                        (
-                            image_path,
-                            bbox,
-                            CLASS_TO_IDX[disease],
-                            disease
-                        )
-                    )
+                    self.samples.append((image_path, bbox, CLASS_TO_IDX[disease], disease))
 
         if train:
-            self.tf = transforms.Compose([
-                transforms.Resize((256, 256)),
-                transforms.RandomRotation(5),
-                transforms.ColorJitter(
-                    brightness=0.08,
-                    contrast=0.10
-                ),
-                transforms.RandomAffine(
-                    degrees=0,
-                    translate=(0.03, 0.03),
-                    scale=(0.95, 1.05)
-                ),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]
-                )
-            ])
+            self.tf = transforms.Compose(
+                [
+                    transforms.Resize((256, 256)),
+                    transforms.RandomRotation(5),
+                    transforms.ColorJitter(brightness=0.08, contrast=0.10),
+                    transforms.RandomAffine(degrees=0, translate=(0.03, 0.03), scale=(0.95, 1.05)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
         else:
-            self.tf = transforms.Compose([
-                transforms.Resize((256, 256)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]
-                )
-            ])
+            self.tf = transforms.Compose(
+                [
+                    transforms.Resize((256, 256)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
 
     def __len__(self):
         return len(self.samples)
@@ -112,11 +96,7 @@ def evaluate(model, loader, device):
             images = images.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
-            with torch.amp.autocast(
-                "cuda",
-                enabled=device.type == "cuda",
-                dtype=torch.bfloat16
-            ):
+            with torch.amp.autocast("cuda", enabled=device.type == "cuda", dtype=torch.bfloat16):
                 logits = model(images)
 
             pred = logits.argmax(1)
@@ -134,28 +114,17 @@ def evaluate(model, loader, device):
 
     per_class = {}
     for i, name in enumerate(CLASSES):
-        per_class[name] = (
-            class_correct[i] / class_total[i]
-            if class_total[i] else 0.0
-        )
+        per_class[name] = class_correct[i] / class_total[i] if class_total[i] else 0.0
 
     return acc, per_class
 
 
 def main():
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
-    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_ds = DiseaseDataset(
-        "data/splits/tooth_v2/train.json",
-        train=True
-    )
+    train_ds = DiseaseDataset("data/splits/tooth_v2/train.json", train=True)
 
-    val_ds = DiseaseDataset(
-        "data/splits/tooth_v2/validation.json",
-        train=False
-    )
+    val_ds = DiseaseDataset("data/splits/tooth_v2/validation.json", train=False)
 
     print("====================================")
     print("DISEASE V1")
@@ -166,10 +135,7 @@ def main():
     if device.type == "cuda":
         print("GPU:", torch.cuda.get_device_name(0))
 
-    train_counts = Counter(
-        disease
-        for _, _, _, disease in train_ds.samples
-    )
+    train_counts = Counter(disease for _, _, _, disease in train_ds.samples)
 
     print("Train distribution:")
     for c in CLASSES:
@@ -185,11 +151,7 @@ def main():
         n = max(train_counts[c], 1)
         weights.append(total / (len(CLASSES) * n))
 
-    class_weights = torch.tensor(
-        weights,
-        dtype=torch.float32,
-        device=device
-    )
+    class_weights = torch.tensor(weights, dtype=torch.float32, device=device)
 
     print("Class weights:", class_weights.tolist())
 
@@ -199,7 +161,7 @@ def main():
         shuffle=True,
         num_workers=4,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
     )
 
     val_loader = DataLoader(
@@ -208,43 +170,22 @@ def main():
         shuffle=False,
         num_workers=4,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
     )
 
-    model = models.resnet18(
-        weights=models.ResNet18_Weights.IMAGENET1K_V1
-    )
+    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
 
-    model.fc = nn.Sequential(
-        nn.Dropout(0.30),
-        nn.Linear(
-            model.fc.in_features,
-            len(CLASSES)
-        )
-    )
+    model.fc = nn.Sequential(nn.Dropout(0.30), nn.Linear(model.fc.in_features, len(CLASSES)))
 
     model = model.to(device)
 
-    loss_fn = nn.CrossEntropyLoss(
-        weight=class_weights,
-        label_smoothing=0.03
-    )
+    loss_fn = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.03)
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=1e-4,
-        weight_decay=1e-4
-    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
 
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=12
-    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=12)
 
-    scaler = torch.amp.GradScaler(
-        "cuda",
-        enabled=device.type == "cuda"
-    )
+    scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
 
     out = Path("checkpoints/disease_v1")
     out.mkdir(parents=True, exist_ok=True)
@@ -261,23 +202,13 @@ def main():
         loss_sum = 0.0
 
         for images, labels in train_loader:
-            images = images.to(
-                device,
-                non_blocking=True
-            )
+            images = images.to(device, non_blocking=True)
 
-            labels = labels.to(
-                device,
-                non_blocking=True
-            )
+            labels = labels.to(device, non_blocking=True)
 
             optimizer.zero_grad(set_to_none=True)
 
-            with torch.amp.autocast(
-                "cuda",
-                enabled=device.type == "cuda",
-                dtype=torch.bfloat16
-            ):
+            with torch.amp.autocast("cuda", enabled=device.type == "cuda", dtype=torch.bfloat16):
                 logits = model(images)
                 loss = loss_fn(logits, labels)
 
@@ -289,35 +220,26 @@ def main():
 
             pred = logits.argmax(1)
 
-            correct += (
-                pred == labels
-            ).sum().item()
+            correct += (pred == labels).sum().item()
 
             total_seen += labels.size(0)
 
         train_acc = correct / max(total_seen, 1)
 
-        val_acc, per_class = evaluate(
-            model,
-            val_loader,
-            device
-        )
+        val_acc, per_class = evaluate(model, val_loader, device)
 
         scheduler.step()
 
         print()
         print(
-            f"epoch={epoch+1} "
-            f"loss={loss_sum/len(train_ds):.4f} "
+            f"epoch={epoch + 1} "
+            f"loss={loss_sum / len(train_ds):.4f} "
             f"train_acc={train_acc:.4f} "
             f"val_acc={val_acc:.4f}"
         )
 
         for name in CLASSES:
-            print(
-                f"  {name}: "
-                f"{per_class[name]:.4f}"
-            )
+            print(f"  {name}: {per_class[name]:.4f}")
 
         torch.save(
             {
@@ -325,9 +247,9 @@ def main():
                 "model": model.state_dict(),
                 "classes": CLASSES,
                 "val_acc": val_acc,
-                "per_class": per_class
+                "per_class": per_class,
             },
-            out / "latest.pt"
+            out / "latest.pt",
         )
 
         if val_acc > best_acc:
@@ -340,24 +262,17 @@ def main():
                     "model": model.state_dict(),
                     "classes": CLASSES,
                     "val_acc": val_acc,
-                    "per_class": per_class
+                    "per_class": per_class,
                 },
-                out / "best.pt"
+                out / "best.pt",
             )
 
-            print(
-                "*** NEW BEST:",
-                round(best_acc, 4),
-                "***"
-            )
+            print("*** NEW BEST:", round(best_acc, 4), "***")
         else:
             stale += 1
 
         if stale >= patience:
-            print(
-                "EARLY STOPPING | best_val_acc=",
-                round(best_acc, 4)
-            )
+            print("EARLY STOPPING | best_val_acc=", round(best_acc, 4))
             break
 
     print()

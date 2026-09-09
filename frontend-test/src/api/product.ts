@@ -72,8 +72,11 @@ export const productApi = {
   careSettings(branchId: string) { return productRequest<CareSettings>(`/api/v1/care/settings/${encodeURIComponent(branchId)}`); },
   updateCareSettings(branchId: string, body: Omit<CareSettings, "id" | "branch_id">) { return productRequest<CareSettings>(`/api/v1/care/settings/${encodeURIComponent(branchId)}`, { method: "PUT", body: JSON.stringify(body) }); },
   carePlans(patientId?: string) { const query = patientId ? `?patient_id=${encodeURIComponent(patientId)}` : ""; return productRequest<CarePlan[]>(`/api/v1/care/plans${query}`); },
+  updateCarePlanItem(planId: string, itemId: string, body: { target_followup_at?: string; recommended_window?: string; rationale?: string; message_preview?: string | null; }) { return productRequest<CarePlanItem>(`/api/v1/care/plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}`, { method: "PATCH", body: JSON.stringify(body) }); },
+  approveCarePlan(planId: string) { return productRequest<CarePlan>(`/api/v1/care/plans/${encodeURIComponent(planId)}/approve`, { method: "POST" }); },
   careAppointments(start: string, end: string, status?: string) { const params = new URLSearchParams({ start, end }); if (status) params.set("status", status); return productRequest<CareAppointment[]>(`/api/v1/care/appointments?${params.toString()}`); },
   requestCareReschedule(appointmentId: string, preferredStart: string | null, doctorNote?: string) { return productRequest<CareAppointment>(`/api/v1/care/appointments/${encodeURIComponent(appointmentId)}/reschedule`, { method: "POST", body: JSON.stringify({ preferred_start: preferredStart, doctor_note: doctorNote || null }) }); },
+  confirmCareAppointment(appointmentId: string) { return productRequest<CareAppointment>(`/api/v1/care/appointments/${encodeURIComponent(appointmentId)}/approve`, { method: "POST" }); },
   careConversations() { return productRequest<CareConversation[]>("/api/v1/care/conversations"); },
   careConversationMessages(conversationId: string) { return productRequest<CareMessage[]>(`/api/v1/care/conversations/${encodeURIComponent(conversationId)}/messages`); }
 };

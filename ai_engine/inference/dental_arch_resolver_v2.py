@@ -1,15 +1,15 @@
 import json
-from pathlib import Path
 from collections import Counter, defaultdict
+from pathlib import Path
 
 INPUT = Path("artifacts/unified/dentai_unified_v1.json")
 OUTPUT = Path("artifacts/unified/dentai_unified_v2_resolved.json")
 
 QUADRANTS = {
-    "1": ["11","12","13","14","15","16","17","18"],
-    "2": ["21","22","23","24","25","26","27","28"],
-    "3": ["31","32","33","34","35","36","37","38"],
-    "4": ["41","42","43","44","45","46","47","48"],
+    "1": ["11", "12", "13", "14", "15", "16", "17", "18"],
+    "2": ["21", "22", "23", "24", "25", "26", "27", "28"],
+    "3": ["31", "32", "33", "34", "35", "36", "37", "38"],
+    "4": ["41", "42", "43", "44", "45", "46", "47", "48"],
 }
 
 LOCK_CONF = 0.85
@@ -29,10 +29,7 @@ def expected_x_direction(quadrant):
 
 def spatial_rank(teeth, quadrant):
     direction = expected_x_direction(quadrant)
-    return sorted(
-        teeth,
-        key=lambda t: direction * cx(t)
-    )
+    return sorted(teeth, key=lambda t: direction * cx(t))
 
 
 def resolve():
@@ -62,20 +59,12 @@ def resolve():
     for q, group in groups.items():
         expected = QUADRANTS[q]
 
-        counts = Counter(
-            t["raw_fdi_number"] for t in group
-        )
+        counts = Counter(t["raw_fdi_number"] for t in group)
 
-        duplicates = {
-            fdi for fdi, n in counts.items()
-            if n > 1
-        }
+        duplicates = {fdi for fdi, n in counts.items() if n > 1}
 
         present = set(counts)
-        missing = [
-            fdi for fdi in expected
-            if fdi not in present
-        ]
+        missing = [fdi for fdi in expected if fdi not in present]
 
         # Only duplicate members and very low-confidence predictions
         # are eligible for reassignment.
@@ -97,34 +86,22 @@ def resolve():
 
         # Estimate expected tooth position from spatial rank.
         # Do NOT require all 8 teeth to exist.
-        rank = {
-            id(t): i for i, t in enumerate(ordered)
-        }
+        rank = {id(t): i for i, t in enumerate(ordered)}
 
         # First handle duplicates.
         for duplicated_fdi in duplicates:
-            members = [
-                t for t in group
-                if t["raw_fdi_number"] == duplicated_fdi
-            ]
+            members = [t for t in group if t["raw_fdi_number"] == duplicated_fdi]
 
             # Keep the most confident duplicate unchanged.
-            keeper = max(
-                members,
-                key=lambda t: float(t["raw_fdi_confidence"])
-            )
+            keeper = max(members, key=lambda t: float(t["raw_fdi_confidence"]))
 
             for t in members:
                 if t is keeper:
-                    t["fdi_resolution_reason"] = (
-                        "duplicate_kept_highest_confidence"
-                    )
+                    t["fdi_resolution_reason"] = "duplicate_kept_highest_confidence"
                     continue
 
                 if not missing:
-                    t["fdi_resolution_reason"] = (
-                        "duplicate_unresolved_no_safe_candidate"
-                    )
+                    t["fdi_resolution_reason"] = "duplicate_unresolved_no_safe_candidate"
                     continue
 
                 current_rank = rank[id(t)]
@@ -135,11 +112,7 @@ def resolve():
 
                     # normalize ranks when fewer than 8 teeth are present
                     if len(ordered) > 1:
-                        approx_pos = (
-                            current_rank
-                            * 7.0
-                            / (len(ordered) - 1)
-                        )
+                        approx_pos = current_rank * 7.0 / (len(ordered) - 1)
                     else:
                         approx_pos = 0
 
@@ -153,9 +126,7 @@ def resolve():
 
                 t["resolved_fdi_number"] = candidate
                 t["fdi_was_changed"] = True
-                t["fdi_resolution_reason"] = (
-                    "duplicate_resolved_with_missing_same_quadrant"
-                )
+                t["fdi_resolution_reason"] = "duplicate_resolved_with_missing_same_quadrant"
 
                 missing.remove(candidate)
                 changed.append(t)
@@ -165,32 +136,18 @@ def resolve():
         for t in group:
             conf = float(t["raw_fdi_confidence"])
 
-            if (
-                conf < 0.70
-                and not t["fdi_was_changed"]
-            ):
-                t["fdi_resolution_reason"] = (
-                    "low_confidence_review_required"
-                )
+            if conf < 0.70 and not t["fdi_was_changed"]:
+                t["fdi_resolution_reason"] = "low_confidence_review_required"
 
-    resolved_counts = Counter(
-        t["resolved_fdi_number"] for t in teeth
-    )
+    resolved_counts = Counter(t["resolved_fdi_number"] for t in teeth)
 
-    remaining_duplicates = {
-        k: v for k, v in resolved_counts.items()
-        if v > 1
-    }
+    remaining_duplicates = {k: v for k, v in resolved_counts.items() if v > 1}
 
-    teeth.sort(
-        key=lambda t: int(t["resolved_fdi_number"])
-    )
+    teeth.sort(key=lambda t: int(t["resolved_fdi_number"]))
 
     result = dict(data)
 
-    result["schema_version"] = (
-        "dentai-unified-v1-arch-resolver-v2"
-    )
+    result["schema_version"] = "dentai-unified-v1-arch-resolver-v2"
 
     result["arch_resolver"] = {
         "version": "2.0-conservative",
@@ -207,10 +164,7 @@ def resolve():
 
     result["teeth"] = teeth
 
-    OUTPUT.write_text(
-        json.dumps(result, indent=2),
-        encoding="utf-8"
-    )
+    OUTPUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
 
     print("=" * 64)
     print("DENTAL ARCH RESOLVER V2 COMPLETE")
@@ -228,10 +182,10 @@ def resolve():
 
     for t in changed:
         print(
-            f'{t["raw_fdi_number"]} '
-            f'({t["raw_fdi_confidence"]:.3f}) '
-            f'-> {t["resolved_fdi_number"]} '
-            f'| {t["fdi_resolution_reason"]}'
+            f"{t['raw_fdi_number']} "
+            f"({t['raw_fdi_confidence']:.3f}) "
+            f"-> {t['resolved_fdi_number']} "
+            f"| {t['fdi_resolution_reason']}"
         )
 
     print("\n=== LOW-CONFIDENCE / REVIEW ===")
@@ -239,19 +193,14 @@ def resolve():
     for t in teeth:
         if float(t["raw_fdi_confidence"]) < 0.70:
             print(
-                f'raw={t["raw_fdi_number"]} '
-                f'conf={t["raw_fdi_confidence"]:.3f} '
-                f'resolved={t["resolved_fdi_number"]} '
-                f'| {t["fdi_resolution_reason"]}'
+                f"raw={t['raw_fdi_number']} "
+                f"conf={t['raw_fdi_confidence']:.3f} "
+                f"resolved={t['resolved_fdi_number']} "
+                f"| {t['fdi_resolution_reason']}"
             )
 
     print("\n=== RESOLVED FDI ===")
-    print(
-        " ".join(
-            t["resolved_fdi_number"]
-            for t in teeth
-        )
-    )
+    print(" ".join(t["resolved_fdi_number"] for t in teeth))
 
 
 if __name__ == "__main__":

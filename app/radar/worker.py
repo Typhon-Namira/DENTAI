@@ -2,6 +2,7 @@
 
 Run as a dedicated Railway service with: ``python -m app.radar.worker``.
 """
+
 from __future__ import annotations
 
 import asyncio

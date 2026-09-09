@@ -340,8 +340,7 @@ def classify_signal(
         "classifier_confidence": _round_unit(classifier_confidence),
     }
     weighted = sum(
-        component_values[name] * float(weight)
-        for name, weight in rules["score_weights"].items()
+        component_values[name] * float(weight) for name, weight in rules["score_weights"].items()
     )
     if not math.isfinite(weighted):
         weighted = 0.0

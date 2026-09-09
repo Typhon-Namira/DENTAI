@@ -1,23 +1,20 @@
-import json
 import hashlib
+import json
+from collections import Counter
 from pathlib import Path
-from collections import Counter, defaultdict
 
 import torch
-from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from PIL import Image
-
-from torchvision.transforms.functional import to_tensor
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision.models.detection import (
     fasterrcnn_resnet50_fpn,
 )
 from torchvision.models.detection.faster_rcnn import (
     FastRCNNPredictor,
 )
+from torchvision.transforms.functional import to_tensor
 
-CANONICAL = Path(
-    "data/canonical/dentai_v3_super"
-)
+CANONICAL = Path("data/canonical/dentai_v3_super")
 
 CLASSES = {
     "CARIES": 1,
@@ -28,9 +25,7 @@ CLASSES = {
     "FURCATION_LESION": 6,
 }
 
-IDX_TO_CLASS = {
-    v:k for k,v in CLASSES.items()
-}
+IDX_TO_CLASS = {v: k for k, v in CLASSES.items()}
 
 # Only sources with pathology object annotations.
 ALLOWED_SOURCES = {
@@ -40,9 +35,7 @@ ALLOWED_SOURCES = {
 
 
 def stable_bucket(text):
-    h = hashlib.sha1(
-        text.encode("utf-8")
-    ).hexdigest()
+    h = hashlib.sha1(text.encode("utf-8")).hexdigest()
 
     return int(h[:8], 16) % 100
 
@@ -70,9 +63,7 @@ def load_records():
     ]:
         p = CANONICAL / f"{original_split}.json"
 
-        data = json.loads(
-            p.read_text(encoding="utf-8")
-        )
+        data = json.loads(p.read_text(encoding="utf-8"))
 
         for r in data["records"]:
             source = r.get("source_dataset")
@@ -83,19 +74,11 @@ def load_records():
             if source == "oralxrays9":
                 # All available OralXrays images currently come
                 # from train2017. Hold out 10% deterministically.
-                key = (
-                    source
-                    + ":"
-                    + str(r.get("source_image_id"))
-                )
+                key = source + ":" + str(r.get("source_image_id"))
 
                 bucket = stable_bucket(key)
 
-                target_split = (
-                    "validation"
-                    if bucket < 10
-                    else "train"
-                )
+                target_split = "validation" if bucket < 10 else "train"
 
             elif source == "zenodo14":
                 target_split = original_split
@@ -130,30 +113,26 @@ class PathologyDataset(Dataset):
                 if not bbox:
                     continue
 
-                x1,y1,x2,y2 = map(float,bbox)
+                x1, y1, x2, y2 = map(float, bbox)
 
                 if x2 <= x1 or y2 <= y1:
                     continue
 
-                boxes.append([
-                    x1,y1,x2,y2
-                ])
+                boxes.append([x1, y1, x2, y2])
 
-                labels.append(
-                    CLASSES[cls]
-                )
+                labels.append(CLASSES[cls])
 
             # Keep zero-target images from these annotation-complete
             # sources so the detector learns true background.
-            self.records.append({
-                "image_path": r["image_path"],
-                "source_dataset":
-                    r.get("source_dataset"),
-                "source_image_id":
-                    r.get("source_image_id"),
-                "boxes": boxes,
-                "labels": labels,
-            })
+            self.records.append(
+                {
+                    "image_path": r["image_path"],
+                    "source_dataset": r.get("source_dataset"),
+                    "source_image_id": r.get("source_image_id"),
+                    "boxes": boxes,
+                    "labels": labels,
+                }
+            )
 
     def __len__(self):
         return len(self.records)
@@ -161,62 +140,50 @@ class PathologyDataset(Dataset):
     def __getitem__(self, idx):
         r = self.records[idx]
 
-        image = Image.open(
-            r["image_path"]
-        ).convert("RGB")
+        image = Image.open(r["image_path"]).convert("RGB")
 
         image = to_tensor(image)
 
-        boxes = torch.tensor(
-            r["boxes"],
-            dtype=torch.float32
-        )
+        boxes = torch.tensor(r["boxes"], dtype=torch.float32)
 
         if boxes.numel() == 0:
-            boxes = torch.zeros(
-                (0,4),
-                dtype=torch.float32
-            )
+            boxes = torch.zeros((0, 4), dtype=torch.float32)
 
-        labels = torch.tensor(
-            r["labels"],
-            dtype=torch.int64
-        )
+        labels = torch.tensor(r["labels"], dtype=torch.int64)
 
         target = {
             "boxes": boxes,
             "labels": labels,
-            "image_id":
-                torch.tensor([idx]),
+            "image_id": torch.tensor([idx]),
         }
 
-        return image,target
+        return image, target
 
 
 def collate_fn(batch):
     return tuple(zip(*batch))
 
 
-def iou(a,b):
-    ax1,ay1,ax2,ay2 = a
-    bx1,by1,bx2,by2 = b
+def iou(a, b):
+    ax1, ay1, ax2, ay2 = a
+    bx1, by1, bx2, by2 = b
 
-    ix1=max(ax1,bx1)
-    iy1=max(ay1,by1)
-    ix2=min(ax2,bx2)
-    iy2=min(ay2,by2)
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
 
-    iw=max(0.0,ix2-ix1)
-    ih=max(0.0,iy2-iy1)
+    iw = max(0.0, ix2 - ix1)
+    ih = max(0.0, iy2 - iy1)
 
-    inter=iw*ih
+    inter = iw * ih
 
-    aa=max(0.0,ax2-ax1)*max(0.0,ay2-ay1)
-    bb=max(0.0,bx2-bx1)*max(0.0,by2-by1)
+    aa = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    bb = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
 
-    union=aa+bb-inter
+    union = aa + bb - inter
 
-    return inter/union if union>0 else 0.0
+    return inter / union if union > 0 else 0.0
 
 
 def evaluate(
@@ -228,215 +195,144 @@ def evaluate(
 ):
     model.eval()
 
-    tp=Counter()
-    fp=Counter()
-    fn=Counter()
+    tp = Counter()
+    fp = Counter()
+    fn = Counter()
 
     with torch.no_grad():
-        for images,targets in loader:
-            images=[
-                im.to(device)
-                for im in images
-            ]
+        for images, targets in loader:
+            images = [im.to(device) for im in images]
 
-            outputs=model(images)
+            outputs = model(images)
 
-            for out,target in zip(
-                outputs,
-                targets
-            ):
-                gt_boxes=target[
-                    "boxes"
-                ].tolist()
+            for out, target in zip(outputs, targets):
+                gt_boxes = target["boxes"].tolist()
 
-                gt_labels=target[
-                    "labels"
-                ].tolist()
+                gt_labels = target["labels"].tolist()
 
-                pred_boxes=out[
-                    "boxes"
-                ].detach().cpu().tolist()
+                pred_boxes = out["boxes"].detach().cpu().tolist()
 
-                pred_labels=out[
-                    "labels"
-                ].detach().cpu().tolist()
+                pred_labels = out["labels"].detach().cpu().tolist()
 
-                pred_scores=out[
-                    "scores"
-                ].detach().cpu().tolist()
+                pred_scores = out["scores"].detach().cpu().tolist()
 
-                keep=[
-                    i
-                    for i,s in enumerate(pred_scores)
-                    if s>=score_threshold
-                ]
+                keep = [i for i, s in enumerate(pred_scores) if s >= score_threshold]
 
-                matched=set()
+                matched = set()
 
                 for i in keep:
-                    pb=pred_boxes[i]
-                    pl=pred_labels[i]
+                    pb = pred_boxes[i]
+                    pl = pred_labels[i]
 
-                    best_iou=0.0
-                    best_j=None
+                    best_iou = 0.0
+                    best_j = None
 
-                    for j,(gb,gl) in enumerate(
-                        zip(gt_boxes,gt_labels)
-                    ):
+                    for j, (gb, gl) in enumerate(zip(gt_boxes, gt_labels)):
                         if j in matched:
                             continue
 
                         if gl != pl:
                             continue
 
-                        v=iou(pb,gb)
+                        v = iou(pb, gb)
 
-                        if v>best_iou:
-                            best_iou=v
-                            best_j=j
+                        if v > best_iou:
+                            best_iou = v
+                            best_j = j
 
-                    name=IDX_TO_CLASS[
-                        pl
-                    ]
+                    name = IDX_TO_CLASS[pl]
 
-                    if (
-                        best_j is not None
-                        and best_iou>=iou_threshold
-                    ):
-                        tp[name]+=1
+                    if best_j is not None and best_iou >= iou_threshold:
+                        tp[name] += 1
                         matched.add(best_j)
 
                     else:
-                        fp[name]+=1
+                        fp[name] += 1
 
-                for j,gl in enumerate(
-                    gt_labels
-                ):
+                for j, gl in enumerate(gt_labels):
                     if j not in matched:
-                        fn[
-                            IDX_TO_CLASS[gl]
-                        ]+=1
+                        fn[IDX_TO_CLASS[gl]] += 1
 
-    metrics={}
+    metrics = {}
 
     for name in CLASSES:
-        t=tp[name]
-        p=fp[name]
-        n=fn[name]
+        t = tp[name]
+        p = fp[name]
+        n = fn[name]
 
-        precision=t/max(t+p,1)
-        recall=t/max(t+n,1)
+        precision = t / max(t + p, 1)
+        recall = t / max(t + n, 1)
 
-        f1=(
-            2*precision*recall
-            / max(
-                precision+recall,
-                1e-8
-            )
-        )
+        f1 = 2 * precision * recall / max(precision + recall, 1e-8)
 
-        metrics[name]={
-            "precision":precision,
-            "recall":recall,
-            "f1":f1,
-            "tp":t,
-            "fp":p,
-            "fn":n,
+        metrics[name] = {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "tp": t,
+            "fp": p,
+            "fn": n,
         }
 
-    macro_f1=sum(
-        m["f1"]
-        for m in metrics.values()
-    )/len(metrics)
+    macro_f1 = sum(m["f1"] for m in metrics.values()) / len(metrics)
 
-    macro_recall=sum(
-        m["recall"]
-        for m in metrics.values()
-    )/len(metrics)
+    macro_recall = sum(m["recall"] for m in metrics.values()) / len(metrics)
 
-    score=(
-        0.55*macro_f1
-        + 0.45*macro_recall
-    )
+    score = 0.55 * macro_f1 + 0.45 * macro_recall
 
-    return score,macro_f1,macro_recall,metrics
+    return score, macro_f1, macro_recall, metrics
 
 
 def main():
-    device=torch.device(
-        "cuda"
-        if torch.cuda.is_available()
-        else "cpu"
-    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_ds=PathologyDataset(
-        "train"
-    )
+    train_ds = PathologyDataset("train")
 
-    val_ds=PathologyDataset(
-        "validation"
-    )
+    val_ds = PathologyDataset("validation")
 
-    print("="*72)
+    print("=" * 72)
     print("PATHOLOGY DETECTOR V4.2 DOMAIN BALANCED")
-    print("="*72)
+    print("=" * 72)
 
-    print("Train images:",len(train_ds))
-    print("Validation images:",len(val_ds))
-    print("Device:",device)
+    print("Train images:", len(train_ds))
+    print("Validation images:", len(val_ds))
+    print("Device:", device)
 
-    if device.type=="cuda":
-        print(
-            "GPU:",
-            torch.cuda.get_device_name(0)
-        )
+    if device.type == "cuda":
+        print("GPU:", torch.cuda.get_device_name(0))
 
-    train_counts=Counter()
-    val_counts=Counter()
-    sources_train=Counter()
-    sources_val=Counter()
+    train_counts = Counter()
+    val_counts = Counter()
+    sources_train = Counter()
+    sources_val = Counter()
 
     for r in train_ds.records:
-        sources_train[
-            r["source_dataset"]
-        ]+=1
+        sources_train[r["source_dataset"]] += 1
 
         for l in r["labels"]:
-            train_counts[
-                IDX_TO_CLASS[l]
-            ]+=1
+            train_counts[IDX_TO_CLASS[l]] += 1
 
     for r in val_ds.records:
-        sources_val[
-            r["source_dataset"]
-        ]+=1
+        sources_val[r["source_dataset"]] += 1
 
         for l in r["labels"]:
-            val_counts[
-                IDX_TO_CLASS[l]
-            ]+=1
+            val_counts[IDX_TO_CLASS[l]] += 1
 
     print("\nTRAIN SOURCES:")
-    for k,v in sources_train.items():
-        print(k,v)
+    for k, v in sources_train.items():
+        print(k, v)
 
     print("\nVALIDATION SOURCES:")
-    for k,v in sources_val.items():
-        print(k,v)
+    for k, v in sources_val.items():
+        print(k, v)
 
     print("\nTRAIN OBJECTS:")
     for c in CLASSES:
-        print(
-            f"{c:25}",
-            train_counts[c]
-        )
+        print(f"{c:25}", train_counts[c])
 
     print("\nVALIDATION OBJECTS:")
     for c in CLASSES:
-        print(
-            f"{c:25}",
-            val_counts[c]
-        )
+        print(f"{c:25}", val_counts[c])
 
     # V4.2 DOMAIN + PATHOLOGY BALANCED SAMPLING
     #
@@ -444,10 +340,7 @@ def main():
     # We compensate so both domains contribute
     # approximately equally during training.
 
-    domain_counts = Counter(
-        r["source_dataset"]
-        for r in train_ds.records
-    )
+    domain_counts = Counter(r["source_dataset"] for r in train_ds.records)
 
     CLASS_BONUS = {
         "CARIES": 1.0,
@@ -466,30 +359,16 @@ def main():
         domain = r["source_dataset"]
 
         # inverse domain frequency
-        domain_weight = (
-            len(train_ds)
-            / (
-                total_domains
-                * max(domain_counts[domain], 1)
-            )
-        )
+        domain_weight = len(train_ds) / (total_domains * max(domain_counts[domain], 1))
 
-        present = {
-            IDX_TO_CLASS[l]
-            for l in r["labels"]
-        }
+        present = {IDX_TO_CLASS[l] for l in r["labels"]}
 
         if present:
-            class_bonus = max(
-                CLASS_BONUS.get(c, 1.0)
-                for c in present
-            )
+            class_bonus = max(CLASS_BONUS.get(c, 1.0) for c in present)
         else:
             class_bonus = 0.40
 
-        sample_weights.append(
-            domain_weight * class_bonus
-        )
+        sample_weights.append(domain_weight * class_bonus)
 
     sampler = WeightedRandomSampler(
         sample_weights,
@@ -497,7 +376,7 @@ def main():
         replacement=True,
     )
 
-    train_loader=DataLoader(
+    train_loader = DataLoader(
         train_ds,
         batch_size=2,
         sampler=sampler,
@@ -507,7 +386,7 @@ def main():
         collate_fn=collate_fn,
     )
 
-    val_loader=DataLoader(
+    val_loader = DataLoader(
         val_ds,
         batch_size=2,
         shuffle=False,
@@ -516,139 +395,73 @@ def main():
         collate_fn=collate_fn,
     )
 
-    model=fasterrcnn_resnet50_fpn(
+    model = fasterrcnn_resnet50_fpn(
         weights="DEFAULT",
         min_size=640,
         max_size=1600,
     )
 
-    in_features=(
-        model.roi_heads
-        .box_predictor
-        .cls_score
-        .in_features
-    )
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
 
-    model.roi_heads.box_predictor=(
-        FastRCNNPredictor(
-            in_features,
-            len(CLASSES)+1
-        )
-    )
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, len(CLASSES) + 1)
 
     model.to(device)
 
     warm = Path("checkpoints/pathology_detector_v41/best.pt")
 
     if warm.exists():
-        ckpt = torch.load(
-            warm,
-            map_location="cpu",
-            weights_only=False
-        )
+        ckpt = torch.load(warm, map_location="cpu", weights_only=False)
 
-        model.load_state_dict(
-            ckpt["model"],
-            strict=True
-        )
+        model.load_state_dict(ckpt["model"], strict=True)
 
-        print(
-            "✓ Warm-started V4.1 from epoch",
-            ckpt.get("epoch")
-        )
+        print("✓ Warm-started V4.1 from epoch", ckpt.get("epoch"))
 
-    optimizer=torch.optim.AdamW(
+    optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=4e-5,
         weight_decay=1e-4,
     )
 
-    scheduler=(
-        torch.optim.lr_scheduler
-        .CosineAnnealingLR(
-            optimizer,
-            T_max=4
-        )
-    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=4)
 
-    scaler=torch.amp.GradScaler(
-        "cuda",
-        enabled=device.type=="cuda"
-    )
+    scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
 
-    out=Path(
-        "checkpoints/pathology_detector_v42"
-    )
+    out = Path("checkpoints/pathology_detector_v42")
 
-    out.mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    out.mkdir(parents=True, exist_ok=True)
 
-    best=-1
-    stale=0
-    patience=2
+    best = -1
+    stale = 0
+    patience = 2
 
     # 6 epochs max to avoid wasting time/GPU.
     for epoch in range(4):
         model.train()
 
-        running=0.0
-        steps=0
+        running = 0.0
+        steps = 0
 
-        for images,targets in train_loader:
-            images=[
-                im.to(
-                    device,
-                    non_blocking=True
-                )
-                for im in images
-            ]
+        for images, targets in train_loader:
+            images = [im.to(device, non_blocking=True) for im in images]
 
-            targets=[
-                {
-                    k:v.to(
-                        device,
-                        non_blocking=True
-                    )
-                    for k,v in t.items()
-                }
-                for t in targets
-            ]
+            targets = [{k: v.to(device, non_blocking=True) for k, v in t.items()} for t in targets]
 
-            optimizer.zero_grad(
-                set_to_none=True
-            )
+            optimizer.zero_grad(set_to_none=True)
 
-            with torch.amp.autocast(
-                "cuda",
-                enabled=device.type=="cuda",
-                dtype=torch.bfloat16
-            ):
-                losses=model(
-                    images,
-                    targets
-                )
+            with torch.amp.autocast("cuda", enabled=device.type == "cuda", dtype=torch.bfloat16):
+                losses = model(images, targets)
 
-                loss=sum(
-                    losses.values()
-                )
+                loss = sum(losses.values())
 
-            scaler.scale(
-                loss
-            ).backward()
+            scaler.scale(loss).backward()
 
-            scaler.step(
-                optimizer
-            )
+            scaler.step(optimizer)
 
             scaler.update()
 
-            running+=float(
-                loss.item()
-            )
+            running += float(loss.item())
 
-            steps+=1
+            steps += 1
 
         scheduler.step()
 
@@ -657,7 +470,7 @@ def main():
             macro_f1,
             macro_recall,
             metrics,
-        )=evaluate(
+        ) = evaluate(
             model,
             val_loader,
             device,
@@ -667,15 +480,15 @@ def main():
 
         print()
         print(
-            f"epoch={epoch+1} "
-            f"loss={running/max(steps,1):.4f} "
+            f"epoch={epoch + 1} "
+            f"loss={running / max(steps, 1):.4f} "
             f"macro_f1={macro_f1:.4f} "
             f"macro_recall={macro_recall:.4f} "
             f"score={score:.4f}"
         )
 
         for name in CLASSES:
-            m=metrics[name]
+            m = metrics[name]
 
             print(
                 f"  {name:24} "
@@ -687,55 +500,40 @@ def main():
                 f"FN={m['fn']}"
             )
 
-        state={
-            "epoch":epoch+1,
-            "model":model.state_dict(),
-            "classes":CLASSES,
-            "score":score,
-            "macro_f1":macro_f1,
-            "macro_recall":macro_recall,
-            "metrics":metrics,
+        state = {
+            "epoch": epoch + 1,
+            "model": model.state_dict(),
+            "classes": CLASSES,
+            "score": score,
+            "macro_f1": macro_f1,
+            "macro_recall": macro_recall,
+            "metrics": metrics,
         }
 
-        torch.save(
-            state,
-            out/"latest.pt"
-        )
+        torch.save(state, out / "latest.pt")
 
-        if score>best:
-            best=score
-            stale=0
+        if score > best:
+            best = score
+            stale = 0
 
-            torch.save(
-                state,
-                out/"best.pt"
-            )
+            torch.save(state, out / "best.pt")
 
-            print(
-                "*** NEW BEST:",
-                round(best,4),
-                "***"
-            )
+            print("*** NEW BEST:", round(best, 4), "***")
 
         else:
-            stale+=1
+            stale += 1
 
-        if stale>=patience:
-            print(
-                "EARLY STOPPING"
-            )
+        if stale >= patience:
+            print("EARLY STOPPING")
             break
 
     print()
-    print("="*72)
+    print("=" * 72)
     print("PATHOLOGY DETECTOR V4.2 DOMAIN BALANCED COMPLETE")
-    print("BEST SCORE:",best)
-    print(
-        "MODEL:",
-        "checkpoints/pathology_detector_v4/best.pt"
-    )
-    print("="*72)
+    print("BEST SCORE:", best)
+    print("MODEL:", "checkpoints/pathology_detector_v4/best.pt")
+    print("=" * 72)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

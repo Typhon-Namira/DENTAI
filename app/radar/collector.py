@@ -116,7 +116,9 @@ class _TelegramParser(HTMLParser):
             self._capture_author = True
         elif tag == "time" and values.get("datetime"):
             try:
-                parsed = datetime.fromisoformat(values["datetime"].replace("Z", "+00:00"))
+                raw_datetime = values["datetime"]
+                assert raw_datetime is not None
+                parsed = datetime.fromisoformat(raw_datetime.replace("Z", "+00:00"))
                 self.current_datetime = parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
             except ValueError:
                 self.current_datetime = None
@@ -267,7 +269,7 @@ async def validate_external_url(url: str) -> None:
     def resolve() -> list[str]:
         return list(
             {
-                item[4][0]
+                str(item[4][0])
                 for item in socket.getaddrinfo(
                     hostname,
                     parsed.port or 443,

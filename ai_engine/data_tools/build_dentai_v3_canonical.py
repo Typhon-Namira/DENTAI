@@ -1,6 +1,7 @@
 import json
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
+
 from PIL import Image
 
 ROOT = Path("data")
@@ -48,10 +49,7 @@ records = {
     "external_validation": [],
 }
 
-stats = {
-    k: Counter()
-    for k in records
-}
+stats = {k: Counter() for k in records}
 
 
 def add_record(split, record):
@@ -69,9 +67,7 @@ zen_splits = {
     "train": ZEN / "train",
     "validation": ZEN / "valid",
     "test": ZEN / "test",
-    "external_validation": (
-        ZEN / "test_alte_cabinete/Ext-validation"
-    ),
+    "external_validation": (ZEN / "test_alte_cabinete/Ext-validation"),
 }
 
 print("=== IMPORTING ZENODO14 ===")
@@ -83,10 +79,7 @@ for target_split, base in zen_splits.items():
     img_dir = base / "images"
     lbl_dir = base / "labels"
 
-    images = sorted([
-        p for p in img_dir.iterdir()
-        if p.is_file()
-    ])
+    images = sorted([p for p in img_dir.iterdir() if p.is_file()])
 
     imported = 0
 
@@ -104,11 +97,7 @@ for target_split, base in zen_splits.items():
 
         if label_path.exists():
             for line_no, line in enumerate(
-                label_path.read_text(
-                    encoding="utf-8",
-                    errors="ignore"
-                ).splitlines(),
-                start=1
+                label_path.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1
             ):
                 parts = line.strip().split()
 
@@ -122,27 +111,28 @@ for target_split, base in zen_splits.items():
 
                 xc, yc, bw, bh = map(float, parts[1:5])
 
-                x1 = max(0.0, (xc - bw/2.0) * W)
-                y1 = max(0.0, (yc - bh/2.0) * H)
-                x2 = min(float(W), (xc + bw/2.0) * W)
-                y2 = min(float(H), (yc + bh/2.0) * H)
+                x1 = max(0.0, (xc - bw / 2.0) * W)
+                y1 = max(0.0, (yc - bh / 2.0) * H)
+                x2 = min(float(W), (xc + bw / 2.0) * W)
+                y2 = min(float(H), (yc + bh / 2.0) * H)
 
                 source_name, canonical = ZEN_CLASSES[cid]
 
-                instances.append({
-                    "source_annotation_id":
-                        f"{label_path.name}:{line_no}",
-                    "annotation_type": "bbox",
-                    "source_class_id": cid,
-                    "source_class": source_name,
-                    "canonical_class": canonical,
-                    "bbox_xyxy": [
-                        round(x1, 3),
-                        round(y1, 3),
-                        round(x2, 3),
-                        round(y2, 3),
-                    ],
-                })
+                instances.append(
+                    {
+                        "source_annotation_id": f"{label_path.name}:{line_no}",
+                        "annotation_type": "bbox",
+                        "source_class_id": cid,
+                        "source_class": source_name,
+                        "canonical_class": canonical,
+                        "bbox_xyxy": [
+                            round(x1, 3),
+                            round(y1, 3),
+                            round(x2, 3),
+                            round(y2, 3),
+                        ],
+                    }
+                )
 
         add_record(
             target_split,
@@ -154,16 +144,12 @@ for target_split, base in zen_splits.items():
                 "width": W,
                 "height": H,
                 "instances": instances,
-            }
+            },
         )
 
         imported += 1
 
-    print(
-        target_split,
-        "images=",
-        imported
-    )
+    print(target_split, "images=", imported)
 
 
 # ============================================================
@@ -172,28 +158,18 @@ for target_split, base in zen_splits.items():
 
 print("\n=== IMPORTING ORALXRAYS-9 TRAIN ===")
 
-ann_path = (
-    ORAL / "annotations/instances_train2017.json"
-)
+ann_path = ORAL / "annotations/instances_train2017.json"
 
 img_dir = ORAL / "train2017"
 
-oral = json.loads(
-    ann_path.read_text(encoding="utf-8")
-)
+oral = json.loads(ann_path.read_text(encoding="utf-8"))
 
-categories = {
-    int(c["id"]): c["name"]
-    for c in oral["categories"]
-}
+categories = {int(c["id"]): c["name"] for c in oral["categories"]}
 
 anns_by_image = {}
 
 for ann in oral["annotations"]:
-    anns_by_image.setdefault(
-        int(ann["image_id"]),
-        []
-    ).append(ann)
+    anns_by_image.setdefault(int(ann["image_id"]), []).append(ann)
 
 imported = 0
 missing_images = 0
@@ -232,20 +208,21 @@ for img in oral["images"]:
 
         x, y, w, h = map(float, ann["bbox"])
 
-        instances.append({
-            "source_annotation_id":
-                str(ann.get("id")),
-            "annotation_type": "bbox",
-            "source_class_id": cid,
-            "source_class": source_name,
-            "canonical_class": canonical,
-            "bbox_xyxy": [
-                round(x, 3),
-                round(y, 3),
-                round(x+w, 3),
-                round(y+h, 3),
-            ],
-        })
+        instances.append(
+            {
+                "source_annotation_id": str(ann.get("id")),
+                "annotation_type": "bbox",
+                "source_class_id": cid,
+                "source_class": source_name,
+                "canonical_class": canonical,
+                "bbox_xyxy": [
+                    round(x, 3),
+                    round(y, 3),
+                    round(x + w, 3),
+                    round(y + h, 3),
+                ],
+            }
+        )
 
     add_record(
         "train",
@@ -257,7 +234,7 @@ for img in oral["images"]:
             "width": W,
             "height": H,
             "instances": instances,
-        }
+        },
     )
 
     imported += 1
@@ -281,21 +258,9 @@ for split, split_records in records.items():
 
     path = OUT / f"{split}.json"
 
-    path.write_text(
-        json.dumps(
-            payload,
-            ensure_ascii=False
-        ),
-        encoding="utf-8"
-    )
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
-    print(
-        split,
-        "records=",
-        len(split_records),
-        "->",
-        path
-    )
+    print(split, "records=", len(split_records), "->", path)
 
 
 summary = {
@@ -318,45 +283,23 @@ for split in records:
     summary["splits"][split] = {
         "images": len(records[split]),
         "instances": sum(stats[split].values()),
-        "class_counts": dict(
-            stats[split].most_common()
-        ),
+        "class_counts": dict(stats[split].most_common()),
     }
 
-(OUT / "stats.json").write_text(
-    json.dumps(
-        summary,
-        indent=2,
-        ensure_ascii=False
-    ),
-    encoding="utf-8"
-)
+(OUT / "stats.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
 
-print("\n" + "="*72)
+print("\n" + "=" * 72)
 print("DENTAI V3 CANONICAL BUILD COMPLETE")
-print("="*72)
+print("=" * 72)
 
 for split in records:
-    print(
-        f"\n[{split.upper()}]"
-    )
+    print(f"\n[{split.upper()}]")
 
-    print(
-        "images:",
-        len(records[split])
-    )
+    print("images:", len(records[split]))
 
-    print(
-        "instances:",
-        sum(stats[split].values())
-    )
+    print("instances:", sum(stats[split].values()))
 
     for cls, n in stats[split].most_common():
-        print(
-            f"{cls:30} {n}"
-        )
+        print(f"{cls:30} {n}")
 
-print(
-    "\nStats:",
-    OUT / "stats.json"
-)
+print("\nStats:", OUT / "stats.json")
