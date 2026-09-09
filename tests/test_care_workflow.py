@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.care.models import (
     CareAppointment,
+    CareAvailabilityException,
     CareConversation,
     CareConversationMessage,
     CarePlan,
@@ -141,5 +142,57 @@ async def test_inbound_provider_message_is_idempotent(monkeypatch):
             )
 
             assert result == {"handled": True, "duplicate": True}
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_availability_exception_removes_overlapping_slots():
+    engine, factory = await session_factory()
+    branch_id = uuid.uuid4()
+    doctor_id = uuid.uuid4()
+    try:
+        async with factory() as session:
+            settings = ClinicCareSettings(
+                branch_id=branch_id,
+                timezone="Asia/Yerevan",
+                working_days=[0],
+                day_start="09:00",
+                day_end="12:00",
+                appointment_minutes=30,
+                slot_interval_minutes=30,
+                min_booking_notice_minutes=0,
+                booking_horizon_days=1,
+                buffer_minutes=0,
+                preferred_times=[],
+                blocked_windows=[],
+            )
+            monday = datetime(2026, 9, 14, 5, 0, tzinfo=UTC)
+            session.add(settings)
+            session.add(
+                CareAvailabilityException(
+                    branch_id=branch_id,
+                    doctor_id=doctor_id,
+                    starts_at=monday + timedelta(hours=1),
+                    ends_at=monday + timedelta(hours=2),
+                    kind="BREAK",
+                    reason="Lunch",
+                )
+            )
+            await session.flush()
+
+            slots = await available_slots(
+                session,
+                branch_id=branch_id,
+                settings=settings,
+                doctor_id=doctor_id,
+                now=monday,
+                limit=20,
+            )
+
+            utc_slots = {slot.astimezone(UTC) for slot in slots}
+            assert monday + timedelta(hours=1) not in utc_slots
+            assert monday + timedelta(hours=1, minutes=30) not in utc_slots
+            assert monday in utc_slots
     finally:
         await engine.dispose()

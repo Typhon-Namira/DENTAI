@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    test: {
+      exclude: ["e2e/**", "node_modules/**", "dist/**"]
+    },
     server: {
       port: 5173,
       proxy: {

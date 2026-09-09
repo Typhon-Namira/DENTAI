@@ -1,0 +1,113 @@
+name: Deploy Care API
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub environment containing deployment secrets
+        required: true
+        default: production
+        type: environment
+
+concurrency:
+  group: care-api-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.3"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: uv sync --frozen --extra dev
+      - run: uv run ruff format --check . && uv run ruff check . && uv run mypy app && uv run pytest
+      - working-directory: frontend-test
+        run: npm ci --no-audit --no-fund && npm test -- --run && npm run build
+      - working-directory: whatsapp_service
+        run: npm install --no-audit --no-fund && npm test
+      - run: docker build -t dentai-care:${{ github.sha }} .
+
+  deploy-ec2:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Upload immutable release source
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          RELEASE_ROOT: ${{ secrets.EC2_RELEASE_ROOT }}
+        run: |
+          tar --exclude=.git --exclude=node_modules --exclude=dist -czf /tmp/release.tgz .
+          ssh "$EC2_USER@$EC2_HOST" "mkdir -p '$RELEASE_ROOT/${{ github.sha }}'"
+          scp /tmp/release.tgz "$EC2_USER@$EC2_HOST:$RELEASE_ROOT/${{ github.sha }}/release.tgz"
+      - name: Build, migrate, switch, and verify
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          RELEASE_ROOT: ${{ secrets.EC2_RELEASE_ROOT }}
+          EC2_ENV_FILE: ${{ secrets.EC2_ENV_FILE }}
+          CARE_BACKEND_URL: ${{ secrets.CARE_BACKEND_URL }}
+          CARE_FRONTEND_URL: ${{ secrets.CARE_FRONTEND_URL }}
+          CARE_SMOKE_CLINIC_SLUG: ${{ secrets.CARE_SMOKE_CLINIC_SLUG }}
+          CARE_SMOKE_IDENTIFIER: ${{ secrets.CARE_SMOKE_IDENTIFIER }}
+          CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
+        run: |
+          ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' ENV_FILE='$EC2_ENV_FILE' bash -s" <<'REMOTE'
+          set -euo pipefail
+          release="$RELEASE_ROOT/$RELEASE_SHA"
+          tar -xzf "$release/release.tgz" -C "$release"
+          docker build -t "dentai-care:$RELEASE_SHA" "$release"
+          docker run --rm --env-file "$ENV_FILE" "dentai-care:$RELEASE_SHA" python scripts/migrate_all_tenants.py
+          previous=$(docker inspect -f '{{.Config.Image}}' dentai-backend 2>/dev/null || true)
+          printf '%s' "$previous" > "$release/previous-image"
+          docker rm -f dentai-backend-next >/dev/null 2>&1 || true
+          docker run -d --name dentai-backend-next --env-file "$ENV_FILE" -e WHATSAPP_EMBEDDED_SERVICE=false -p 127.0.0.1:8001:8000 "dentai-care:$RELEASE_SHA"
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8001/ready && break; sleep 2; done
+          curl -fsS http://127.0.0.1:8001/ready
+          docker rm -f dentai-backend-next
+          docker rm -f dentai-backend >/dev/null 2>&1 || true
+          docker run -d --name dentai-backend --env-file "$ENV_FILE" -v dentai-whatsapp-sessions:/app/data/whatsapp_sessions -p 127.0.0.1:8000:8000 "dentai-care:$RELEASE_SHA"
+          for _ in $(seq 1 15); do curl -fsS http://127.0.0.1:8000/ready && break; sleep 2; done
+          curl -fsS http://127.0.0.1:8000/ready
+          REMOTE
+          if ! CARE_BACKEND_URL="$CARE_BACKEND_URL" CARE_FRONTEND_URL="$CARE_FRONTEND_URL" CARE_SMOKE_CLINIC_SLUG="$CARE_SMOKE_CLINIC_SLUG" CARE_SMOKE_IDENTIFIER="$CARE_SMOKE_IDENTIFIER" CARE_SMOKE_PASSWORD="$CARE_SMOKE_PASSWORD" python scripts/smoke_care_api.py; then
+            ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' ENV_FILE='$EC2_ENV_FILE' bash -s" <<'ROLLBACK'
+            set -euo pipefail
+            previous=$(cat "$RELEASE_ROOT/$RELEASE_SHA/previous-image")
+            test -n "$previous"
+            docker rm -f dentai-backend
+            docker run -d --name dentai-backend --env-file "$ENV_FILE" -v dentai-whatsapp-sessions:/app/data/whatsapp_sessions -p 127.0.0.1:8000:8000 "$previous"
+            ROLLBACK
+            exit 1
+          fi
+      - name: Verify responsive authenticated frontend
+        env:
+          CARE_E2E_URL: ${{ secrets.CARE_FRONTEND_URL }}/login
+          CARE_E2E_CLINIC: ${{ secrets.CARE_SMOKE_CLINIC_SLUG }}
+          CARE_E2E_USER: ${{ secrets.CARE_SMOKE_IDENTIFIER }}
+          CARE_E2E_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
+        working-directory: frontend-test
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run test:responsive

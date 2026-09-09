@@ -298,6 +298,12 @@ def test_fresh_database_alembic_upgrade_head(tmp_path, monkeypatch):
     assert "whatsapp_phone" in patient_columns
     assert "source_finding_ids" in outreach_columns
     assert "dispatch_started_at" in outreach_columns
+    assert "care_availability_exceptions" in tables
+    with sqlite3.connect(db_path) as connection:
+        appointment_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(care_appointments)").fetchall()
+        }
+    assert "notification_status" in appointment_columns
 
 
 def test_existing_0003_database_upgrades_to_head(tmp_path, monkeypatch):
@@ -322,3 +328,22 @@ def test_existing_0003_database_upgrades_to_head(tmp_path, monkeypatch):
         }
     assert "whatsapp_outreach" in tables
     assert "whatsapp_phone" in patient_columns
+    assert "care_availability_exceptions" in tables
+
+
+def test_control_plane_upgrade_skips_tenant_care_tables(tmp_path, monkeypatch):
+    db_path = tmp_path / "control.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{db_path}")
+    monkeypatch.setenv("MIGRATION_PLANE", "control")
+    get_settings.cache_clear()
+    command.upgrade(Config("alembic.ini"), "head")
+    with sqlite3.connect(db_path) as connection:
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+    assert "clinic_registry" in tables
+    assert "care_plans" not in tables
+    assert "care_availability_exceptions" not in tables

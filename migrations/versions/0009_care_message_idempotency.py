@@ -4,6 +4,8 @@ Revision ID: 0009_care_message_idempotency
 Revises: 0008_care_doctor_slot_guard
 """
 
+import os
+
 from alembic import op
 
 revision = "0009_care_message_idempotency"
@@ -13,6 +15,8 @@ depends_on = None
 
 
 def upgrade() -> None:
+    if os.getenv("MIGRATION_PLANE", "clinic") == "control":
+        return
     with op.batch_alter_table("care_conversation_messages") as batch_op:
         batch_op.create_unique_constraint(
             "uq_care_message_provider_id",
@@ -21,5 +25,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    if os.getenv("MIGRATION_PLANE", "clinic") == "control":
+        return
     with op.batch_alter_table("care_conversation_messages") as batch_op:
         batch_op.drop_constraint("uq_care_message_provider_id", type_="unique")

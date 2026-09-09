@@ -21,7 +21,7 @@ import type {
   WhatsAppOutreach
 } from "./types";
 
-export const API_BASE_URL = "";
+export const API_BASE_URL = (import.meta.env.VITE_DENTAI_API_BASE_URL ?? "").replace(/\/$/, "");
 const SESSION_KEY = "dentai-test-auth";
 
 interface StoredSession {
@@ -144,8 +144,8 @@ export const api = {
     }
   },
 
-  listPatients(signal?: AbortSignal) {
-    return request<PatientPage>("/api/v1/patients?page=1&page_size=100", { signal });
+  listPatients(signal?: AbortSignal, status = "ACTIVE") {
+    return request<PatientPage>(`/api/v1/patients?page=1&page_size=100&status=${encodeURIComponent(status)}`, { signal });
   },
   patientProfile(patientId: string, signal?: AbortSignal) {
     return request<PatientProfile>("/api/v1/patients/" + encodeURIComponent(patientId) + "/profile", { signal });
@@ -160,6 +160,9 @@ export const api = {
   },
   createAnalysis(xrayId: string) {
     return request<AIAnalysis>("/api/v1/ai-analyses", { method: "POST", body: JSON.stringify({ xray_id: xrayId }) });
+  },
+  retryAnalysis(analysisId: string) {
+    return request<AIAnalysis>("/api/v1/ai-analyses/" + encodeURIComponent(analysisId) + "/retry", { method: "POST" });
   },
 
   whatsappStatus() { return request<WhatsAppConnection>("/api/v1/whatsapp/status"); },
