@@ -54,6 +54,17 @@ async def create(
     if not xray:
         raise AppError("XRAY_NOT_FOUND", "X-ray was not found.", 404)
     await authorized_patient(ctx, xray.patient_id)
+    in_flight = await ctx.session.scalar(
+        select(AIAnalysis)
+        .where(
+            AIAnalysis.xray_id == xray.id,
+            AIAnalysis.status.in_([AIStatus.QUEUED, AIStatus.PROCESSING]),
+        )
+        .order_by(AIAnalysis.requested_at.desc())
+    )
+    if in_flight:
+        response.status_code = 202
+        return model_dict(in_flight)
     provider = ai_provider()
     prior_analysis = await ctx.session.scalar(
         select(AIAnalysis)
@@ -144,6 +155,37 @@ async def create(
             )
             await ctx.session.commit()
         raise AppError("AI_ANALYSIS_FAILED", "The analysis could not be completed.", 422) from exc
+    return model_dict(analysis)
+
+
+@router.post("/{analysis_id}/retry", status_code=202)
+async def retry_analysis(
+    analysis_id: uuid.UUID,
+    ctx: Annotated[AuthContext, Depends(current_context)],
+):
+    if ctx.user.role != Role.DOCTOR:
+        raise AppError("FORBIDDEN", "Only Doctors may retry dental AI analysis.", 403)
+    analysis = await ctx.session.get(AIAnalysis, analysis_id)
+    if not analysis:
+        raise AppError("ANALYSIS_NOT_FOUND", "Analysis was not found.", 404)
+    await authorized_patient(ctx, analysis.patient_id)
+    if analysis.status in {AIStatus.QUEUED, AIStatus.PROCESSING}:
+        return model_dict(analysis)
+    if analysis.status != AIStatus.FAILED:
+        raise AppError("INVALID_ANALYSIS_STATE", "Only a failed analysis can be retried.", 409)
+    if analysis.attempt_count >= analysis.max_attempts:
+        raise AppError(
+            "ANALYSIS_RETRY_EXHAUSTED", "The analysis retry limit has been reached.", 409
+        )
+    analysis.status = AIStatus.QUEUED
+    analysis.failed_at = None
+    analysis.error_code = None
+    analysis.retry_at = datetime.now(UTC)
+    analysis.worker_id = None
+    analysis.claimed_at = None
+    analysis.heartbeat_at = None
+    await audit(ctx.session, ctx.user, "AI_ANALYSIS_RETRIED", "AIAnalysis", analysis.id)
+    await ctx.session.commit()
     return model_dict(analysis)
 
 

@@ -11,6 +11,7 @@ from app.care.groq import care_agent_reply
 from app.care.language import language_for_phone, language_name
 from app.care.models import (
     CareAppointment,
+    CareAvailabilityException,
     CareConversation,
     CareConversationMessage,
     CarePlan,
@@ -368,6 +369,25 @@ async def available_slots(
             )
         )
     ).all()
+    exceptions = (
+        await session.scalars(
+            select(CareAvailabilityException).where(
+                CareAvailabilityException.branch_id == branch_id,
+                CareAvailabilityException.ends_at >= local_now.astimezone(UTC),
+                CareAvailabilityException.starts_at
+                <= datetime.combine(end_date, time.max, tzinfo=tz).astimezone(UTC),
+            )
+        )
+    ).all()
+    exception_windows = [
+        (
+            x.starts_at if x.starts_at.tzinfo else x.starts_at.replace(tzinfo=UTC),
+            x.ends_at if x.ends_at.tzinfo else x.ends_at.replace(tzinfo=UTC),
+            x.kind,
+        )
+        for x in exceptions
+        if not doctor_id or x.doctor_id in (None, doctor_id)
+    ]
     busy = [
         (
             x.starts_at if x.starts_at.tzinfo else x.starts_at.replace(tzinfo=UTC),
@@ -393,7 +413,16 @@ async def available_slots(
                     candidate_start < b_end + buffer and candidate_end > b_start - buffer
                     for b_start, b_end in busy
                 )
-                if cursor >= earliest and not collision and not _is_blocked(cursor, end, settings):
+                unavailable = any(
+                    utc_start < ex_end and utc_end > ex_start and kind in {"UNAVAILABLE", "BREAK"}
+                    for ex_start, ex_end, kind in exception_windows
+                )
+                if (
+                    cursor >= earliest
+                    and not collision
+                    and not unavailable
+                    and not _is_blocked(cursor, end, settings)
+                ):
                     candidates.append(cursor)
                 cursor += timedelta(minutes=settings.slot_interval_minutes)
         day += timedelta(days=1)
@@ -483,6 +512,8 @@ async def start_or_continue_outreach(
                 body=message,
                 language=conversation.language,
                 status="SENT",
+                sent_at=datetime.now(UTC),
+                attempt_count=1,
                 provider_message_id=result.get("message_id"),
                 message_metadata={
                     "clinic": clinic_name,
@@ -658,6 +689,8 @@ async def process_inbound_message(
             body=reply.reply,
             language=conversation.language,
             status="SENT",
+            sent_at=datetime.now(UTC),
+            attempt_count=1,
             provider_message_id=sent.get("message_id"),
             message_metadata={
                 "intent": reply.intent,

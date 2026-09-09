@@ -24,6 +24,7 @@ def selected():
         "care_conversations",
         "care_conversation_messages",
         "care_appointments",
+        "care_availability_exceptions",
     }
     return [
         table

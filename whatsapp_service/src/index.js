@@ -11,6 +11,8 @@ const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 export const SESSION_ROOT = path.resolve(process.env.WHATSAPP_SESSION_DIR || "/app/data/whatsapp_sessions");
 const INTERNAL_TOKEN = process.env.WHATSAPP_SERVICE_TOKEN || "";
 const CARE_CALLBACK_URL = process.env.TETA2_CARE_CALLBACK_URL || "";
+const CARE_STATUS_CALLBACK_URL = process.env.TETA2_CARE_STATUS_CALLBACK_URL ||
+  CARE_CALLBACK_URL.replace(/\/inbound$/, "/status");
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const QR_WAIT_MS = Number(process.env.WHATSAPP_QR_WAIT_MS || 12000);
 
@@ -115,6 +117,23 @@ export function createService(deps = {}) {
     socket.ev.on("creds.update", saveCreds);
     socket.ev.on("messages.upsert", ({ messages }) => {
       for (const message of messages || []) void forwardInbound(safeId, message);
+    });
+    socket.ev.on("messages.update", (updates) => {
+      for (const update of updates || []) {
+        const providerMessageId = update?.key?.id;
+        const status = ({ 1: "QUEUED", 2: "SENT", 3: "DELIVERED", 4: "READ" })[update?.status];
+        if (!CARE_STATUS_CALLBACK_URL || !providerMessageId || !update?.key?.fromMe || !status) continue;
+        void fetch(CARE_STATUS_CALLBACK_URL, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(INTERNAL_TOKEN ? { authorization: `Bearer ${INTERNAL_TOKEN}` } : {})
+          },
+          body: JSON.stringify({ account_id: safeId, provider_message_id: providerMessageId, status })
+        }).then((response) => {
+          if (!response.ok) logger.warn({ event: "care_status_callback_rejected", account: safeId, status: response.status });
+        }).catch((error) => logger.warn({ event: "care_status_callback_unavailable", account: safeId, error: error?.name || "Error" }));
+      }
     });
     socket.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
       if (qr) {

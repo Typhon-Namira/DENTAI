@@ -4,6 +4,8 @@ Revision ID: 0007_teta2_care_orchestration
 Revises: 0006_radar_production
 """
 
+import os
+
 import sqlalchemy as sa
 from alembic import op
 
@@ -14,6 +16,8 @@ depends_on = None
 
 
 def upgrade() -> None:
+    if os.getenv("MIGRATION_PLANE", "clinic") == "control":
+        return
     op.create_table(
         "clinic_care_settings",
         sa.Column("id", sa.Uuid(), primary_key=True),
@@ -206,6 +210,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    if os.getenv("MIGRATION_PLANE", "clinic") == "control":
+        return
     op.drop_table("care_appointments")
     op.drop_table("care_conversation_messages")
     op.drop_table("care_conversations")

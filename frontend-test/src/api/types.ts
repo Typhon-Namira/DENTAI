@@ -50,6 +50,7 @@ export interface PatientPage {
   items: Patient[];
   page: number;
   page_size: number;
+  total?: number;
 }
 
 export interface XRay {
@@ -200,6 +201,10 @@ export interface PatientProfile {
   future_risk: Array<Record<string, unknown>>;
   future_care: Array<Record<string, unknown>>;
   followups: Array<Record<string, unknown>>;
+  care_plans?: Array<Record<string, unknown>>;
+  conversations?: Array<Record<string, unknown>>;
+  appointments?: Array<Record<string, unknown>>;
+  audit_history?: Array<Record<string, unknown>>;
 }
 
 export interface XRayDownloadResponse {

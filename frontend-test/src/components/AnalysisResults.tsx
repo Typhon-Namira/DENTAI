@@ -24,7 +24,7 @@ interface AnalysisResultsProps {
   xray: XRay | null;
   findings: DentalFinding[];
   role: Role;
-  onReviewed: () => Promise<void> | void;
+  onReviewed: () => Promise<unknown> | void;
 }
 
 export function AnalysisResults({
@@ -101,6 +101,7 @@ export function AnalysisResults({
 
   async function submitReview() {
     if (!canSubmit) return;
+    if (!analysis) return;
     setReviewing(true);
     setReviewError("");
     setReviewDone("");

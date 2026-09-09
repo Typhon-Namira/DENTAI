@@ -45,6 +45,11 @@ class CarePlan(UUIDMixin, TimestampMixin, Base):
     summary: Mapped[str | None] = mapped_column(Text)
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    rejected_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    paused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class CarePlanItem(UUIDMixin, TimestampMixin, Base):
@@ -103,6 +108,12 @@ class CareConversationMessage(UUIDMixin, Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, index=True
     )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(Text)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
 
     __table_args__ = (
         UniqueConstraint(
@@ -136,6 +147,12 @@ class CareAppointment(UUIDMixin, TimestampMixin, Base):
     doctor_note: Mapped[str | None] = mapped_column(Text)
     patient_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reschedule_count: Mapped[int] = mapped_column(Integer, default=0)
+    notification_status: Mapped[str] = mapped_column(String(32), default="NOT_REQUIRED", index=True)
+    notification_attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    notification_provider_id: Mapped[str | None] = mapped_column(String(200))
+    notification_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notification_failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notification_error: Mapped[str | None] = mapped_column(Text)
 
     __table_args__ = (
         UniqueConstraint(
@@ -145,3 +162,14 @@ class CareAppointment(UUIDMixin, TimestampMixin, Base):
             "branch_id", "doctor_id", "starts_at", name="uq_care_appointment_doctor_slot"
         ),
     )
+
+
+class CareAvailabilityException(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "care_availability_exceptions"
+
+    branch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("branches.id"), index=True)
+    doctor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    kind: Mapped[str] = mapped_column(String(32), default="UNAVAILABLE", index=True)
+    reason: Mapped[str | None] = mapped_column(String(500))
