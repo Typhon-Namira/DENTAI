@@ -1,8 +1,9 @@
 import uuid
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 
 from app.audit.service import audit
@@ -22,19 +23,38 @@ from app.database.models import (
     Visit,
     XRay,
 )
+from app.outreach.whatsapp_client import normalize_phone
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
 
 class PatientCreate(BaseModel):
     patient_number: str = Field(min_length=1, max_length=80)
-    first_name: str
-    last_name: str
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
     branch_id: uuid.UUID
+    date_of_birth: date | None = None
+    sex: str | None = Field(default=None, max_length=30)
+    phone: str | None = Field(default=None, max_length=40)
+    whatsapp_phone: str | None = Field(default=None, max_length=40)
+    email: EmailStr | None = None
 
 
 class TransferRequest(BaseModel):
     destination_branch_id: uuid.UUID
+
+
+def _normalized_phone(value: str | None, field_name: str) -> str | None:
+    if value is None or not value.strip():
+        return None
+    try:
+        return normalize_phone(value)
+    except ValueError as exc:
+        raise AppError(
+            "INVALID_PHONE",
+            f"{field_name} must use international format, for example +374XXXXXXXX.",
+            422,
+        ) from exc
 
 
 @router.get("")
@@ -63,7 +83,11 @@ async def create_patient(
 ):
     if ctx.user.role != Role.DIRECTOR and body.branch_id not in ctx.branch_ids:
         raise AppError("BRANCH_NOT_AUTHORIZED", "Branch is outside your scope.", 403)
-    patient = Patient(**body.model_dump())
+    payload = body.model_dump()
+    payload["phone"] = _normalized_phone(body.phone, "Phone")
+    payload["whatsapp_phone"] = _normalized_phone(body.whatsapp_phone, "WhatsApp number")
+    payload["email"] = str(body.email) if body.email else None
+    patient = Patient(**payload)
     ctx.session.add(patient)
     await ctx.session.flush()
     if ctx.user.role == Role.DOCTOR:
