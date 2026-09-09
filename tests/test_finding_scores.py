@@ -14,9 +14,7 @@ def base_tooth() -> dict:
 
 def test_pathology_score_is_not_replaced_by_status_score() -> None:
     tooth = base_tooth()
-    tooth["pathology_evidence"] = [
-        {"type": "BONE_RESORPTION", "confidence": 0.52}
-    ]
+    tooth["pathology_evidence"] = [{"type": "BONE_RESORPTION", "confidence": 0.52}]
 
     selected, sources = resolve_finding_score(tooth, "BONE_RESORPTION")
 
@@ -28,9 +26,7 @@ def test_pathology_score_is_not_replaced_by_status_score() -> None:
 def test_strong_pathology_score_is_not_suppressed_by_status_score() -> None:
     tooth = base_tooth()
     tooth["status_v2"] = {"prediction": "CARIES", "confidence": 0.48}
-    tooth["pathology_evidence"] = [
-        {"type": "APICAL_PERIODONTITIS", "confidence": 0.87}
-    ]
+    tooth["pathology_evidence"] = [{"type": "APICAL_PERIODONTITIS", "confidence": 0.87}]
 
     selected, _ = resolve_finding_score(tooth, "APICAL_PERIODONTITIS")
 

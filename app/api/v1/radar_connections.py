@@ -83,7 +83,9 @@ async def meta_start(
 ):
     settings = get_settings()
     if not settings.radar_meta_app_id or not settings.radar_meta_redirect_uri:
-        raise AppError("RADAR_META_NOT_CONFIGURED", "Meta Radar authorization is not configured.", 503)
+        raise AppError(
+            "RADAR_META_NOT_CONFIGURED", "Meta Radar authorization is not configured.", 503
+        )
     connection = await create_connection(ctx.session, platform=payload.platform)
     state = f"{connection.id}.{connection.auth_nonce}"
     scopes = ["pages_show_list", "pages_read_engagement"]
@@ -118,8 +120,16 @@ async def meta_complete(
     expected = f"{connection.id}.{connection.auth_nonce}"
     if connection.provider != "META_GRAPH" or payload.state != expected:
         raise AppError("RADAR_META_STATE_INVALID", "Meta authorization state is invalid.", 409)
-    if not all((settings.radar_meta_app_id, settings.radar_meta_app_secret, settings.radar_meta_redirect_uri)):
-        raise AppError("RADAR_META_NOT_CONFIGURED", "Meta Radar authorization is not configured.", 503)
+    if not all(
+        (
+            settings.radar_meta_app_id,
+            settings.radar_meta_app_secret,
+            settings.radar_meta_redirect_uri,
+        )
+    ):
+        raise AppError(
+            "RADAR_META_NOT_CONFIGURED", "Meta Radar authorization is not configured.", 503
+        )
     params = {
         "client_id": settings.radar_meta_app_id,
         "client_secret": settings.radar_meta_app_secret,
@@ -149,7 +159,9 @@ async def meta_complete(
             pages_response.raise_for_status()
             pages_data = list(pages_response.json().get("data") or [])
     except (httpx.HTTPError, KeyError, ValueError, TypeError) as exc:
-        raise AppError("RADAR_META_AUTH_FAILED", "Meta authorization could not be completed.", 409) from exc
+        raise AppError(
+            "RADAR_META_AUTH_FAILED", "Meta authorization could not be completed.", 409
+        ) from exc
 
     pages = [
         {
@@ -203,7 +215,9 @@ async def telegram_start(
             response.raise_for_status()
             data = response.json()
     except (httpx.HTTPError, ValueError, TypeError) as exc:
-        raise AppError("RADAR_TELEGRAM_AUTH_FAILED", "Telegram authorization could not start.", 409) from exc
+        raise AppError(
+            "RADAR_TELEGRAM_AUTH_FAILED", "Telegram authorization could not start.", 409
+        ) from exc
     connection.encrypted_credentials = encrypt_credentials(
         {
             "phone": payload.phone,
@@ -224,7 +238,9 @@ async def telegram_complete(
 ):
     connection = await connection_by_id(ctx.session, connection_id)
     if connection.platform != "TELEGRAM" or connection.status != "CONNECTING":
-        raise AppError("RADAR_TELEGRAM_STATE_INVALID", "Telegram connection is not awaiting login.", 409)
+        raise AppError(
+            "RADAR_TELEGRAM_STATE_INVALID", "Telegram connection is not awaiting login.", 409
+        )
     pending = decrypt_credentials(connection.encrypted_credentials)
     request = {**pending, "code": payload.code, "password": payload.password}
     try:
@@ -237,9 +253,13 @@ async def telegram_complete(
             response.raise_for_status()
             data = response.json()
     except (httpx.HTTPError, ValueError, TypeError) as exc:
-        raise AppError("RADAR_TELEGRAM_AUTH_FAILED", "Telegram authorization could not complete.", 409) from exc
+        raise AppError(
+            "RADAR_TELEGRAM_AUTH_FAILED", "Telegram authorization could not complete.", 409
+        ) from exc
     if data.get("next") == "PASSWORD":
-        connection.encrypted_credentials = encrypt_credentials({**pending, "session": data["session"]})
+        connection.encrypted_credentials = encrypt_credentials(
+            {**pending, "session": data["session"]}
+        )
         connection.connection_metadata = {"read_only": True, "next": "PASSWORD"}
         await ctx.session.commit()
         return {"connection": connection_public(connection), "next": "PASSWORD"}

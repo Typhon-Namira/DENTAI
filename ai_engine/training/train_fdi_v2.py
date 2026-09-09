@@ -2,16 +2,44 @@ import json
 from pathlib import Path
 
 import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader
-from torchvision import models, transforms
 from PIL import Image
+from torch import nn
+from torch.utils.data import DataLoader, Dataset
+from torchvision import models, transforms
 
 FDI_CLASSES = [
-    "11","12","13","14","15","16","17","18",
-    "21","22","23","24","25","26","27","28",
-    "31","32","33","34","35","36","37","38",
-    "41","42","43","44","45","46","47","48"
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "31",
+    "32",
+    "33",
+    "34",
+    "35",
+    "36",
+    "37",
+    "38",
+    "41",
+    "42",
+    "43",
+    "44",
+    "45",
+    "46",
+    "47",
+    "48",
 ]
 
 CLASS_TO_IDX = {c: i for i, c in enumerate(FDI_CLASSES)}
@@ -31,33 +59,26 @@ class FDIDatasetV2(Dataset):
                 bbox = inst.get("bbox_xyxy")
 
                 if fdi in CLASS_TO_IDX and bbox:
-                    self.samples.append(
-                        (image_path, bbox, CLASS_TO_IDX[fdi])
-                    )
+                    self.samples.append((image_path, bbox, CLASS_TO_IDX[fdi]))
 
         if train:
-            self.tf = transforms.Compose([
-                transforms.Resize((224, 224)),
-                transforms.RandomRotation(4),
-                transforms.ColorJitter(
-                    brightness=0.08,
-                    contrast=0.08
-                ),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]
-                ),
-            ])
+            self.tf = transforms.Compose(
+                [
+                    transforms.Resize((224, 224)),
+                    transforms.RandomRotation(4),
+                    transforms.ColorJitter(brightness=0.08, contrast=0.08),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
         else:
-            self.tf = transforms.Compose([
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]
-                ),
-            ])
+            self.tf = transforms.Compose(
+                [
+                    transforms.Resize((224, 224)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
 
     def __len__(self):
         return len(self.samples)
@@ -76,10 +97,7 @@ class FDIDatasetV2(Dataset):
         bw = (x2 - x1) / max(W, 1)
         bh = (y2 - y1) / max(H, 1)
 
-        spatial = torch.tensor(
-            [cx, cy, bw, bh],
-            dtype=torch.float32
-        )
+        spatial = torch.tensor([cx, cy, bw, bh], dtype=torch.float32)
 
         # Larger contextual crop than V1
         box_w = x2 - x1
@@ -109,40 +127,25 @@ class FDINetV2(nn.Module):
 
         if v1_path.exists():
             ckpt = torch.load(v1_path, map_location="cpu")
-            backbone.fc = nn.Linear(
-                backbone.fc.in_features,
-                len(FDI_CLASSES)
-            )
+            backbone.fc = nn.Linear(backbone.fc.in_features, len(FDI_CLASSES))
             backbone.load_state_dict(ckpt["model"])
-            print(
-                "Loaded FDI V1 best checkpoint:",
-                v1_path,
-                "val_acc=",
-                ckpt.get("val_acc")
-            )
+            print("Loaded FDI V1 best checkpoint:", v1_path, "val_acc=", ckpt.get("val_acc"))
         else:
             print("WARNING: FDI V1 best.pt not found")
-            backbone = models.resnet18(
-                weights=models.ResNet18_Weights.IMAGENET1K_V1
-            )
+            backbone = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
 
         feature_dim = backbone.fc.in_features
         backbone.fc = nn.Identity()
 
         self.backbone = backbone
 
-        self.spatial_net = nn.Sequential(
-            nn.Linear(4, 32),
-            nn.ReLU(),
-            nn.Linear(32, 32),
-            nn.ReLU()
-        )
+        self.spatial_net = nn.Sequential(nn.Linear(4, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU())
 
         self.classifier = nn.Sequential(
             nn.Linear(feature_dim + 32, 256),
             nn.ReLU(),
             nn.Dropout(0.30),
-            nn.Linear(256, len(FDI_CLASSES))
+            nn.Linear(256, len(FDI_CLASSES)),
         )
 
     def forward(self, image, spatial):
@@ -162,16 +165,11 @@ def evaluate(model, loader, device):
 
     with torch.no_grad():
         for images, spatial, labels in loader:
-
             images = images.to(device, non_blocking=True)
             spatial = spatial.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
 
-            with torch.amp.autocast(
-                "cuda",
-                enabled=device.type == "cuda",
-                dtype=torch.bfloat16
-            ):
+            with torch.amp.autocast("cuda", enabled=device.type == "cuda", dtype=torch.bfloat16):
                 logits = model(images, spatial)
 
             pred = logits.argmax(1)
@@ -184,19 +182,11 @@ def evaluate(model, loader, device):
 
 def main():
 
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
-    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_ds = FDIDatasetV2(
-        "data/splits/tooth_v2/train.json",
-        train=True
-    )
+    train_ds = FDIDatasetV2("data/splits/tooth_v2/train.json", train=True)
 
-    val_ds = FDIDatasetV2(
-        "data/splits/tooth_v2/validation.json",
-        train=False
-    )
+    val_ds = FDIDatasetV2("data/splits/tooth_v2/validation.json", train=False)
 
     print("====================================")
     print("FDI V2")
@@ -215,7 +205,7 @@ def main():
         shuffle=True,
         num_workers=4,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
     )
 
     val_loader = DataLoader(
@@ -224,42 +214,25 @@ def main():
         shuffle=False,
         num_workers=4,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
     )
 
     model = FDINetV2().to(device)
 
-    loss_fn = nn.CrossEntropyLoss(
-        label_smoothing=0.05
-    )
+    loss_fn = nn.CrossEntropyLoss(label_smoothing=0.05)
 
     optimizer = torch.optim.AdamW(
         [
-            {
-                "params": model.backbone.parameters(),
-                "lr": 5e-5
-            },
-            {
-                "params": model.spatial_net.parameters(),
-                "lr": 3e-4
-            },
-            {
-                "params": model.classifier.parameters(),
-                "lr": 3e-4
-            },
+            {"params": model.backbone.parameters(), "lr": 5e-5},
+            {"params": model.spatial_net.parameters(), "lr": 3e-4},
+            {"params": model.classifier.parameters(), "lr": 3e-4},
         ],
-        weight_decay=1e-4
+        weight_decay=1e-4,
     )
 
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=10
-    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
 
-    scaler = torch.amp.GradScaler(
-        "cuda",
-        enabled=device.type == "cuda"
-    )
+    scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
 
     out = Path("checkpoints/fdi_v2")
     out.mkdir(parents=True, exist_ok=True)
@@ -269,7 +242,6 @@ def main():
     patience = 3
 
     for epoch in range(10):
-
         model.train()
 
         correct = 0
@@ -277,29 +249,15 @@ def main():
         loss_sum = 0.0
 
         for images, spatial, labels in train_loader:
+            images = images.to(device, non_blocking=True)
 
-            images = images.to(
-                device,
-                non_blocking=True
-            )
+            spatial = spatial.to(device, non_blocking=True)
 
-            spatial = spatial.to(
-                device,
-                non_blocking=True
-            )
-
-            labels = labels.to(
-                device,
-                non_blocking=True
-            )
+            labels = labels.to(device, non_blocking=True)
 
             optimizer.zero_grad(set_to_none=True)
 
-            with torch.amp.autocast(
-                "cuda",
-                enabled=device.type == "cuda",
-                dtype=torch.bfloat16
-            ):
+            with torch.amp.autocast("cuda", enabled=device.type == "cuda", dtype=torch.bfloat16):
                 logits = model(images, spatial)
                 loss = loss_fn(logits, labels)
 
@@ -311,28 +269,19 @@ def main():
 
             pred = logits.argmax(1)
 
-            correct += (
-                pred == labels
-            ).sum().item()
+            correct += (pred == labels).sum().item()
 
             total += labels.size(0)
 
         train_acc = correct / total
-        val_acc = evaluate(
-            model,
-            val_loader,
-            device
-        )
+        val_acc = evaluate(model, val_loader, device)
 
         scheduler.step()
 
         avg_loss = loss_sum / len(train_ds)
 
         print(
-            f"epoch={epoch+1} "
-            f"loss={avg_loss:.4f} "
-            f"train_acc={train_acc:.4f} "
-            f"val_acc={val_acc:.4f}"
+            f"epoch={epoch + 1} loss={avg_loss:.4f} train_acc={train_acc:.4f} val_acc={val_acc:.4f}"
         )
 
         torch.save(
@@ -340,13 +289,12 @@ def main():
                 "epoch": epoch + 1,
                 "model": model.state_dict(),
                 "classes": FDI_CLASSES,
-                "val_acc": val_acc
+                "val_acc": val_acc,
             },
-            out / "latest.pt"
+            out / "latest.pt",
         )
 
         if val_acc > best_acc:
-
             best_acc = val_acc
             stale = 0
 
@@ -355,23 +303,18 @@ def main():
                     "epoch": epoch + 1,
                     "model": model.state_dict(),
                     "classes": FDI_CLASSES,
-                    "val_acc": val_acc
+                    "val_acc": val_acc,
                 },
-                out / "best.pt"
+                out / "best.pt",
             )
 
-            print(
-                f"*** NEW BEST: {best_acc:.4f} ***"
-            )
+            print(f"*** NEW BEST: {best_acc:.4f} ***")
 
         else:
             stale += 1
 
         if stale >= patience:
-            print(
-                "EARLY STOPPING - "
-                f"best_val_acc={best_acc:.4f}"
-            )
+            print(f"EARLY STOPPING - best_val_acc={best_acc:.4f}")
             break
 
     print("====================================")

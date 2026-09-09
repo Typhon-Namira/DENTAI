@@ -1,11 +1,10 @@
-
 import argparse
 import json
 from pathlib import Path
 
 import torch
-from torch import nn
 from PIL import Image, ImageDraw
+from torch import nn
 from torchvision import models
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -13,12 +12,12 @@ from torchvision.transforms.functional import to_tensor
 
 from ai_engine.inference.dentai_unified_v2 import (
     DEVICE,
-    load_tooth,
-    load_fdi,
-    load_disease,
-    infer_fdi,
-    resolve_arch,
     infer_disease,
+    infer_fdi,
+    load_disease,
+    load_fdi,
+    load_tooth,
+    resolve_arch,
 )
 
 REST_CLASSES = {
@@ -74,14 +73,16 @@ def load_restoration_classifier():
 def crop_classifier_image(image, box):
     from torchvision import transforms
 
-    tf = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            [0.485, 0.456, 0.406],
-            [0.229, 0.224, 0.225],
-        ),
-    ])
+    tf = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                [0.485, 0.456, 0.406],
+                [0.229, 0.224, 0.225],
+            ),
+        ]
+    )
 
     W, H = image.size
     x1, y1, x2, y2 = map(float, box)
@@ -92,12 +93,14 @@ def crop_classifier_image(image, box):
     px = max(15, int(bw * 0.45))
     py = max(15, int(bh * 0.45))
 
-    crop = image.crop((
-        max(0, int(x1) - px),
-        max(0, int(y1) - py),
-        min(W, int(x2) + px),
-        min(H, int(y2) + py),
-    ))
+    crop = image.crop(
+        (
+            max(0, int(x1) - px),
+            max(0, int(y1) - py),
+            min(W, int(x2) + px),
+            min(H, int(y2) + py),
+        )
+    )
 
     return tf(crop).unsqueeze(0).to(DEVICE)
 
@@ -105,10 +108,13 @@ def crop_classifier_image(image, box):
 def classify_restoration(classifier, image, box):
     tensor = crop_classifier_image(image, box)
 
-    with torch.no_grad(), torch.amp.autocast(
-        "cuda",
-        enabled=DEVICE.type == "cuda",
-        dtype=torch.bfloat16,
+    with (
+        torch.no_grad(),
+        torch.amp.autocast(
+            "cuda",
+            enabled=DEVICE.type == "cuda",
+            dtype=torch.bfloat16,
+        ),
     ):
         logits = classifier(tensor)
 
@@ -159,16 +165,18 @@ def run_restoration_detector(
 
         agreement = detector_type == classifier_type
 
-        results.append({
-            "bbox_xyxy": [round(x, 2) for x in box_list],
-            "detector_type": detector_type,
-            "detector_confidence": round(score, 4),
-            "classifier_type": classifier_type,
-            "classifier_confidence": round(classifier_conf, 4),
-            "type_agreement": agreement,
-            "final_type": detector_type,
-            "review_required": not agreement,
-        })
+        results.append(
+            {
+                "bbox_xyxy": [round(x, 2) for x in box_list],
+                "detector_type": detector_type,
+                "detector_confidence": round(score, 4),
+                "classifier_type": classifier_type,
+                "classifier_confidence": round(classifier_conf, 4),
+                "type_agreement": agreement,
+                "final_type": detector_type,
+                "review_required": not agreement,
+            }
+        )
 
     return results
 
@@ -204,9 +212,7 @@ def attach_restorations(restorations, teeth):
             continue
 
         linked = dict(rest)
-        linked["resolved_fdi_number"] = best_tooth[
-            "resolved_fdi_number"
-        ]
+        linked["resolved_fdi_number"] = best_tooth["resolved_fdi_number"]
 
         best_tooth["restorations"].append(linked)
 
@@ -259,13 +265,15 @@ def run(
             box_list,
         )
 
-        teeth.append({
-            "instance_id": i,
-            "bbox_xyxy": [round(x, 2) for x in box_list],
-            "segmentation_confidence": round(float(score), 4),
-            "fdi_number": fdi,
-            "fdi_confidence": round(fdi_conf, 4),
-        })
+        teeth.append(
+            {
+                "instance_id": i,
+                "bbox_xyxy": [round(x, 2) for x in box_list],
+                "segmentation_confidence": round(float(score), 4),
+                "fdi_number": fdi,
+                "fdi_confidence": round(fdi_conf, 4),
+            }
+        )
 
     teeth = resolve_arch(teeth)
 
@@ -298,9 +306,7 @@ def run(
         teeth,
     )
 
-    teeth.sort(
-        key=lambda t: int(t["resolved_fdi_number"])
-    )
+    teeth.sort(key=lambda t: int(t["resolved_fdi_number"]))
 
     result = {
         "schema_version": "dentai-unified-v3",
@@ -329,10 +335,7 @@ def run(
         fdi = tooth["resolved_fdi_number"]
         disease = tooth["disease"]["candidate"]
 
-        rest_types = [
-            r["final_type"]
-            for r in tooth["restorations"]
-        ]
+        rest_types = [r["final_type"] for r in tooth["restorations"]]
 
         label = f"{fdi} {disease}"
 
@@ -362,9 +365,7 @@ def run(
             rest["final_type"],
         )
 
-    preview_path = (
-        out / "dentai_unified_v3_preview.jpg"
-    )
+    preview_path = out / "dentai_unified_v3_preview.jpg"
 
     preview.save(
         preview_path,
@@ -388,19 +389,19 @@ def run(
         if tooth["restorations"]:
             rest_text = "; ".join(
                 (
-                    f'{r["final_type"]} '
-                    f'det={r["detector_confidence"]:.3f} '
-                    f'cls={r["classifier_confidence"]:.3f} '
-                    f'agree={r["type_agreement"]}'
+                    f"{r['final_type']} "
+                    f"det={r['detector_confidence']:.3f} "
+                    f"cls={r['classifier_confidence']:.3f} "
+                    f"agree={r['type_agreement']}"
                 )
                 for r in tooth["restorations"]
             )
 
         print(
-            f'FDI {tooth["resolved_fdi_number"]:>2} | '
-            f'DISEASE={tooth["disease"]["candidate"]} '
-            f'({tooth["disease"]["confidence"]:.3f}) | '
-            f'REST={rest_text}'
+            f"FDI {tooth['resolved_fdi_number']:>2} | "
+            f"DISEASE={tooth['disease']['candidate']} "
+            f"({tooth['disease']['confidence']:.3f}) | "
+            f"REST={rest_text}"
         )
 
 

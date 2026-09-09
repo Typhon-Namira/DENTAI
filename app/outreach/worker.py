@@ -139,9 +139,7 @@ async def process_due(
         dispatch_started = True
 
         result = (
-            await service.send_image_message(
-                clinic_id, patient.whatsapp_phone, row.message, image
-            )
+            await service.send_image_message(clinic_id, patient.whatsapp_phone, row.message, image)
             if image
             else await service.send_message(clinic_id, patient.whatsapp_phone, row.message)
         )

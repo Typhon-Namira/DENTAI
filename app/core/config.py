@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     radar_enabled: bool = True
     radar_worker_poll_seconds: float = 5.0
     radar_worker_concurrency: int = 8
-    radar_worker_heartbeat_seconds: float = 30
+    radar_worker_heartbeat_seconds: int = 30
     radar_claim_seconds: int = 180
     radar_http_timeout_seconds: int = 20
     radar_http_max_bytes: int = 2 * 1024 * 1024
@@ -137,7 +137,9 @@ class Settings(BaseSettings):
             if self.object_storage_provider != "s3":
                 raise RuntimeError("Production requires private S3-compatible object storage")
             if not self.s3_bucket:
-                raise RuntimeError("Production S3 configuration is incomplete: S3_BUCKET is required")
+                raise RuntimeError(
+                    "Production S3 configuration is incomplete: S3_BUCKET is required"
+                )
             if bool(self.s3_access_key) != bool(self.s3_secret_key):
                 raise RuntimeError("S3_ACCESS_KEY and S3_SECRET_KEY must be provided together")
             if self.ai_provider != "real_opg" and not self.allow_production_mock_ai:

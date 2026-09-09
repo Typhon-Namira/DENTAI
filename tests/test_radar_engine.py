@@ -90,9 +90,7 @@ def test_source_rank_controls_adaptive_monitoring():
 def test_dedupe_key_is_stable_and_author_sensitive():
     first = content_dedupe_key("instagram", "page-1", "user-1", "comment-1", "Hello")
     same = content_dedupe_key("INSTAGRAM", "page-1", "user-1", "comment-1", " hello ")
-    other_author = content_dedupe_key(
-        "INSTAGRAM", "page-1", "user-2", "comment-1", "Hello"
-    )
+    other_author = content_dedupe_key("INSTAGRAM", "page-1", "user-2", "comment-1", "Hello")
 
     assert first == same
     assert first != other_author

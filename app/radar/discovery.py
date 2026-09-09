@@ -26,9 +26,7 @@ _ARMENIA_MARKERS = (
 
 
 def source_external_id(platform: str, url: str) -> str:
-    return hashlib.sha256(
-        f"{platform.strip().upper()}|{url.strip()}".encode()
-    ).hexdigest()[:48]
+    return hashlib.sha256(f"{platform.strip().upper()}|{url.strip()}".encode()).hexdigest()[:48]
 
 
 def _handle(url: str) -> str | None:
@@ -44,9 +42,7 @@ def score_discovered_source(
     repeats: int = 1,
 ) -> int:
     url = str(candidate.get("source_url") or "")
-    haystack = (
-        f"{url} {candidate.get('name') or ''} {candidate.get('handle') or ''}"
-    ).casefold()
+    haystack = (f"{url} {candidate.get('name') or ''} {candidate.get('handle') or ''}").casefold()
     score = 35
     score += int(parent.armenia_relevance * 0.25)
     score += min(15, max(0, repeats - 1) * 3)
@@ -77,9 +73,7 @@ async def record_discoveries(
         url = str(raw.get("source_url") or "").strip()
         if not url.startswith(("http://", "https://")):
             continue
-        external_id = str(
-            raw.get("external_source_id") or source_external_id(platform, url)
-        )[:300]
+        external_id = str(raw.get("external_source_id") or source_external_id(platform, url))[:300]
         if await db.scalar(
             select(RadarSource.id).where(
                 RadarSource.platform == platform,
@@ -94,9 +88,7 @@ async def record_discoveries(
             )
         )
         handle = str(raw.get("handle") or _handle(url) or "")[:300] or None
-        name = str(
-            raw.get("name") or handle or urlparse(url).hostname or "Discovered source"
-        )[:300]
+        name = str(raw.get("name") or handle or urlparse(url).hostname or "Discovered source")[:300]
         if candidate is None:
             candidate = RadarSourceCandidate(
                 platform=platform,
@@ -168,9 +160,7 @@ async def record_discoveries(
 
 async def refresh_source_quality(db: AsyncSession, source: RadarSource) -> None:
     """Re-rank a source from recent observed yield instead of frontend defaults."""
-    lookback = datetime.now(UTC) - timedelta(
-        days=get_settings().radar_source_quality_lookback_days
-    )
+    lookback = datetime.now(UTC) - timedelta(days=get_settings().radar_source_quality_lookback_days)
     rows = (
         await db.execute(
             select(
@@ -200,9 +190,7 @@ async def refresh_source_quality(db: AsyncSession, source: RadarSource) -> None:
         new = int(runtime.get("last_new_signal_count") or candidates)
         activity = min(
             100.0,
-            30.0
-            + min(50.0, seen / max(1, total) * 50.0)
-            + min(20.0, new * 2.0),
+            30.0 + min(50.0, seen / max(1, total) * 50.0) + min(20.0, new * 2.0),
         )
         source.engagement_score = activity
     score, priority, interval = source_rank(

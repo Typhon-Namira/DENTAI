@@ -43,7 +43,9 @@ def upgrade():
             sa.Column("last_error_code", sa.String(100)),
             sa.Column("last_error", sa.String(500)),
             sa.Column("auth_nonce", sa.String(100)),
-            sa.Column("connection_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
+            sa.Column(
+                "connection_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'")
+            ),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
             sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         )
@@ -60,7 +62,11 @@ def upgrade():
             sa.Column("source_url", sa.String(1000), nullable=False),
             sa.Column("location_hint", sa.String(160)),
             sa.Column("language_hints", sa.JSON(), nullable=False, server_default=sa.text("'[]'")),
-            sa.Column("discovered_from_source_id", sa.Uuid(), sa.ForeignKey("radar_sources.id", ondelete="SET NULL")),
+            sa.Column(
+                "discovered_from_source_id",
+                sa.Uuid(),
+                sa.ForeignKey("radar_sources.id", ondelete="SET NULL"),
+            ),
             sa.Column("state", sa.String(24), nullable=False, server_default="NEW"),
             sa.Column("candidate_score", sa.Integer(), nullable=False, server_default="50"),
             sa.Column("discovery_count", sa.Integer(), nullable=False, server_default="1"),
@@ -75,10 +81,17 @@ def upgrade():
         op.create_table(
             "radar_outcomes",
             sa.Column("id", sa.Uuid(), primary_key=True),
-            sa.Column("opportunity_id", sa.Uuid(), sa.ForeignKey("radar_opportunities.id", ondelete="CASCADE"), nullable=False),
+            sa.Column(
+                "opportunity_id",
+                sa.Uuid(),
+                sa.ForeignKey("radar_opportunities.id", ondelete="CASCADE"),
+                nullable=False,
+            ),
             sa.Column("outcome", sa.String(32), nullable=False),
             sa.Column("occurred_at", sa.DateTime(timezone=True), nullable=False),
-            sa.Column("outcome_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
+            sa.Column(
+                "outcome_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'")
+            ),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
             sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         )
@@ -122,6 +135,11 @@ def upgrade():
 def downgrade():
     if os.getenv("MIGRATION_PLANE", "clinic") == "control":
         return
-    for table in ("radar_runtime_state", "radar_outcomes", "radar_source_candidates", "radar_connections"):
+    for table in (
+        "radar_runtime_state",
+        "radar_outcomes",
+        "radar_source_candidates",
+        "radar_connections",
+    ):
         if has_table(table):
             op.drop_table(table)

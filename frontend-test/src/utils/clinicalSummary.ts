@@ -31,9 +31,7 @@ function parseEvidence(value: unknown): GroqFindingEvidence | null {
     reviewReasons === null ||
     typeof value.source_model !== "string" ||
     typeof value.model_version !== "string"
-  ) {
-    return null;
-  }
+  ) return null;
   return {
     evidence_id: value.evidence_id,
     tooth_fdi: value.tooth_fdi,
@@ -68,9 +66,7 @@ function parseToothExplanation(value: unknown): GroqToothExplanation | null {
     typeof value.headline !== "string" ||
     typeof value.clinical_explanation !== "string" ||
     typeof value.review_explanation !== "string"
-  ) {
-    return null;
-  }
+  ) return null;
   return {
     tooth_fdi: value.tooth_fdi,
     evidence_ids: evidenceIds,
@@ -82,21 +78,13 @@ function parseToothExplanation(value: unknown): GroqToothExplanation | null {
 
 export function parseClinicalSummary(value: unknown): GroqClinicalSummary | null {
   if (!isRecord(value) || value.status === "UNAVAILABLE") return null;
-  if (
-    value.status !== undefined &&
-    value.status !== "AVAILABLE" &&
-    value.status !== "PARTIAL"
-  ) {
-    return null;
-  }
+  if (value.status !== undefined && value.status !== "AVAILABLE" && value.status !== "PARTIAL") return null;
 
   const importantChanges = stringArray(value.important_changes);
   const monitoringPoints = stringArray(value.monitoring_points);
   const questionsForDoctor = stringArray(value.questions_for_doctor);
   const canonicalEvidence = parseCanonicalEvidence(value.canonical_evidence);
-  const declaredFailures = value.failed_tooth_fdis === undefined
-    ? []
-    : stringArray(value.failed_tooth_fdis);
+  const declaredFailures = value.failed_tooth_fdis === undefined ? [] : stringArray(value.failed_tooth_fdis);
   if (
     typeof value.doctor_summary !== "string" ||
     !Array.isArray(value.tooth_explanations) ||
@@ -106,25 +94,19 @@ export function parseClinicalSummary(value: unknown): GroqClinicalSummary | null
     typeof value.patient_message_draft !== "string" ||
     canonicalEvidence === null ||
     declaredFailures === null
-  ) {
-    return null;
-  }
+  ) return null;
 
   const parsedExplanations = value.tooth_explanations
     .map(parseToothExplanation)
     .filter((item): item is GroqToothExplanation => item !== null);
   const explanationCounts = new Map<string, number>();
   for (const explanation of parsedExplanations) {
-    explanationCounts.set(
-      explanation.tooth_fdi,
-      (explanationCounts.get(explanation.tooth_fdi) ?? 0) + 1
-    );
+    explanationCounts.set(explanation.tooth_fdi, (explanationCounts.get(explanation.tooth_fdi) ?? 0) + 1);
   }
 
   const validExplanations: GroqToothExplanation[] = [];
   for (const explanation of parsedExplanations) {
     if (explanationCounts.get(explanation.tooth_fdi) !== 1) continue;
-
     const expectedIds = Object.values(canonicalEvidence)
       .filter((item) => item.tooth_fdi === explanation.tooth_fdi)
       .map((item) => item.evidence_id);
@@ -139,17 +121,12 @@ export function parseClinicalSummary(value: unknown): GroqClinicalSummary | null
       }) ||
       returnedSet.size !== expectedIds.length ||
       expectedIds.some((evidenceId) => !returnedSet.has(evidenceId))
-    ) {
-      continue;
-    }
+    ) continue;
     validExplanations.push(explanation);
   }
-
   if (validExplanations.length === 0) return null;
 
-  const eligibleTeeth = new Set(
-    Object.values(canonicalEvidence).map((item) => item.tooth_fdi)
-  );
+  const eligibleTeeth = new Set(Object.values(canonicalEvidence).map((item) => item.tooth_fdi));
   const explainedTeeth = new Set(validExplanations.map((item) => item.tooth_fdi));
   const failedToothFdis = Array.from(new Set([
     ...declaredFailures,
@@ -182,17 +159,8 @@ export interface ClinicalSummaryPresentation {
   showPatientMessage: boolean;
 }
 
-export function clinicalSummaryPresentation(
-  summary: GroqClinicalSummary | null
-): ClinicalSummaryPresentation {
-  if (!summary) {
-    return {
-      showPanel: false,
-      showPartialWarning: false,
-      partialWarning: null,
-      showPatientMessage: false
-    };
-  }
+export function clinicalSummaryPresentation(summary: GroqClinicalSummary | null): ClinicalSummaryPresentation {
+  if (!summary) return { showPanel: false, showPartialWarning: false, partialWarning: null, showPatientMessage: false };
   const partial = summary.status === "PARTIAL";
   return {
     showPanel: true,
@@ -211,17 +179,12 @@ function findingFingerprint(finding: DentalFinding): string | null {
     !provenance ||
     typeof provenance.review_required !== "boolean" ||
     typeof provenance.uncertainty !== "string" ||
-    !(
-      typeof provenance.uncertainty_reason === "string" ||
-      provenance.uncertainty_reason === null
-    ) ||
+    !(typeof provenance.uncertainty_reason === "string" || provenance.uncertainty_reason === null) ||
     !Array.isArray(provenance.review_reasons) ||
     !provenance.review_reasons.every((item) => typeof item === "string") ||
     typeof provenance.source_model !== "string" ||
     typeof provenance.model_version !== "string"
-  ) {
-    return null;
-  }
+  ) return null;
   return JSON.stringify({
     tooth_fdi: finding.tooth_code,
     finding_type: finding.finding_type,
@@ -240,55 +203,29 @@ function evidenceFingerprint(evidence: GroqFindingEvidence): string {
   return JSON.stringify(identity);
 }
 
-export function explanationForGroup(
-  summary: GroqClinicalSummary | null,
-  group: ToothFindingGroup | null
-): GroqToothExplanation | null {
+export function explanationForGroup(summary: GroqClinicalSummary | null, group: ToothFindingGroup | null): GroqToothExplanation | null {
   if (!summary || !group?.toothCode) return null;
-  const matches = summary.tooth_explanations.filter(
-    (item) => item.tooth_fdi === group.toothCode
-  );
+  const matches = summary.tooth_explanations.filter((item) => item.tooth_fdi === group.toothCode);
   if (matches.length !== 1) return null;
-
   const findingEvidence = group.findings.map(findingFingerprint);
   if (findingEvidence.some((item) => item === null)) return null;
-  const returnedEvidence = matches[0].evidence_ids.map(
-    (evidenceId) => summary.canonical_evidence[evidenceId]
-  );
+  const returnedEvidence = matches[0].evidence_ids.map((evidenceId) => summary.canonical_evidence[evidenceId]);
   if (returnedEvidence.some((item) => item === undefined)) return null;
-
   const expected = (findingEvidence as string[]).sort();
-  const returned = (returnedEvidence as GroqFindingEvidence[])
-    .map(evidenceFingerprint)
-    .sort();
+  const returned = (returnedEvidence as GroqFindingEvidence[]).map(evidenceFingerprint).sort();
   if (expected.length !== returned.length) return null;
   return expected.every((item, index) => item === returned[index]) ? matches[0] : null;
 }
 
-export function reviewStatusLanguage(
-  status: DentalFinding["review_status"]
-): string {
-  if (status === "CONFIRMED") {
-    return "Այս արդյունքը հաստատվել է վերանայող բժշկի կողմից։";
-  }
-  if (status === "REJECTED") {
-    return (
-      "Այս արդյունքը մերժվել է վերանայող բժշկի կողմից և չի համարվում " +
-      "հաստատված կլինիկական արդյունք։"
-    );
-  }
+export function reviewStatusLanguage(status: DentalFinding["review_status"]): string {
+  if (status === "CONFIRMED") return "Այս արդյունքը հաստատվել է վերանայող բժշկի կողմից։";
+  if (status === "REJECTED") return "Այս արդյունքը մերժվել է վերանայող բժշկի կողմից և չի համարվում հաստատված կլինիկական արդյունք։";
   return "Այս արդյունքը սպասում է բժշկի վերանայմանը։";
 }
 
 export function modelScoreLanguage(score: number | null): string {
-  if (typeof score !== "number" || !Number.isFinite(score)) {
-    return "Մոդելի միավորը հասանելի չէ։";
-  }
-  return (
-    "Մոդելի միավոր՝ " + score.toFixed(4) +
-    "։ Այս միավորը ներկայացնում է արհեստական բանականության օժանդակ ապացույցը և " +
-    "ինքնուրույն ախտորոշիչ հավանականություն չէ։"
-  );
+  if (typeof score !== "number" || !Number.isFinite(score)) return "Մոդելի միավորը հասանելի չէ։";
+  return "Մոդելի միավոր՝ " + score.toFixed(4) + "։ Այս միավորը ներկայացնում է արհեստական բանականության օժանդակ ապացույցը և ինքնուրույն ախտորոշիչ հավանականություն չէ։";
 }
 
 export function technicalDetailsForFinding(finding: DentalFinding) {
@@ -306,35 +243,76 @@ export function technicalDetailsForFinding(finding: DentalFinding) {
     raw_fdi: finding.provenance?.raw_fdi ?? null,
     fdi_confidence: finding.provenance?.fdi_confidence ?? null,
     fdi_was_changed: finding.provenance?.fdi_was_changed ?? null,
-    duplicate_cleanup_applied:
-      finding.provenance?.duplicate_cleanup_applied ?? null,
+    duplicate_cleanup_applied: finding.provenance?.duplicate_cleanup_applied ?? null,
     fdi_review_required: finding.provenance?.fdi_review_required ?? null,
-    tooth_detection_instance_id:
-      finding.provenance?.tooth_detection_instance_id ?? null,
+    tooth_detection_instance_id: finding.provenance?.tooth_detection_instance_id ?? null,
     quadrant_candidates: finding.provenance?.quadrant_candidates ?? [],
     resolved_quadrant: finding.provenance?.resolved_quadrant ?? null,
-    side_constraint_applied:
-      finding.provenance?.side_constraint_applied ?? null,
-    side_constraint_overrode_raw_quadrant:
-      finding.provenance?.side_constraint_overrode_raw_quadrant ?? null
+    side_constraint_applied: finding.provenance?.side_constraint_applied ?? null,
+    side_constraint_overrode_raw_quadrant: finding.provenance?.side_constraint_overrode_raw_quadrant ?? null
   };
 }
 
 const ARMENIAN_FINDING_LABELS: Record<string, string> = {
   APICAL: "Ապիկալ փոփոխություն",
+  APICAL_PERIODONTITIS: "Ապիկալ պերիօդոնտիտ",
   BONE_LOSS: "Ոսկրային կորստի նշան",
-  CARIES: "Կարիեսի նշան",
+  BONE_RESORPTION: "Ոսկրային ռեզորբցիա",
+  BRIDGE: "Կամուրջ",
+  CARIES: "Կարիես",
   CROWN: "Պսակ",
-  DEEP_CARIES: "Խորը կարիեսի նշան",
-  FILLING: "Լցանյութ",
+  DEEP_CARIES: "Խորը կարիես",
+  FILLING: "Լցոնում",
   FURCATION: "Ֆուրկացիոն փոփոխություն",
+  FURCATION_LESION: "Ֆուրկացիոն ախտահարում",
   IMPACTED: "Չծկթած ատամ",
   IMPACTED_TOOTH: "Չծկթած ատամ",
+  IMPLANT: "Իմպլանտ",
   RESIDUAL_ROOT: "Մնացորդային արմատ",
-  ROOT_CANAL_TREATMENT: "Արմատախողովակային բուժման նշան",
+  RESTORATION: "Վերականգնում",
+  ROOT_CANAL_TREATMENT: "Արմատախողովակային բուժում",
+  ROOT_CANAL_FILLING: "Արմատախողովակային լցոնում",
   ROOT_FRAGMENT: "Արմատի հատված"
 };
 
+const ENGLISH_FINDING_LABELS: Record<string, string> = {
+  APICAL: "Apical change",
+  APICAL_PERIODONTITIS: "Apical periodontitis",
+  BONE_LOSS: "Bone loss",
+  BONE_RESORPTION: "Bone resorption",
+  BRIDGE: "Bridge",
+  CARIES: "Caries",
+  CROWN: "Crown",
+  DEEP_CARIES: "Deep caries",
+  FILLING: "Filling",
+  FURCATION: "Furcation change",
+  FURCATION_LESION: "Furcation lesion",
+  IMPACTED: "Impacted tooth",
+  IMPACTED_TOOTH: "Impacted tooth",
+  IMPLANT: "Implant",
+  RESIDUAL_ROOT: "Residual root",
+  RESTORATION: "Restoration",
+  ROOT_CANAL_TREATMENT: "Root canal treatment",
+  ROOT_CANAL_FILLING: "Root canal filling",
+  ROOT_FRAGMENT: "Root fragment"
+};
+
+function fallbackEnglishFindingLabel(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Structured finding";
+}
+
+export function localizedFindingType(value: string, language: "en" | "hy"): string {
+  const key = value.trim().toUpperCase();
+  if (language === "hy") return ARMENIAN_FINDING_LABELS[key] ?? "Կառուցվածքային արդյունք";
+  return ENGLISH_FINDING_LABELS[key] ?? fallbackEnglishFindingLabel(key);
+}
+
 export function humanizeFindingType(value: string): string {
-  return ARMENIAN_FINDING_LABELS[value] ?? "Կառուցվածքային արդյունք";
+  return localizedFindingType(value, "hy");
 }

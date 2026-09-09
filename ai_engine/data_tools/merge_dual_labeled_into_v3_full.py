@@ -1,7 +1,7 @@
 import json
 import random
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 SRC = Path("data/canonical/dual_labeled_fdi/all.json")
 BASE = Path("data/canonical/dentai_v3_full")
@@ -22,25 +22,28 @@ n_val = int(n * 0.10)
 
 dual_split = {
     "train": dual_records[:n_train],
-    "validation": dual_records[n_train:n_train+n_val],
-    "test": dual_records[n_train+n_val:],
+    "validation": dual_records[n_train : n_train + n_val],
+    "test": dual_records[n_train + n_val :],
 }
+
 
 def convert_dual_record(r, split):
     instances = []
 
     for x in r["instances"]:
-        instances.append({
-            "source_annotation_id": None,
-            "instance_id": None,
-            "annotation_type": "polygon",
-            "source_class": x["fdi"],
-            "canonical_class": "TOOTH",
-            "fdi_number": x["fdi"],
-            "bbox_xyxy": x["bbox_xyxy"],
-            "polygon": x["polygon"],
-            "source_dataset": "dual_labeled_fdi",
-        })
+        instances.append(
+            {
+                "source_annotation_id": None,
+                "instance_id": None,
+                "annotation_type": "polygon",
+                "source_class": x["fdi"],
+                "canonical_class": "TOOTH",
+                "fdi_number": x["fdi"],
+                "bbox_xyxy": x["bbox_xyxy"],
+                "polygon": x["polygon"],
+                "source_dataset": "dual_labeled_fdi",
+            }
+        )
 
     return {
         "source_dataset": "dual_labeled_fdi",
@@ -54,19 +57,16 @@ def convert_dual_record(r, split):
         "unknown_annotations": r.get("unknown_annotations", []),
     }
 
+
 summary = {}
 
 for split in ["train", "validation", "test"]:
-    base = json.loads(
-        (BASE / f"{split}.json").read_text(encoding="utf-8")
-    )
+    base = json.loads((BASE / f"{split}.json").read_text(encoding="utf-8"))
 
     records = list(base["records"])
 
     for r in dual_split[split]:
-        records.append(
-            convert_dual_record(r, split)
-        )
+        records.append(convert_dual_record(r, split))
 
     payload = {
         "schema_version": "dentai-v3-super-1",
@@ -74,13 +74,7 @@ for split in ["train", "validation", "test"]:
         "records": records,
     }
 
-    (OUT / f"{split}.json").write_text(
-        json.dumps(
-            payload,
-            ensure_ascii=False
-        ),
-        encoding="utf-8"
-    )
+    (OUT / f"{split}.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     sources = Counter()
     classes = Counter()
@@ -90,9 +84,7 @@ for split in ["train", "validation", "test"]:
     pathology_instances = 0
 
     for rec in records:
-        sources[
-            rec.get("source_dataset", "UNKNOWN")
-        ] += 1
+        sources[rec.get("source_dataset", "UNKNOWN")] += 1
 
         for inst in rec.get("instances", []):
             cls = inst.get("canonical_class")
@@ -118,9 +110,7 @@ for split in ["train", "validation", "test"]:
         "fdi_instances": sum(fdi.values()),
         "pathology_instances": pathology_instances,
         "sources": dict(sources),
-        "fdi_counts": dict(
-            sorted(fdi.items(), key=lambda x: int(x[0]))
-        ),
+        "fdi_counts": dict(sorted(fdi.items(), key=lambda x: int(x[0]))),
         "classes": dict(classes),
     }
 
@@ -128,23 +118,13 @@ for split in ["train", "validation", "test"]:
 ext = BASE / "external_validation.json"
 
 if ext.exists():
-    (OUT / "external_validation.json").write_text(
-        ext.read_text(encoding="utf-8"),
-        encoding="utf-8"
-    )
+    (OUT / "external_validation.json").write_text(ext.read_text(encoding="utf-8"), encoding="utf-8")
 
-(OUT / "stats.json").write_text(
-    json.dumps(
-        summary,
-        indent=2,
-        ensure_ascii=False
-    ),
-    encoding="utf-8"
-)
+(OUT / "stats.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
 
-print("="*72)
+print("=" * 72)
 print("DENTAI V3 SUPER DATASET READY")
-print("="*72)
+print("=" * 72)
 
 for split in ["train", "validation", "test"]:
     s = summary[split]
@@ -155,7 +135,7 @@ for split in ["train", "validation", "test"]:
     print("FDI instances:", s["fdi_instances"])
 
     print("\nSOURCES:")
-    for k,v in Counter(s["sources"]).most_common():
+    for k, v in Counter(s["sources"]).most_common():
         print(f"{k:40} {v}")
 
 print("\nOutput:", OUT)

@@ -274,6 +274,7 @@ async def test_stale_claim_is_recoverable_but_stale_sending_is_quarantined(monke
 def _alembic_upgrade(db_path, revision, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{db_path}")
     monkeypatch.setenv("MIGRATION_PLANE", "clinic")
+    get_settings.cache_clear()
     command.upgrade(Config("alembic.ini"), revision)
 
 
@@ -291,8 +292,7 @@ def test_fresh_database_alembic_upgrade_head(tmp_path, monkeypatch):
             row[1] for row in connection.execute("PRAGMA table_info(patients)").fetchall()
         }
         outreach_columns = {
-            row[1]
-            for row in connection.execute("PRAGMA table_info(whatsapp_outreach)").fetchall()
+            row[1] for row in connection.execute("PRAGMA table_info(whatsapp_outreach)").fetchall()
         }
     assert "whatsapp_outreach" in tables
     assert "whatsapp_phone" in patient_columns
@@ -305,9 +305,7 @@ def test_existing_0003_database_upgrades_to_head(tmp_path, monkeypatch):
     _alembic_upgrade(db_path, "0003_ai_job_queue", monkeypatch)
     with sqlite3.connect(db_path) as connection:
         connection.execute("DROP TABLE IF EXISTS whatsapp_outreach")
-        columns = {
-            row[1] for row in connection.execute("PRAGMA table_info(patients)").fetchall()
-        }
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(patients)").fetchall()}
         if "whatsapp_phone" in columns:
             connection.execute("ALTER TABLE patients DROP COLUMN whatsapp_phone")
         connection.commit()

@@ -10,6 +10,7 @@ import qrcode from "qrcode";
 const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 export const SESSION_ROOT = path.resolve(process.env.WHATSAPP_SESSION_DIR || "/app/data/whatsapp_sessions");
 const INTERNAL_TOKEN = process.env.WHATSAPP_SERVICE_TOKEN || "";
+const CARE_CALLBACK_URL = process.env.TETA2_CARE_CALLBACK_URL || "";
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const QR_WAIT_MS = Number(process.env.WHATSAPP_QR_WAIT_MS || 12000);
 
@@ -36,6 +37,17 @@ export function maskPhone(value) {
   return digits ? `+***${digits.slice(-4)}` : null;
 }
 
+function messageText(message) {
+  const content = message?.message || {};
+  return String(
+    content.conversation ||
+    content.extendedTextMessage?.text ||
+    content.imageMessage?.caption ||
+    content.videoMessage?.caption ||
+    ""
+  ).trim();
+}
+
 export function createService(deps = {}) {
   const makeSocket = deps.makeSocket || makeWASocket;
   const authState = deps.authState || useMultiFileAuthState;
@@ -54,6 +66,40 @@ export function createService(deps = {}) {
     }
     return next();
   }
+
+  async function forwardInbound(accountId, message) {
+    if (!CARE_CALLBACK_URL || message?.key?.fromMe) return;
+    const remoteJid = String(message?.key?.remoteJid || "");
+    if (!remoteJid.endsWith("@s.whatsapp.net")) return;
+    const text = messageText(message);
+    if (!text) return;
+    const phone = `+${remoteJid.split("@")[0].split(":")[0]}`;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const response = await fetch(CARE_CALLBACK_URL, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(INTERNAL_TOKEN ? { authorization: `Bearer ${INTERNAL_TOKEN}` } : {})
+          },
+          body: JSON.stringify({ account_id: accountId, phone, text, message_id: message?.key?.id || null })
+        });
+        if (response.ok) {
+          logger.info({ event: "care_inbound_forwarded", account: accountId, message_id: message?.key?.id || null, attempt });
+          return;
+        }
+        if (response.status < 500) {
+          logger.warn({ event: "care_inbound_callback_rejected", account: accountId, status: response.status });
+          return;
+        }
+      } catch (error) {
+        logger.warn({ event: "care_inbound_callback_unavailable", account: accountId, attempt, error: error?.name || "Error" });
+      }
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+    }
+    logger.error({ event: "care_inbound_callback_failed", account: accountId, message_id: message?.key?.id || null });
+  }
+
   async function startClient(accountId) {
     const safeId = normalizeAccountId(accountId);
     const existing = states.get(safeId);
@@ -67,6 +113,9 @@ export function createService(deps = {}) {
     const socket = makeSocket({ auth: state, version, printQRInTerminal: false, logger: logger.child({ account: safeId }) });
     entry.socket = socket;
     socket.ev.on("creds.update", saveCreds);
+    socket.ev.on("messages.upsert", ({ messages }) => {
+      for (const message of messages || []) void forwardInbound(safeId, message);
+    });
     socket.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
         entry.qrDataUrl = await qrToDataURL(qr);

@@ -1,16 +1,16 @@
 import json
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 INPUT = Path("artifacts/unified/dentai_unified_v1.json")
 OUTPUT = Path("artifacts/unified/dentai_unified_v1_resolved.json")
 
 # Expected permanent-dentition order per quadrant.
 QUADRANTS = {
-    1: ["11","12","13","14","15","16","17","18"],
-    2: ["21","22","23","24","25","26","27","28"],
-    3: ["31","32","33","34","35","36","37","38"],
-    4: ["41","42","43","44","45","46","47","48"],
+    1: ["11", "12", "13", "14", "15", "16", "17", "18"],
+    2: ["21", "22", "23", "24", "25", "26", "27", "28"],
+    3: ["31", "32", "33", "34", "35", "36", "37", "38"],
+    4: ["41", "42", "43", "44", "45", "46", "47", "48"],
 }
 
 ALL_FDI = [x for q in QUADRANTS.values() for x in q]
@@ -18,7 +18,7 @@ ALL_FDI = [x for q in QUADRANTS.values() for x in q]
 
 def center(box):
     x1, y1, x2, y2 = box
-    return ((x1+x2)/2.0, (y1+y2)/2.0)
+    return ((x1 + x2) / 2.0, (y1 + y2) / 2.0)
 
 
 def expected_quadrant(tooth, image_mid_x, image_mid_y):
@@ -47,11 +47,7 @@ def sort_for_quadrant(teeth, quadrant):
     # q4: image x tends to increase from 41 -> 48
     reverse = quadrant in (1, 3)
 
-    return sorted(
-        teeth,
-        key=lambda t: center(t["bbox_xyxy"])[0],
-        reverse=reverse
-    )
+    return sorted(teeth, key=lambda t: center(t["bbox_xyxy"])[0], reverse=reverse)
 
 
 def candidate_score(tooth, candidate, expected_index):
@@ -92,11 +88,7 @@ def resolve_quadrant(teeth, quadrant):
 
         # If original is valid, unused, same quadrant and confidence is good,
         # preserve it unless it badly breaks ordering.
-        if (
-            raw in available
-            and raw.startswith(str(quadrant))
-            and conf >= 0.85
-        ):
+        if raw in available and raw.startswith(str(quadrant)) and conf >= 0.85:
             raw_pos = expected.index(raw)
 
             if abs(raw_pos - idx) <= 1:
@@ -107,18 +99,11 @@ def resolve_quadrant(teeth, quadrant):
                 continue
 
         # Otherwise choose best remaining candidate.
-        best = max(
-            available,
-            key=lambda c: candidate_score(tooth, c, idx)
-        )
+        best = max(available, key=lambda c: candidate_score(tooth, c, idx))
 
         available.remove(best)
 
-        reason = (
-            "resolved_low_confidence"
-            if conf < 0.70
-            else "resolved_sequence_conflict"
-        )
+        reason = "resolved_low_confidence" if conf < 0.70 else "resolved_sequence_conflict"
 
         resolved.append((tooth, best, reason))
 
@@ -144,16 +129,12 @@ def main():
     groups = {1: [], 2: [], 3: [], 4: []}
 
     for tooth in teeth:
-        q = expected_quadrant(
-            tooth,
-            image_mid_x,
-            image_mid_y
-        )
+        q = expected_quadrant(tooth, image_mid_x, image_mid_y)
         groups[q].append(tooth)
 
     output_teeth = []
 
-    for q in (1,2,3,4):
+    for q in (1, 2, 3, 4):
         resolved = resolve_quadrant(groups[q], q)
 
         for tooth, resolved_fdi, reason in resolved:
@@ -162,43 +143,26 @@ def main():
             new["raw_fdi_number"] = tooth["fdi_number"]
             new["resolved_fdi_number"] = resolved_fdi
 
-            new["fdi_was_changed"] = (
-                tooth["fdi_number"] != resolved_fdi
-            )
+            new["fdi_was_changed"] = tooth["fdi_number"] != resolved_fdi
 
             new["fdi_resolution_reason"] = reason
 
             # Preserve original confidence.
-            new["raw_fdi_confidence"] = tooth.get(
-                "fdi_confidence"
-            )
+            new["raw_fdi_confidence"] = tooth.get("fdi_confidence")
 
             output_teeth.append(new)
 
-    output_teeth.sort(
-        key=lambda x: int(x["resolved_fdi_number"])
-    )
+    output_teeth.sort(key=lambda x: int(x["resolved_fdi_number"]))
 
-    resolved_counts = Counter(
-        t["resolved_fdi_number"]
-        for t in output_teeth
-    )
+    resolved_counts = Counter(t["resolved_fdi_number"] for t in output_teeth)
 
-    duplicate_resolved = {
-        k:v for k,v in resolved_counts.items()
-        if v > 1
-    }
+    duplicate_resolved = {k: v for k, v in resolved_counts.items() if v > 1}
 
-    changed = [
-        t for t in output_teeth
-        if t["fdi_was_changed"]
-    ]
+    changed = [t for t in output_teeth if t["fdi_was_changed"]]
 
     result = dict(data)
 
-    result["schema_version"] = (
-        "dentai-unified-v1-arch-resolved"
-    )
+    result["schema_version"] = "dentai-unified-v1-arch-resolved"
 
     result["arch_resolver"] = {
         "version": "1.0",
@@ -208,19 +172,16 @@ def main():
             "Rule-based anatomical resolver. "
             "Resolved FDI must remain reviewable; "
             "raw model output is preserved."
-        )
+        ),
     }
 
     result["teeth"] = output_teeth
 
-    OUTPUT.write_text(
-        json.dumps(result, indent=2),
-        encoding="utf-8"
-    )
+    OUTPUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
 
-    print("="*60)
+    print("=" * 60)
     print("DENTAL ARCH RESOLVER V1 COMPLETE")
-    print("="*60)
+    print("=" * 60)
 
     print("Input teeth:", len(teeth))
     print("Changed FDI assignments:", len(changed))
@@ -231,20 +192,15 @@ def main():
 
     for t in changed:
         print(
-            f'raw={t["raw_fdi_number"]} '
-            f'({t["raw_fdi_confidence"]:.3f}) '
-            f'-> resolved={t["resolved_fdi_number"]} '
-            f'| {t["fdi_resolution_reason"]}'
+            f"raw={t['raw_fdi_number']} "
+            f"({t['raw_fdi_confidence']:.3f}) "
+            f"-> resolved={t['resolved_fdi_number']} "
+            f"| {t['fdi_resolution_reason']}"
         )
 
     print("\n=== FINAL FDI SEQUENCE ===")
 
-    print(
-        " ".join(
-            t["resolved_fdi_number"]
-            for t in output_teeth
-        )
-    )
+    print(" ".join(t["resolved_fdi_number"] for t in output_teeth))
 
 
 if __name__ == "__main__":

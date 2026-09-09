@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import UTC
 from typing import Any
 from urllib.parse import urlparse
 
@@ -132,15 +132,18 @@ async def collect_telegram(source: dict[str, Any], credentials: dict[str, Any], 
                 continue
             sender = await message.get_sender()
             sender_id = str(getattr(sender, "id", "")) or None
-            display = " ".join(
-                part
-                for part in (
-                    getattr(sender, "first_name", None),
-                    getattr(sender, "last_name", None),
-                    getattr(sender, "title", None),
+            display = (
+                " ".join(
+                    part
+                    for part in (
+                        getattr(sender, "first_name", None),
+                        getattr(sender, "last_name", None),
+                        getattr(sender, "title", None),
+                    )
+                    if part
                 )
-                if part
-            ) or None
+                or None
+            )
             signals.append(
                 {
                     "external_signal_id": str(message.id),
@@ -150,7 +153,9 @@ async def collect_telegram(source: dict[str, Any], credentials: dict[str, Any], 
                     "source_url": str(source.get("source_url") or ""),
                     "author_external_id": sender_id,
                     "author_display": display,
-                    "published_at": message.date.astimezone(UTC).isoformat() if message.date else None,
+                    "published_at": message.date.astimezone(UTC).isoformat()
+                    if message.date
+                    else None,
                 }
             )
     finally:
@@ -190,7 +195,7 @@ async def collect_facebook(source: dict[str, Any], credentials: dict[str, Any], 
     signals: list[dict[str, Any]] = []
     for post in data.get("data", []):
         context = str(post.get("message") or "")
-        for comment in ((post.get("comments") or {}).get("data") or []):
+        for comment in (post.get("comments") or {}).get("data") or []:
             text = str(comment.get("message") or "").strip()
             if not text:
                 continue
@@ -233,13 +238,16 @@ async def collect_instagram(source: dict[str, Any], credentials: dict[str, Any],
         data = await _graph_get(
             f"{connected_ig_id}/media",
             token,
-            {"limit": 25, "fields": "id,caption,permalink,timestamp,comments.limit(100){id,text,timestamp,username}"},
+            {
+                "limit": 25,
+                "fields": "id,caption,permalink,timestamp,comments.limit(100){id,text,timestamp,username}",
+            },
         )
         media = data.get("data", [])
     signals: list[dict[str, Any]] = []
     for post in media:
         context = str(post.get("caption") or "")
-        for comment in ((post.get("comments") or {}).get("data") or []):
+        for comment in (post.get("comments") or {}).get("data") or []:
             text = str(comment.get("text") or "").strip()
             if not text:
                 continue

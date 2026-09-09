@@ -1,0 +1,223 @@
+import {
+  Activity, Bell, CalendarCheck, CalendarClock, Check, ChevronRight, CircleUserRound, Clock3,
+  FileImage, FolderHeart, HeartPulse, LayoutDashboard, LogOut, MessageCircle, Plus, Search,
+  Settings2, ShieldCheck, Sparkles, Stethoscope, UploadCloud, UserRound, UsersRound, WandSparkles, X
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { api, clearSession, errorMessage } from "../api/client";
+import {
+  productApi, type BranchSummary, type CareAppointment, type CareConversation, type CareMessage,
+  type CarePlan, type CarePlanItem, type CareSettings, type DashboardSummary, type PatientCreateInput
+} from "../api/product";
+import type { AIAnalysis, CurrentUser, DentalFinding, Patient, PatientProfile, XRay } from "../api/types";
+import { AnalysisResults } from "../components/AnalysisResults";
+import "./clinical-care.css";
+
+type Lang = "en" | "hy";
+type Section = "dashboard" | "patients" | "analysis" | "plans" | "messages" | "appointments" | "schedule";
+
+type LoadState = "idle" | "loading" | "ready" | "unavailable";
+
+const copy = {
+  en: {
+    dashboard: "Dashboard", patients: "Patients & records", analysis: "OPG + AI", plans: "Follow-up plans",
+    messages: "AI conversations", appointments: "Appointments", schedule: "Working hours", signOut: "Sign out",
+    subtitle: "Teta2 Care · clinical follow-up workspace", selectPatient: "Select patient", newPatient: "New patient",
+    today: "Today", pendingApproval: "Awaiting your approval", activePlans: "Active care plans", liveChats: "Active AI conversations",
+    dueFollowups: "Follow-ups due", careUnavailable: "Care API is not deployed on the connected backend yet.",
+    retry: "Retry", noPatient: "Select a patient to open the clinical record.", save: "Save", cancel: "Cancel",
+    upload: "Upload OPG", runAI: "Run AI analysis", plansLead: "Review and adjust the tooth-level plan before approving patient outreach.",
+    approvePlan: "Approve plan & start outreach", messagesLead: "Live WhatsApp conversations handled by Teta2 Care after your clinical approval.",
+    appointmentLead: "Patient-accepted check-up times stay here until you approve them.", approveAppointment: "Approve appointment",
+    reschedule: "Request another time", hoursLead: "These rules are used by Teta2 Care when offering times to patients.",
+  },
+  hy: {
+    dashboard: "Վահանակ", patients: "Պացիենտներ և քարտեր", analysis: "OPG + AI", plans: "Հետագա պլաններ",
+    messages: "AI զրույցներ", appointments: "Այցեր", schedule: "Աշխատանքային ժամեր", signOut: "Դուրս գալ",
+    subtitle: "Teta2 Care · կլինիկական follow-up workspace", selectPatient: "Ընտրեք պացիենտ", newPatient: "Նոր պացիենտ",
+    today: "Այսօր", pendingApproval: "Սպասում է ձեր հաստատմանը", activePlans: "Ակտիվ care պլաններ", liveChats: "Ակտիվ AI զրույցներ",
+    dueFollowups: "Ժամկետը հասած follow-up", careUnavailable: "Care API-ն դեռ տեղադրված չէ միացված backend-ում։",
+    retry: "Կրկին փորձել", noPatient: "Ընտրեք պացիենտ՝ բժշկական քարտը բացելու համար։", save: "Պահպանել", cancel: "Չեղարկել",
+    upload: "Վերբեռնել OPG", runAI: "Գործարկել AI", plansLead: "Վերանայեք և փոխեք ատամային follow-up պլանը մինչև outreach-ի հաստատումը։",
+    approvePlan: "Հաստատել պլանը և սկսել outreach", messagesLead: "WhatsApp-ի կենդանի զրույցները՝ ձեր կլինիկական հաստատումից հետո։",
+    appointmentLead: "Պացիենտի ընդունած ժամերը մնում են այստեղ մինչև ձեր հաստատումը։", approveAppointment: "Հաստատել այցը",
+    reschedule: "Առաջարկել այլ ժամ", hoursLead: "Teta2 Care-ը այս կանոններով է պացիենտին առաջարկում ազատ ժամեր։",
+  }
+} as const;
+
+function name(patient: Patient) { return `${patient.first_name} ${patient.last_name}`.trim(); }
+function initials(patient: Patient) { return `${patient.first_name[0] ?? ""}${patient.last_name[0] ?? ""}`.toUpperCase(); }
+function fmt(value: string | null | undefined, lang: Lang, time = true) {
+  if (!value) return "—";
+  const d = new Date(value); if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat(lang === "hy" ? "hy-AM" : "en-US", { month: "short", day: "numeric", year: "numeric", ...(time ? { hour: "2-digit", minute: "2-digit" } : {}) }).format(d);
+}
+function status(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase()); }
+
+export default function ClinicalCareApp({ onSignedOut }: { onSignedOut: () => void }) {
+  const [lang, setLang] = useState<Lang>(() => (localStorage.getItem("teta2-product-language") === "hy" ? "hy" : "en"));
+  const c = copy[lang];
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [section, setSection] = useState<Section>("dashboard");
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [branches, setBranches] = useState<BranchSummary[]>([]);
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>("");
+  const [profile, setProfile] = useState<PatientProfile | null>(null);
+  const [plans, setPlans] = useState<CarePlan[]>([]);
+  const [appointments, setAppointments] = useState<CareAppointment[]>([]);
+  const [conversations, setConversations] = useState<CareConversation[]>([]);
+  const [careState, setCareState] = useState<LoadState>("idle");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const selectedPatient = patients.find((p) => p.id === selectedPatientId) ?? null;
+
+  const loadCare = useCallback(async () => {
+    setCareState("loading");
+    const now = new Date(); const end = new Date(now); end.setDate(end.getDate() + 45);
+    const result = await Promise.allSettled([
+      productApi.carePlans(), productApi.careAppointments(now.toISOString(), end.toISOString()), productApi.careConversations()
+    ]);
+    if (result.every((x) => x.status === "rejected")) { setCareState("unavailable"); return; }
+    if (result[0].status === "fulfilled") setPlans(result[0].value);
+    if (result[1].status === "fulfilled") setAppointments(result[1].value);
+    if (result[2].status === "fulfilled") setConversations(result[2].value);
+    setCareState(result.some((x) => x.status === "rejected") ? "unavailable" : "ready");
+  }, []);
+
+  const loadCore = useCallback(async () => {
+    const me = await api.me(); setUser(me);
+    const [patientPage, branchRows, dash] = await Promise.all([api.listPatients(), productApi.branches(), productApi.dashboard(me.role)]);
+    setPatients(patientPage.items); setBranches(branchRows); setDashboard(dash);
+    setSelectedPatientId((current) => current || patientPage.items[0]?.id || "");
+    await loadCare();
+  }, [loadCare]);
+
+  useEffect(() => { setLoading(true); void loadCore().catch((e) => setError(errorMessage(e))).finally(() => setLoading(false)); }, [loadCore]);
+  useEffect(() => { if (!selectedPatientId) { setProfile(null); return; } void api.patientProfile(selectedPatientId).then(setProfile).catch((e) => setError(errorMessage(e))); }, [selectedPatientId]);
+
+  async function refreshPatient() { if (!selectedPatientId) return; setProfile(await api.patientProfile(selectedPatientId)); }
+  async function refreshAll() { await loadCore(); if (selectedPatientId) await refreshPatient(); }
+  async function logout() { try { await api.logout(); } finally { clearSession(); onSignedOut(); } }
+  function changeLang(next: Lang) { localStorage.setItem("teta2-product-language", next); localStorage.setItem("teta2-v4-language", next); setLang(next); }
+
+  const nav: Array<[Section, React.ReactNode, string]> = [
+    ["dashboard", <LayoutDashboard key="d" />, c.dashboard], ["patients", <UsersRound key="p" />, c.patients],
+    ["analysis", <WandSparkles key="a" />, c.analysis], ["plans", <HeartPulse key="f" />, c.plans],
+    ["messages", <MessageCircle key="m" />, c.messages], ["appointments", <CalendarCheck key="ap" />, c.appointments],
+    ["schedule", <Settings2 key="s" />, c.schedule]
+  ];
+  const pendingCount = appointments.filter((a) => a.status === "PROPOSED").length;
+
+  if (loading || !user) return <div className="care-root-loading"><span /><strong>Teta2 Care</strong></div>;
+
+  return <div className="care-shell">
+    <aside className="care-sidebar">
+      <div className="care-brand"><div className="care-brand-mark"><HeartPulse /></div><div><strong>Teta2</strong><small>CARE AI</small></div></div>
+      <nav>{nav.map(([key, icon, label]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}>{icon}<span>{label}</span>{key === "appointments" && pendingCount > 0 && <i>{pendingCount}</i>}</button>)}</nav>
+      <div className="care-doctor"><div className="care-avatar">{user.username.slice(0,2).toUpperCase()}</div><div><strong>{user.username}</strong><small>{user.role}</small></div><button title={c.signOut} onClick={() => void logout()}><LogOut /></button></div>
+    </aside>
+    <header className="care-topbar"><div><strong>{nav.find(([key]) => key === section)?.[2]}</strong><span>{section === "dashboard" ? c.subtitle : selectedPatient ? `${name(selectedPatient)} · ${selectedPatient.patient_number}` : c.subtitle}</span></div><div className="care-top-actions"><label className="care-quick-patient"><Search /><select value={selectedPatientId} onChange={(e) => setSelectedPatientId(e.target.value)}><option value="">{c.selectPatient}</option>{patients.map((p) => <option key={p.id} value={p.id}>{name(p)} · {p.patient_number}</option>)}</select></label><div className="care-lang"><button className={lang === "en" ? "active" : ""} onClick={() => changeLang("en")}>EN</button><button className={lang === "hy" ? "active" : ""} onClick={() => changeLang("hy")}>HY</button></div><button className="care-icon"><Bell /></button></div></header>
+    <main className="care-main">
+      {error && <div className="care-error">{error}<button onClick={() => setError("")}><X /></button></div>}
+      {careState === "unavailable" && section !== "patients" && section !== "analysis" && <div className="care-api-warning"><ShieldCheck /><span>{c.careUnavailable}</span><button onClick={() => void loadCare()}>{c.retry}</button></div>}
+      {section === "dashboard" && <DashboardPage lang={lang} dashboard={dashboard} patients={patients} plans={plans} appointments={appointments} conversations={conversations} onGo={setSection} />}
+      {section === "patients" && <PatientsPage lang={lang} user={user} branches={branches} patients={patients} selectedPatientId={selectedPatientId} profile={profile} onSelect={setSelectedPatientId} onCreated={async (p) => { await refreshAll(); setSelectedPatientId(p.id); }} onGoAnalysis={() => setSection("analysis")} />}
+      {section === "analysis" && <AnalysisPage lang={lang} user={user} patients={patients} selectedPatientId={selectedPatientId} profile={profile} onSelect={setSelectedPatientId} onRefresh={refreshPatient} />}
+      {section === "plans" && <PlansPage lang={lang} patients={patients} plans={plans} onReload={loadCare} />}
+      {section === "messages" && <MessagesPage lang={lang} conversations={conversations} onReload={loadCare} />}
+      {section === "appointments" && <AppointmentsPage lang={lang} appointments={appointments} onReload={loadCare} />}
+      {section === "schedule" && <SchedulePage lang={lang} branches={branches} user={user} />}
+    </main>
+  </div>;
+}
+
+function DashboardPage({ lang, dashboard, patients, plans, appointments, conversations, onGo }: { lang: Lang; dashboard: DashboardSummary | null; patients: Patient[]; plans: CarePlan[]; appointments: CareAppointment[]; conversations: CareConversation[]; onGo: (s: Section) => void }) {
+  const c = copy[lang]; const pending = appointments.filter((a) => a.status === "PROPOSED").length;
+  const activePlans = plans.filter((p) => ["ACTIVE", "PENDING_APPROVAL", "READY_FOR_REVIEW"].includes(p.status)).length;
+  const activeChats = conversations.filter((x) => x.status === "ACTIVE").length; const due = Number(dashboard?.followups_due ?? 0);
+  const next = [...appointments].filter((a) => new Date(a.starts_at) >= new Date()).sort((a,b) => a.starts_at.localeCompare(b.starts_at)).slice(0,5);
+  return <div className="care-page care-dashboard">
+    <section className="care-welcome"><div><span className="care-kicker"><Activity />{c.today}</span><h1>{lang === "hy" ? "Ձեր կլինիկական օրը՝ մեկ տեղում։" : "Your clinical day, in one place."}</h1><p>{lang === "hy" ? "Teta2 Care-ը հետևում է OPG-ից մինչև վերադարձող պացիենտը՝ առանց բժշկի վերահսկողությունը շրջանցելու։" : "Teta2 Care tracks the loop from OPG to returning patient without bypassing clinician control."}</p></div><div className="care-ai-pulse"><span className="orb"><Sparkles /></span><div><strong>CARE AI LIVE</strong><small>{lang === "hy" ? "Սպասում է ձեր կլինիկական որոշումներին" : "Waiting on your clinical decisions"}</small></div></div></section>
+    <div className="care-metrics"><Metric icon={<CalendarCheck />} value={pending} label={c.pendingApproval} hot={pending > 0} onClick={() => onGo("appointments")} /><Metric icon={<HeartPulse />} value={activePlans} label={c.activePlans} onClick={() => onGo("plans")} /><Metric icon={<MessageCircle />} value={activeChats} label={c.liveChats} onClick={() => onGo("messages")} /><Metric icon={<Clock3 />} value={due} label={c.dueFollowups} onClick={() => onGo("plans")} /></div>
+    <div className="care-dashboard-grid"><section className="care-card"><CardTitle title={lang === "hy" ? "Հաջորդ կլինիկական գործողությունները" : "Next clinical actions"} /><div className="care-action-list">{pending > 0 && <button onClick={() => onGo("appointments")}><span className="action-dot urgent" /><div><strong>{pending} {c.pendingApproval}</strong><small>{lang === "hy" ? "Հաստատեք կամ փոխեք ժամը" : "Confirm or request another time"}</small></div><ChevronRight /></button>}{plans.filter((p) => p.status === "PENDING_APPROVAL").slice(0,4).map((p) => <button key={p.id} onClick={() => onGo("plans")}><span className="action-dot ai" /><div><strong>{lang === "hy" ? "Follow-up պլանը սպասում է հաստատման" : "Follow-up plan awaiting approval"}</strong><small>{patients.find((x) => x.id === p.patient_id) ? name(patients.find((x) => x.id === p.patient_id)!) : p.patient_id}</small></div><ChevronRight /></button>)}{pending === 0 && !plans.some((p) => p.status === "PENDING_APPROVAL") && <Empty icon={<Check />} text={lang === "hy" ? "Այս պահին պարտադիր գործողություն չկա։" : "No clinician action is currently waiting."} />}</div></section>
+      <section className="care-card"><CardTitle title={lang === "hy" ? "Մոտակա այցերը" : "Upcoming appointments"} /><div className="care-upcoming">{next.length ? next.map((a) => <article key={a.id}><time><b>{new Date(a.starts_at).getDate()}</b><span>{new Intl.DateTimeFormat(lang === "hy" ? "hy-AM" : "en-US", { month: "short" }).format(new Date(a.starts_at))}</span></time><div><strong>{a.patient ? name(a.patient) : a.reason}</strong><small>{fmt(a.starts_at, lang)} · {status(a.status)}</small></div></article>) : <Empty icon={<CalendarClock />} text={lang === "hy" ? "Առաջիկա այց չկա։" : "No upcoming appointments yet."} />}</div></section></div>
+    <section className="care-card"><CardTitle title={lang === "hy" ? "Վերջին պացիենտները" : "Recent patient records"} /><div className="care-patient-strip">{patients.slice(0,6).map((p) => <button key={p.id} onClick={() => onGo("patients")}><span>{initials(p)}</span><div><strong>{name(p)}</strong><small>{p.patient_number}</small></div><ChevronRight /></button>)}</div></section>
+  </div>;
+}
+function Metric({ icon, value, label, hot, onClick }: { icon: React.ReactNode; value: number; label: string; hot?: boolean; onClick: () => void }) { return <button className={`care-metric ${hot ? "hot" : ""}`} onClick={onClick}><span>{icon}</span><div><strong>{value}</strong><small>{label}</small></div><ChevronRight /></button>; }
+function CardTitle({ title, lead }: { title: string; lead?: string }) { return <header className="care-card-title"><div><h2>{title}</h2>{lead && <p>{lead}</p>}</div></header>; }
+
+function PatientsPage({ lang, user, branches, patients, selectedPatientId, profile, onSelect, onCreated, onGoAnalysis }: { lang: Lang; user: CurrentUser; branches: BranchSummary[]; patients: Patient[]; selectedPatientId: string; profile: PatientProfile | null; onSelect: (id:string)=>void; onCreated:(p:Patient)=>Promise<void>; onGoAnalysis:()=>void }) {
+  const c = copy[lang]; const [creating, setCreating] = useState(false); const [query,setQuery] = useState("");
+  const visible = patients.filter((p) => `${name(p)} ${p.patient_number} ${p.phone ?? ""}`.toLowerCase().includes(query.toLowerCase()));
+  return <div className="care-page patients-page">
+    <div className="care-page-head"><div><span className="care-kicker"><FolderHeart />EMR</span><h1>{c.patients}</h1><p>{lang === "hy" ? "Պացիենտի կլինիկական քարտը, OPG պատմությունը, AI findings-ը և follow-up վիճակը մեկ բժշկական տեսքով։" : "Clinical identity, OPG history, AI findings and follow-up state in one medical record."}</p></div><button className="care-primary" onClick={() => setCreating((v)=>!v)}><Plus />{c.newPatient}</button></div>
+    {creating && <CreatePatientPanel lang={lang} branches={branches} user={user} onCancel={() => setCreating(false)} onCreated={async(p)=>{setCreating(false);await onCreated(p);}} />}
+    <div className="patient-workspace"><section className="care-card patient-directory"><label className="care-search"><Search /><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder={lang === "hy" ? "Փնտրել քարտերում" : "Search records"} /></label><div>{visible.map((p)=><button key={p.id} className={selectedPatientId===p.id?"active":""} onClick={()=>onSelect(p.id)}><span>{initials(p)}</span><div><strong>{name(p)}</strong><small>{p.patient_number}</small></div><i>{p.status}</i></button>)}</div></section><MedicalRecord lang={lang} profile={profile} branches={branches} onGoAnalysis={onGoAnalysis} /></div>
+  </div>;
+}
+
+function CreatePatientPanel({ lang, branches, user, onCancel, onCreated }: { lang: Lang; branches: BranchSummary[]; user: CurrentUser; onCancel:()=>void; onCreated:(p:Patient)=>Promise<void> }) {
+  const [form,setForm] = useState<PatientCreateInput>({patient_number:"",first_name:"",last_name:"",branch_id:user.branch_scope[0] ?? branches[0]?.id ?? "",date_of_birth:null,sex:null,phone:null,whatsapp_phone:null,email:null}); const [busy,setBusy]=useState(false); const [err,setErr]=useState("");
+  function field<K extends keyof PatientCreateInput>(k:K,v:PatientCreateInput[K]){setForm((x)=>({...x,[k]:v}));}
+  async function submit(e:FormEvent){e.preventDefault();setBusy(true);setErr("");try{await onCreated(await productApi.createPatient(form));}catch(r){setErr(errorMessage(r));}finally{setBusy(false)}}
+  return <form className="care-card intake-form" onSubmit={submit}><div className="intake-banner"><span><Stethoscope /></span><div><strong>{lang === "hy" ? "Նոր բժշկական քարտ" : "New clinical record"}</strong><small>{lang === "hy" ? "Գրանցեք պացիենտին մինչև առաջին OPG-ն։" : "Register the patient before the first OPG."}</small></div></div><div className="intake-grid"><label>{lang === "hy" ? "Պացիենտի համարը" : "Patient ID"}<input required value={form.patient_number} onChange={(e)=>field("patient_number",e.target.value)} /></label><label>{lang === "hy" ? "Մասնաճյուղ" : "Branch"}<select required value={form.branch_id} onChange={(e)=>field("branch_id",e.target.value)}>{branches.map((b)=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label><label>{lang === "hy" ? "Անուն" : "First name"}<input required value={form.first_name} onChange={(e)=>field("first_name",e.target.value)} /></label><label>{lang === "hy" ? "Ազգանուն" : "Last name"}<input required value={form.last_name} onChange={(e)=>field("last_name",e.target.value)} /></label><label>{lang === "hy" ? "Ծննդյան օր" : "Date of birth"}<input type="date" value={form.date_of_birth ?? ""} onChange={(e)=>field("date_of_birth",e.target.value || null)} /></label><label>{lang === "hy" ? "Սեռ" : "Sex"}<select value={form.sex ?? ""} onChange={(e)=>field("sex",e.target.value || null)}><option value="">—</option><option value="FEMALE">Female</option><option value="MALE">Male</option><option value="OTHER">Other</option></select></label><label>{lang === "hy" ? "Հեռախոս" : "Phone"}<input value={form.phone ?? ""} onChange={(e)=>field("phone",e.target.value || null)} /></label><label>WhatsApp<input value={form.whatsapp_phone ?? ""} onChange={(e)=>field("whatsapp_phone",e.target.value || null)} /></label><label className="span2">Email<input type="email" value={form.email ?? ""} onChange={(e)=>field("email",e.target.value || null)} /></label></div>{err&&<div className="care-inline-error">{err}</div>}<div className="form-actions"><button type="button" className="care-secondary" onClick={onCancel}>{copy[lang].cancel}</button><button className="care-primary" disabled={busy}>{busy?"…":copy[lang].save}</button></div></form>;
+}
+
+function MedicalRecord({ lang, profile, branches, onGoAnalysis }: { lang: Lang; profile: PatientProfile | null; branches: BranchSummary[]; onGoAnalysis:()=>void }) {
+  const [tab,setTab]=useState<"summary"|"opg"|"findings"|"timeline">("summary"); useEffect(()=>setTab("summary"),[profile?.patient.id]);
+  if(!profile)return <section className="care-card medical-record"><Empty icon={<CircleUserRound />} text={copy[lang].noPatient} /></section>;
+  const p=profile.patient; const branch=branches.find((b)=>b.id===p.branch_id); const latest=[...profile.ai_analyses].sort((a,b)=>b.requested_at.localeCompare(a.requested_at))[0];
+  return <section className="care-card medical-record"><header className="record-header"><div className="record-id"><span>{initials(p)}</span><div><small>{lang === "hy" ? "ԲԺՇԿԱԿԱՆ ՔԱՐՏ" : "MEDICAL RECORD"}</small><h2>{name(p)}</h2><p>{p.patient_number} · {branch?.name ?? p.branch_id}</p></div></div><button className="care-secondary" onClick={onGoAnalysis}><FileImage />{copy[lang].analysis}</button></header><div className="record-vitals"><div><small>DOB</small><strong>{fmt(p.date_of_birth,lang,false)}</strong></div><div><small>{lang === "hy" ? "Սեռ" : "Sex"}</small><strong>{p.sex ?? "—"}</strong></div><div><small>{lang === "hy" ? "Հեռախոս" : "Phone"}</small><strong>{p.phone ?? "—"}</strong></div><div><small>WhatsApp</small><strong>{p.whatsapp_phone ?? "—"}</strong></div></div><nav className="record-tabs">{[["summary","Summary"],["opg","OPG history"],["findings","Clinical findings"],["timeline","Care timeline"]].map(([k,l])=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k as typeof tab)}>{l}</button>)}</nav>
+    {tab==="summary"&&<div className="record-summary"><div className="record-stat"><FileImage/><strong>{profile.xrays.length}</strong><span>OPG studies</span></div><div className="record-stat"><Sparkles/><strong>{profile.ai_analyses.length}</strong><span>AI analyses</span></div><div className="record-stat"><HeartPulse/><strong>{profile.findings.filter((f)=>f.review_status==="CONFIRMED").length}</strong><span>Confirmed findings</span></div><div className="record-stat"><CalendarClock/><strong>{profile.followups.length}</strong><span>Follow-ups</span></div>{latest&&<article className="record-latest"><span className="ai-mini-orb"><Sparkles/></span><div><small>{lang === "hy" ? "Վերջին AI վերլուծություն" : "LATEST AI ANALYSIS"}</small><strong>{status(latest.status)} · {status(latest.review_status)}</strong><p>{fmt(latest.completed_at ?? latest.requested_at,lang)}</p></div></article>}</div>}
+    {tab==="opg"&&<div className="record-list">{profile.xrays.length?profile.xrays.map((x)=><article key={x.id}><FileImage/><div><strong>{x.original_filename}</strong><small>{fmt(x.uploaded_at,lang)}</small></div><span>{status(x.status)}</span></article>):<Empty icon={<FileImage/>} text="No OPG history yet."/>}</div>}
+    {tab==="findings"&&<Findings findings={profile.findings} />}
+    {tab==="timeline"&&<div className="clinical-timeline">{[...profile.followups].map((x:any,i)=><article key={x.id ?? i}><span/><div><strong>{x.reason ?? "Follow-up"}</strong><small>{fmt(x.due_at ?? x.created_at,lang)} · {status(String(x.status ?? ""))}</small></div></article>)}</div>}
+  </section>;
+}
+function Findings({ findings }: { findings: DentalFinding[] }) { return <div className="findings-table"><div className="findings-head"><span>Tooth</span><span>Finding</span><span>Confidence</span><span>Review</span></div>{findings.map((f)=><div key={f.id}><strong>{f.tooth_code ?? "—"}</strong><span>{status(f.finding_type)}</span><span>{f.confidence==null?"—":`${Math.round(f.confidence*100)}%`}</span><i className={`clinical-pill ${f.review_status.toLowerCase()}`}>{status(f.review_status)}</i></div>)}</div>; }
+
+function AnalysisPage({ lang, user, patients, selectedPatientId, profile, onSelect, onRefresh }: { lang:Lang; user:CurrentUser; patients:Patient[]; selectedPatientId:string; profile:PatientProfile|null; onSelect:(id:string)=>void; onRefresh:()=>Promise<void> }) {
+  const c=copy[lang]; const [xrayId,setXrayId]=useState(""); const [analysisId,setAnalysisId]=useState(""); const [busy,setBusy]=useState(""); const [err,setErr]=useState(""); const input=useRef<HTMLInputElement|null>(null);
+  useEffect(()=>{const x=profile?.xrays.length?[...profile.xrays].sort((a,b)=>b.uploaded_at.localeCompare(a.uploaded_at))[0]:null;setXrayId(x?.id??"");},[profile?.patient.id,profile?.xrays.length]);
+  const analyses=useMemo(()=>profile?.ai_analyses.filter((a)=>a.xray_id===xrayId).sort((a,b)=>b.requested_at.localeCompare(a.requested_at))??[],[profile?.ai_analyses,xrayId]); useEffect(()=>setAnalysisId(analyses[0]?.id??""),[analyses[0]?.id]);
+  const analysis=profile?.ai_analyses.find((a)=>a.id===analysisId)??analyses[0]??null; const xray=profile?.xrays.find((x)=>x.id===xrayId)??null; const findings=analysis?profile?.findings.filter((f)=>f.analysis_id===analysis.id)??[]:[];
+  useEffect(()=>{if(!analysis||!["QUEUED","PROCESSING"].includes(analysis.status))return;const timer=window.setInterval(()=>void onRefresh().catch(()=>undefined),3000);return()=>window.clearInterval(timer);},[analysis?.id,analysis?.status,onRefresh]);
+  async function upload(file:File){if(!selectedPatientId)return;setBusy("upload");setErr("");try{const x=await api.uploadXray(selectedPatientId,file);await onRefresh();setXrayId(x.id);}catch(e){setErr(errorMessage(e));}finally{setBusy("");if(input.current)input.current.value="";}}
+  async function analyze(){if(!xrayId)return;setBusy("ai");setErr("");try{const a=await api.createAnalysis(xrayId);await onRefresh();setAnalysisId(a.id);}catch(e){setErr(errorMessage(e));}finally{setBusy("");}}
+  return <div className="care-page ai-page"><div className="care-page-head"><div><span className="care-kicker"><Sparkles/>AI CLINICAL REVIEW</span><h1>{lang==="hy"?"OPG վերլուծություն և բժշկի որոշում":"OPG analysis + clinician decision"}</h1><p>{lang==="hy"?"AI-ն առաջարկում է հնարավոր findings-ը։ Դուք եք հաստատում կլինիկական որոշումը, հետո follow-up պլանը բացվում է հաջորդ էջում։":"AI surfaces possible findings. You make the clinical decision; the follow-up plan then moves to the next page for approval."}</p></div><span className="big-ai-orb"><Sparkles/></span></div><section className="care-card ai-control"><label>{c.selectPatient}<select value={selectedPatientId} onChange={(e)=>onSelect(e.target.value)}><option value="">{c.selectPatient}</option>{patients.map((p)=><option key={p.id} value={p.id}>{name(p)} · {p.patient_number}</option>)}</select></label><label>OPG<select value={xrayId} onChange={(e)=>setXrayId(e.target.value)} disabled={!profile?.xrays.length}><option value="">Select OPG</option>{profile?.xrays.map((x)=><option key={x.id} value={x.id}>{x.original_filename} · {fmt(x.uploaded_at,lang,false)}</option>)}</select></label><input hidden ref={input} type="file" accept="image/jpeg,image/png,image/webp,application/dicom,.dcm" onChange={(e)=>{const f=e.target.files?.[0];if(f)void upload(f);}}/><button className="care-secondary" disabled={!selectedPatientId||busy!==""} onClick={()=>input.current?.click()}><UploadCloud/>{busy==="upload"?"…":c.upload}</button><button className="care-primary ai-action" disabled={!xrayId||busy!==""||user.role!=="DOCTOR"} onClick={()=>void analyze()}><WandSparkles/>{busy==="ai"?"AI running…":c.runAI}</button></section>{err&&<div className="care-inline-error">{err}</div>}
+    {!selectedPatientId?<section className="care-card"><Empty icon={<UserRound/>} text={c.noPatient}/></section>:!xray?<section className="care-card ai-drop-empty" onClick={()=>input.current?.click()}><UploadCloud/><h3>{lang==="hy"?"Վերբեռնեք առաջին OPG-ն":"Upload the patient’s OPG"}</h3><p>JPEG, PNG, WebP or DICOM</p></section>:analysis?<div className="ai-results-shell"><div className="ai-scan-header"><span className="scan-orb"><Sparkles/></span><div><small>TETA2 CARE AI</small><strong>{status(analysis.status)}</strong><p>{findings.length} possible tooth-level finding(s)</p></div><span className="scan-line"/></div><AnalysisResults analysis={analysis} xray={xray} findings={findings} role={user.role} onReviewed={onRefresh}/></div>:<section className="care-card"><Empty icon={<Sparkles/>} text="OPG ready. Run AI analysis when you are ready."/></section>}
+  </div>;
+}
+
+function PlansPage({ lang, patients, plans, onReload }: { lang:Lang; patients:Patient[]; plans:CarePlan[]; onReload:()=>Promise<void> }) {
+  const c=copy[lang]; const [busy,setBusy]=useState(""); const [err,setErr]=useState("");
+  async function update(planId:string,item:CarePlanItem,date:string){setBusy(item.id);setErr("");try{await productApi.updateCarePlanItem(planId,item.id,{target_followup_at:new Date(date).toISOString()});await onReload();}catch(e){setErr(errorMessage(e));}finally{setBusy("");}}
+  async function approve(planId:string){setBusy(planId);setErr("");try{await productApi.approveCarePlan(planId);await onReload();}catch(e){setErr(errorMessage(e));}finally{setBusy("");}}
+  return <div className="care-page"><div className="care-page-head"><div><span className="care-kicker"><HeartPulse/>CLINICIAN GATE</span><h1>{c.plans}</h1><p>{c.plansLead}</p></div></div>{err&&<div className="care-inline-error">{err}</div>}<div className="plan-list">{plans.length?plans.map((plan)=>{const p=patients.find((x)=>x.id===plan.patient_id);return <section className="care-card care-plan" key={plan.id}><header><div><span className={`clinical-pill ${plan.status.toLowerCase()}`}>{status(plan.status)}</span><h2>{p?name(p):plan.patient_id}</h2><p>{plan.summary??"Tooth-level follow-up plan"}</p></div><div>{plan.status==="PENDING_APPROVAL"&&<button className="care-primary" disabled={!!busy} onClick={()=>void approve(plan.id)}><Check/>{busy===plan.id?"…":c.approvePlan}</button>}</div></header><div className="plan-items">{plan.items.map((item)=><article key={item.id}><div className="tooth-badge">{item.tooth_fdi}</div><div className="plan-finding"><strong>{status(item.finding_type)}</strong><small>{item.rationale}</small></div><label>{lang==="hy"?"Follow-up ամսաթիվ":"Follow-up target"}<input type="datetime-local" disabled={plan.status!=="PENDING_APPROVAL"||busy===item.id} defaultValue={new Date(item.target_followup_at).toISOString().slice(0,16)} onBlur={(e)=>{if(e.target.value&&new Date(e.target.value).toISOString()!==item.target_followup_at)void update(plan.id,item,e.target.value);}}/></label><span className={`clinical-pill ${item.status.toLowerCase()}`}>{status(item.status)}</span></article>)}</div></section>;}):<section className="care-card"><Empty icon={<HeartPulse/>} text={lang==="hy"?"Follow-up պլան դեռ չկա։":"No follow-up plans yet. Review an AI analysis first."}/></section>}</div></div>;
+}
+
+function MessagesPage({ lang, conversations, onReload }: { lang:Lang; conversations:CareConversation[]; onReload:()=>Promise<void> }) {
+  const c=copy[lang]; const [selected,setSelected]=useState<string>(conversations[0]?.id??""); const [messages,setMessages]=useState<CareMessage[]>([]); const [loading,setLoading]=useState(false); useEffect(()=>{if(!selected){setMessages([]);return;}setLoading(true);void productApi.careConversationMessages(selected).then(setMessages).catch(()=>setMessages([])).finally(()=>setLoading(false));},[selected]); useEffect(()=>{if(!selected&&conversations[0])setSelected(conversations[0].id);},[conversations,selected]); const conversation=conversations.find((x)=>x.id===selected);
+  return <div className="care-page"><div className="care-page-head"><div><span className="care-kicker"><MessageCircle/>LIVE CARE CHAT</span><h1>{c.messages}</h1><p>{c.messagesLead}</p></div><button className="care-secondary" onClick={()=>void onReload()}><Activity/>Refresh</button></div><div className="chat-workspace"><section className="care-card chat-list">{conversations.length?conversations.map((x)=><button key={x.id} className={selected===x.id?"active":""} onClick={()=>setSelected(x.id)}><span className="chat-avatar">{x.patient?initials(x.patient):"AI"}</span><div><strong>{x.patient?name(x.patient):x.whatsapp_phone}</strong><small>{x.summary??x.whatsapp_phone}</small></div><time>{fmt(x.last_message_at,lang)}</time></button>):<Empty icon={<MessageCircle/>} text="No AI conversations yet."/>}</section><section className="care-card chat-panel">{conversation?<><header><div><span className="chat-avatar">{conversation.patient?initials(conversation.patient):"AI"}</span><div><strong>{conversation.patient?name(conversation.patient):conversation.whatsapp_phone}</strong><small>{conversation.whatsapp_phone} · {status(conversation.status)}</small></div></div><span className="ai-chat-live"><Sparkles/>AI ACTIVE</span></header><div className="chat-messages">{loading?<div className="care-mini-loader"/>:messages.map((m)=><article key={m.id} className={m.direction==="OUT"?"out":"in"}><small>{m.direction==="OUT"?"Teta2 Care":"Patient"}</small><p>{m.body}</p><time>{fmt(m.created_at,lang)}</time></article>)}</div><footer><ShieldCheck/><span>{lang==="hy"?"AI-ն չի փոխարինում բժշկի կլինիկական որոշմանը։":"AI conversation remains downstream of clinician-approved findings."}</span></footer></>:<Empty icon={<MessageCircle/>} text="Choose a conversation."/>}</section></div></div>;
+}
+
+function AppointmentsPage({ lang, appointments, onReload }: { lang:Lang; appointments:CareAppointment[]; onReload:()=>Promise<void> }) {
+  const c=copy[lang]; const [busy,setBusy]=useState(""); const [err,setErr]=useState(""); const sorted=[...appointments].sort((a,b)=>a.starts_at.localeCompare(b.starts_at));
+  async function approve(id:string){setBusy(id);setErr("");try{await productApi.confirmCareAppointment(id);await onReload();}catch(e){setErr(errorMessage(e));}finally{setBusy("");}}
+  async function reschedule(id:string){const raw=window.prompt(lang==="hy"?"Նոր առաջարկվող ժամ (YYYY-MM-DD HH:MM)":"Proposed new time (YYYY-MM-DD HH:MM)");if(!raw)return;const d=new Date(raw.replace(" ","T"));if(Number.isNaN(d.getTime()))return;setBusy(id);setErr("");try{await productApi.requestCareReschedule(id,d.toISOString());await onReload();}catch(e){setErr(errorMessage(e));}finally{setBusy("");}}
+  return <div className="care-page"><div className="care-page-head"><div><span className="care-kicker"><CalendarCheck/>DOCTOR APPROVAL</span><h1>{c.appointments}</h1><p>{c.appointmentLead}</p></div></div>{err&&<div className="care-inline-error">{err}</div>}<div className="appointment-board"><section className="care-card"><CardTitle title={c.pendingApproval}/>{sorted.filter((a)=>a.status==="PROPOSED").length?sorted.filter((a)=>a.status==="PROPOSED").map((a)=><AppointmentRow key={a.id} lang={lang} item={a} pending busy={busy===a.id} onApprove={()=>void approve(a.id)} onReschedule={()=>void reschedule(a.id)}/>):<Empty icon={<CalendarCheck/>} text={lang==="hy"?"Հաստատման սպասող ժամ չկա։":"No patient-accepted times are waiting."}/>}</section><section className="care-card"><CardTitle title={lang==="hy"?"Հաստատված և առաջիկա":"Confirmed & upcoming"}/>{sorted.filter((a)=>a.status!=="PROPOSED").length?sorted.filter((a)=>a.status!=="PROPOSED").map((a)=><AppointmentRow key={a.id} lang={lang} item={a} busy={false}/>):<Empty icon={<CalendarClock/>} text="No confirmed appointments yet."/>}</section></div></div>;
+}
+function AppointmentRow({ lang,item,pending,busy,onApprove,onReschedule }: {lang:Lang;item:CareAppointment;pending?:boolean;busy:boolean;onApprove?:()=>void;onReschedule?:()=>void}) { return <article className="appointment-row"><time><b>{new Date(item.starts_at).getDate()}</b><span>{new Intl.DateTimeFormat(lang==="hy"?"hy-AM":"en-US",{month:"short"}).format(new Date(item.starts_at))}</span></time><div className="appointment-person"><strong>{item.patient?name(item.patient):item.reason}</strong><small>{item.patient?.patient_number??""}</small></div><div className="appointment-clinical"><strong>{fmt(item.starts_at,lang)}</strong><small>{item.reason}{item.tooth_fdi?` · tooth ${item.tooth_fdi}`:""}</small></div><span className={`clinical-pill ${item.status.toLowerCase()}`}>{pending?(lang==="hy"?"Բժշկի հաստատում":"Doctor approval"):status(item.status)}</span>{pending&&<div className="appointment-actions"><button className="care-secondary" disabled={busy} onClick={onReschedule}>{copy[lang].reschedule}</button><button className="care-primary" disabled={busy} onClick={onApprove}><Check/>{busy?"…":copy[lang].approveAppointment}</button></div>}</article>; }
+
+function SchedulePage({ lang, branches, user }: { lang:Lang; branches:BranchSummary[]; user:CurrentUser }) {
+  const c=copy[lang]; const [branchId,setBranchId]=useState(user.branch_scope[0]??branches[0]?.id??""); const [settings,setSettings]=useState<CareSettings|null>(null); const [busy,setBusy]=useState(false); const [err,setErr]=useState(""); const [saved,setSaved]=useState(false);
+  useEffect(()=>{if(!branchId)return;setSettings(null);void productApi.careSettings(branchId).then(setSettings).catch((e)=>setErr(errorMessage(e)));},[branchId]);
+  function patch<K extends keyof CareSettings>(key:K,value:CareSettings[K]){setSettings((s)=>s?{...s,[key]:value}:s);}
+  async function save(e:FormEvent){e.preventDefault();if(!settings)return;setBusy(true);setErr("");setSaved(false);try{const {id:_,branch_id:__,...body}=settings;setSettings(await productApi.updateCareSettings(branchId,body));setSaved(true);}catch(x){setErr(errorMessage(x));}finally{setBusy(false)}}
+  return <div className="care-page"><div className="care-page-head"><div><span className="care-kicker"><Clock3/>AVAILABILITY ENGINE</span><h1>{c.schedule}</h1><p>{c.hoursLead}</p></div></div><section className="care-card schedule-card"><label className="schedule-branch">Branch<select value={branchId} onChange={(e)=>setBranchId(e.target.value)}>{branches.map((b)=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>{err&&<div className="care-inline-error">{err}</div>}{settings?<form onSubmit={save}><div className="week-days">{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d,i)=><button type="button" key={d} className={settings.working_days.includes(i)?"active":""} onClick={()=>patch("working_days",settings.working_days.includes(i)?settings.working_days.filter((x)=>x!==i):[...settings.working_days,i].sort())}>{d}</button>)}</div><div className="schedule-grid"><label>{lang==="hy"?"Օրվա սկիզբ":"Day starts"}<input type="time" value={settings.day_start} onChange={(e)=>patch("day_start",e.target.value)}/></label><label>{lang==="hy"?"Օրվա ավարտ":"Day ends"}<input type="time" value={settings.day_end} onChange={(e)=>patch("day_end",e.target.value)}/></label><label>{lang==="hy"?"Check-up տևողություն":"Check-up duration"}<div className="unit-input"><input type="number" min="10" max="240" value={settings.appointment_minutes} onChange={(e)=>patch("appointment_minutes",Number(e.target.value))}/><span>min</span></div></label><label>{lang==="hy"?"Սլոթի քայլ":"Slot interval"}<div className="unit-input"><input type="number" min="5" max="240" value={settings.slot_interval_minutes} onChange={(e)=>patch("slot_interval_minutes",Number(e.target.value))}/><span>min</span></div></label><label>{lang==="hy"?"Նվազագույն նախազգուշացում":"Minimum booking notice"}<div className="unit-input"><input type="number" min="0" value={settings.min_booking_notice_minutes} onChange={(e)=>patch("min_booking_notice_minutes",Number(e.target.value))}/><span>min</span></div></label><label>{lang==="hy"?"Ամրագրման հորիզոն":"Booking horizon"}<div className="unit-input"><input type="number" min="1" max="365" value={settings.booking_horizon_days} onChange={(e)=>patch("booking_horizon_days",Number(e.target.value))}/><span>days</span></div></label><label>{lang==="hy"?"Բուֆեր":"Buffer between visits"}<div className="unit-input"><input type="number" min="0" max="120" value={settings.buffer_minutes} onChange={(e)=>patch("buffer_minutes",Number(e.target.value))}/><span>min</span></div></label><label>Timezone<input value={settings.timezone} onChange={(e)=>patch("timezone",e.target.value)}/></label><label className="span2">{lang==="hy"?"Հրահանգներ AI-ին":"Booking instructions for AI"}<textarea rows={4} value={settings.booking_instructions??""} onChange={(e)=>patch("booking_instructions",e.target.value||null)} placeholder="Example: Prefer afternoon slots for routine recall. Do not offer the final slot of the day for complex reviews."/></label></div><div className="schedule-switches"><label><input type="checkbox" checked={settings.auto_followup_enabled} onChange={(e)=>patch("auto_followup_enabled",e.target.checked)}/><span><strong>Automatic care-plan generation</strong><small>Build a plan from clinician-confirmed findings.</small></span></label><label><input type="checkbox" checked={settings.attach_tooth_image} onChange={(e)=>patch("attach_tooth_image",e.target.checked)}/><span><strong>Attach tooth crop</strong><small>Send the tooth-specific OPG crop when geometry is available.</small></span></label></div><div className="form-actions">{saved&&<span className="saved"><Check/>Saved</span>}<button className="care-primary" disabled={busy}>{busy?"…":c.save}</button></div></form>:!err&&<div className="care-mini-loader"/>}</section></div>;
+}
+
+function Empty({ icon,text }: {icon:React.ReactNode;text:string}) { return <div className="care-empty"><span>{icon}</span><p>{text}</p></div>; }

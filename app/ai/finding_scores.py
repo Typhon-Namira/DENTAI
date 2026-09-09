@@ -5,8 +5,8 @@ finding confidence. Never substitute an unrelated head's score: if a final findi
 be traced to supporting model evidence, fail closed instead of inventing confidence.
 """
 
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -84,7 +84,9 @@ def score_candidates(tooth: dict, finding_type: str) -> list[FindingScore]:
     return candidates
 
 
-def resolve_finding_score(tooth: dict, finding_type: str) -> tuple[FindingScore, list[FindingScore]]:
+def resolve_finding_score(
+    tooth: dict, finding_type: str
+) -> tuple[FindingScore, list[FindingScore]]:
     """Choose the strongest direct evidence and preserve all supporting score sources."""
     candidates = score_candidates(tooth, finding_type)
     if not candidates:

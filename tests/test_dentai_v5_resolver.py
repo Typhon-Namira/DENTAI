@@ -18,7 +18,6 @@ from ai_engine.inference.dentai_unified_v5_onnx import (
     resolve,
 )
 
-
 IMAGE_WIDTH = 1200
 
 

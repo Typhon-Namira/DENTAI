@@ -5,36 +5,40 @@ from pathlib import Path
 
 import torch
 from PIL import Image, ImageDraw
-from torchvision import models, transforms
+from torchvision import transforms
 from torchvision.models.detection import maskrcnn_resnet50_fpn
 from torchvision.transforms.functional import to_tensor
 
-from ai_engine.training.train_fdi_v2 import FDINetV2, FDI_CLASSES
 from ai_engine.training.train_disease_v3_hier import (
-    HierNet,
     STAGE_A_CLASSES,
     STAGE_B_CLASSES,
+    HierNet,
 )
+from ai_engine.training.train_fdi_v2 import FDI_CLASSES, FDINetV2
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-FDI_TF = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225],
-    ),
-])
+FDI_TF = transforms.Compose(
+    [
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        ),
+    ]
+)
 
-DISEASE_TF = transforms.Compose([
-    transforms.Resize((256, 256)),
-    transforms.ToTensor(),
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225],
-    ),
-])
+DISEASE_TF = transforms.Compose(
+    [
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        ),
+    ]
+)
 
 FDI_TO_IDX = {x: i for i, x in enumerate(FDI_CLASSES)}
 
@@ -115,9 +119,7 @@ def bbox_geometry(box, W, H):
 def classify_fdi(model, image, box):
     W, H = image.size
 
-    x1, y1, x2, y2, bw, bh, cx, cy, nw, nh = bbox_geometry(
-        box, W, H
-    )
+    x1, y1, x2, y2, bw, bh, cx, cy, nw, nh = bbox_geometry(box, W, H)
 
     spatial = torch.tensor(
         [[cx, cy, nw, nh]],
@@ -128,19 +130,24 @@ def classify_fdi(model, image, box):
     pad_x = max(12, int(bw * 0.35))
     pad_y = max(12, int(bh * 0.35))
 
-    crop = image.crop((
-        max(0, int(x1) - pad_x),
-        max(0, int(y1) - pad_y),
-        min(W, int(x2) + pad_x),
-        min(H, int(y2) + pad_y),
-    ))
+    crop = image.crop(
+        (
+            max(0, int(x1) - pad_x),
+            max(0, int(y1) - pad_y),
+            min(W, int(x2) + pad_x),
+            min(H, int(y2) + pad_y),
+        )
+    )
 
     tensor = FDI_TF(crop).unsqueeze(0).to(DEVICE)
 
-    with torch.no_grad(), torch.amp.autocast(
-        "cuda",
-        enabled=DEVICE.type == "cuda",
-        dtype=torch.bfloat16,
+    with (
+        torch.no_grad(),
+        torch.amp.autocast(
+            "cuda",
+            enabled=DEVICE.type == "cuda",
+            dtype=torch.bfloat16,
+        ),
     ):
         logits = model(tensor, spatial)
 
@@ -153,20 +160,20 @@ def classify_fdi(model, image, box):
 def disease_input(image, box, fdi):
     W, H = image.size
 
-    x1, y1, x2, y2, bw, bh, cx, cy, nw, nh = bbox_geometry(
-        box, W, H
-    )
+    x1, y1, x2, y2, bw, bh, cx, cy, nw, nh = bbox_geometry(box, W, H)
 
     pad_x = max(24, int(bw * 0.95))
     pad_top = max(22, int(bh * 0.65))
     pad_bottom = max(32, int(bh * 1.20))
 
-    crop = image.crop((
-        max(0, int(x1) - pad_x),
-        max(0, int(y1) - pad_top),
-        min(W, int(x2) + pad_x),
-        min(H, int(y2) + pad_bottom),
-    ))
+    crop = image.crop(
+        (
+            max(0, int(x1) - pad_x),
+            max(0, int(y1) - pad_top),
+            min(W, int(x2) + pad_x),
+            min(H, int(y2) + pad_bottom),
+        )
+    )
 
     if fdi in FDI_TO_IDX:
         fdi_idx = FDI_TO_IDX[fdi] / 31.0
@@ -191,10 +198,13 @@ def disease_input(image, box, fdi):
 def classify_disease(stage_a, stage_b, image, box, fdi):
     tensor, meta = disease_input(image, box, fdi)
 
-    with torch.no_grad(), torch.amp.autocast(
-        "cuda",
-        enabled=DEVICE.type == "cuda",
-        dtype=torch.bfloat16,
+    with (
+        torch.no_grad(),
+        torch.amp.autocast(
+            "cuda",
+            enabled=DEVICE.type == "cuda",
+            dtype=torch.bfloat16,
+        ),
     ):
         logits_a = stage_a(tensor, meta)
 
@@ -205,10 +215,13 @@ def classify_disease(stage_a, stage_b, image, box, fdi):
     stage_a_conf = float(conf_a.item())
 
     if stage_a_name == "Decay":
-        with torch.no_grad(), torch.amp.autocast(
-            "cuda",
-            enabled=DEVICE.type == "cuda",
-            dtype=torch.bfloat16,
+        with (
+            torch.no_grad(),
+            torch.amp.autocast(
+                "cuda",
+                enabled=DEVICE.type == "cuda",
+                dtype=torch.bfloat16,
+            ),
         ):
             logits_b = stage_b(tensor, meta)
 
@@ -273,9 +286,7 @@ def run(image_path, segmentation_threshold=0.50):
 
     teeth = []
 
-    for instance_id, (box, seg_score) in enumerate(
-        zip(boxes, scores), start=1
-    ):
+    for instance_id, (box, seg_score) in enumerate(zip(boxes, scores), start=1):
         box_list = box.tolist()
 
         fdi, fdi_conf = classify_fdi(
@@ -310,9 +321,7 @@ def run(image_path, segmentation_threshold=0.50):
     counts = Counter(t["fdi_number"] for t in teeth)
 
     for tooth in teeth:
-        tooth["duplicate_fdi_conflict"] = (
-            counts[tooth["fdi_number"]] > 1
-        )
+        tooth["duplicate_fdi_conflict"] = counts[tooth["fdi_number"]] > 1
 
     teeth.sort(key=lambda x: int(x["fdi_number"]))
 
@@ -344,10 +353,7 @@ def run(image_path, segmentation_threshold=0.50):
     for tooth in teeth:
         x1, y1, x2, y2 = tooth["bbox_xyxy"]
 
-        text = (
-            f'{tooth["fdi_number"]} | '
-            f'{tooth["disease_candidate"]}'
-        )
+        text = f"{tooth['fdi_number']} | {tooth['disease_candidate']}"
 
         draw.rectangle(
             [x1, y1, x2, y2],
@@ -372,12 +378,12 @@ def run(image_path, segmentation_threshold=0.50):
     for t in teeth:
         conflict = " DUPLICATE-FDI" if t["duplicate_fdi_conflict"] else ""
         print(
-            f'FDI {t["fdi_number"]:>2} | '
-            f'FDI={t["fdi_confidence"]:.3f} | '
-            f'SEG={t["segmentation_confidence"]:.3f} | '
-            f'CANDIDATE={t["disease_candidate"]} | '
-            f'DISEASE={t["disease_confidence"]:.3f}'
-            f'{conflict}'
+            f"FDI {t['fdi_number']:>2} | "
+            f"FDI={t['fdi_confidence']:.3f} | "
+            f"SEG={t['segmentation_confidence']:.3f} | "
+            f"CANDIDATE={t['disease_candidate']} | "
+            f"DISEASE={t['disease_confidence']:.3f}"
+            f"{conflict}"
         )
 
 

@@ -37,6 +37,15 @@ export interface ToothFindingGroup {
   geometryAmbiguous: boolean;
 }
 
+export interface VisionToothDetection {
+  key: string;
+  instanceId: number | null;
+  toothCode: string | null;
+  boundingBox: BoundingBox;
+  confidence: number | null;
+  reviewRequired: boolean;
+}
+
 export interface VisionToothGeometry {
   boxes: Map<string, BoundingBox>;
   ambiguousToothCodes: Set<string>;
@@ -68,28 +77,73 @@ function unionBoundingBoxes(boxes: BoundingBox[]): BoundingBox | null {
   ];
 }
 
-export function extractVisionToothGeometry(
-  structuredResult: AIAnalysisStructuredResult | null
-): VisionToothGeometry {
-  const boxesByTooth = new Map<string, BoundingBox[]>();
-  const teeth = structuredResult?.vision_evidence?.teeth;
-  if (!Array.isArray(teeth)) {
-    return { boxes: new Map(), ambiguousToothCodes: new Set() };
-  }
+function boxArea(box: BoundingBox): number {
+  return Math.max(0, box[2] - box[0]) * Math.max(0, box[3] - box[1]);
+}
 
-  for (const value of teeth) {
-    if (!value || typeof value !== "object") continue;
+function intersectionArea(left: BoundingBox, right: BoundingBox): number {
+  const width = Math.max(0, Math.min(left[2], right[2]) - Math.max(left[0], right[0]));
+  const height = Math.max(0, Math.min(left[3], right[3]) - Math.max(left[1], right[1]));
+  return width * height;
+}
+
+function intersectionOverUnion(left: BoundingBox, right: BoundingBox): number {
+  const intersection = intersectionArea(left, right);
+  if (intersection <= 0) return 0;
+  const union = boxArea(left) + boxArea(right) - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+export function extractVisionToothDetections(
+  structuredResult: AIAnalysisStructuredResult | null
+): VisionToothDetection[] {
+  const teeth = structuredResult?.vision_evidence?.teeth;
+  if (!Array.isArray(teeth)) return [];
+
+  return teeth.flatMap((value, index) => {
+    if (!value || typeof value !== "object") return [];
     const tooth = value as {
       fdi?: unknown;
-      tooth_detection?: { bbox_xyxy?: unknown };
+      review_required?: unknown;
+      fdi_review_required?: unknown;
+      tooth_detection?: {
+        instance_id?: unknown;
+        bbox_xyxy?: unknown;
+        confidence?: unknown;
+      };
     };
+    const boundingBox = parseBoundingBox(tooth.tooth_detection?.bbox_xyxy);
+    if (!boundingBox) return [];
     const toothCode =
       typeof tooth.fdi === "string" || typeof tooth.fdi === "number"
         ? String(tooth.fdi)
         : null;
-    const box = parseBoundingBox(tooth.tooth_detection?.bbox_xyxy);
-    if (!toothCode || !box) continue;
-    boxesByTooth.set(toothCode, [...(boxesByTooth.get(toothCode) ?? []), box]);
+    const rawInstanceId = tooth.tooth_detection?.instance_id;
+    const instanceId = typeof rawInstanceId === "number" && Number.isInteger(rawInstanceId)
+      ? rawInstanceId
+      : null;
+    const confidence = tooth.tooth_detection?.confidence;
+    return [{
+      key: `detected:${instanceId ?? index}`,
+      instanceId,
+      toothCode,
+      boundingBox,
+      confidence: typeof confidence === "number" && Number.isFinite(confidence) ? confidence : null,
+      reviewRequired: tooth.review_required === true || tooth.fdi_review_required === true
+    }];
+  });
+}
+
+export function extractVisionToothGeometry(
+  structuredResult: AIAnalysisStructuredResult | null
+): VisionToothGeometry {
+  const boxesByTooth = new Map<string, BoundingBox[]>();
+  for (const detection of extractVisionToothDetections(structuredResult)) {
+    if (!detection.toothCode) continue;
+    boxesByTooth.set(
+      detection.toothCode,
+      [...(boxesByTooth.get(detection.toothCode) ?? []), detection.boundingBox]
+    );
   }
 
   const boxes = new Map<string, BoundingBox>();
@@ -173,6 +227,63 @@ export function groupFindingsByTooth(
   );
 }
 
+/**
+ * Resolve only against a detector carrying the same resolved FDI number.
+ * The frontend never guesses a neighboring tooth from anatomy or from a foreign
+ * detector instance: a missing/ambiguous match is intentionally not rendered.
+ */
+export function detectorForFindingGroup(
+  group: Pick<ToothFindingGroup, "toothCode" | "findings" | "provenanceBoxes">,
+  detections: VisionToothDetection[]
+): VisionToothDetection | null {
+  if (!isResolvedFdi(group.toothCode)) return null;
+
+  const sameTooth = detections.filter(
+    (detection) => detection.toothCode === group.toothCode
+  );
+  if (sameTooth.length === 0) return null;
+  if (sameTooth.length === 1) return sameTooth[0];
+
+  const instanceIds = Array.from(new Set(
+    group.findings
+      .map((finding) => finding.provenance?.tooth_detection_instance_id)
+      .filter((value): value is number =>
+        typeof value === "number" && Number.isInteger(value) && value >= 0
+      )
+  ));
+  if (instanceIds.length === 1) {
+    const exact = sameTooth.find((detection) => detection.instanceId === instanceIds[0]);
+    if (exact) return exact;
+  }
+
+  const reference = unionBoundingBoxes(group.provenanceBoxes);
+  if (!reference) return null;
+
+  const ranked = sameTooth
+    .map((detection) => ({
+      detection,
+      overlap: intersectionOverUnion(reference, detection.boundingBox)
+    }))
+    .sort((left, right) => right.overlap - left.overlap);
+
+  const best = ranked[0];
+  const second = ranked[1];
+  if (!best || best.overlap < 0.05) return null;
+  if (second && best.overlap - second.overlap < 0.05) return null;
+  return best.detection;
+}
+
+export function boundingBoxForFindingGroup(
+  group: ToothFindingGroup,
+  detections: VisionToothDetection[],
+  _imageWidth?: number,
+  _imageHeight?: number
+): BoundingBox | null {
+  if (!isResolvedFdi(group.toothCode)) return null;
+  const detector = detectorForFindingGroup(group, detections);
+  return detector?.boundingBox ?? null;
+}
+
 export function normalizeBoundingBoxToImage(
   box: BoundingBox,
   imageWidth: number,
@@ -236,8 +347,8 @@ export function resolveSelectedGroupKey(
   groups: ToothFindingGroup[],
   requestedKey: string | null
 ): string | null {
-  if (requestedKey && groups.some((group) => group.key === requestedKey)) return requestedKey;
-  return groups.find((group) => group.boundingBox)?.key ?? groups[0]?.key ?? null;
+  if (!requestedKey) return null;
+  return groups.some((group) => group.key === requestedKey) ? requestedKey : null;
 }
 
 export function xrayForAnalysis(

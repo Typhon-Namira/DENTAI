@@ -342,6 +342,8 @@ async def radar_source_run(
     await mark_manual_claim(ctx.session, source, worker_id=worker_id)
     await ctx.session.commit()
     source = await ctx.session.get(RadarSource, source_id)
+    if source is None:
+        raise AppError("RADAR_SOURCE_NOT_FOUND", "Radar source was not found.", 404)
     result = await poll_registered_source(ctx.session, clinic_id=ctx.clinic.id, source=source)
     await ctx.session.commit()
     return result

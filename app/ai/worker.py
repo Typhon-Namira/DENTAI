@@ -1,4 +1,5 @@
 """Dedicated DENTAI V5 analysis worker; run with ``python -m app.ai.worker``."""
+
 import asyncio
 import os
 import socket
@@ -12,12 +13,12 @@ from ai_engine.inference.dentai_unified_v5_onnx import Engine
 from ai_engine.release import require_release
 from app.ai.jobs import claim_next_analysis, heartbeat, schedule_retry
 from app.ai.providers import DENTAIRealOPGProvider
+from app.care.service import ensure_care_plan
 from app.clinic_resolution.service import resolver
 from app.core.config import get_settings
 from app.database.control_models import ClinicRegistry
 from app.database.models import AIAnalysis, AIStatus, DentalFinding, FindingReview, XRay
 from app.database.sessions import ControlSession
-from app.outreach.service import schedule_analysis_outreach
 from app.storage.providers import storage_provider
 
 
@@ -62,19 +63,20 @@ async def process_one(session, session_factory, worker_id: str) -> bool:
             result.structured_result,
         )
         job.status, job.completed_at, job.error_code = AIStatus.COMPLETED, datetime.now(UTC), None
-        created_findings = []
         for item in result.findings:
-            finding = DentalFinding(
-                patient_id=job.patient_id,
-                analysis_id=job.id,
-                source="AI",
-                review_status=FindingReview.PENDING,
-                **item,
+            session.add(
+                DentalFinding(
+                    patient_id=job.patient_id,
+                    analysis_id=job.id,
+                    source="AI",
+                    review_status=FindingReview.PENDING,
+                    **item,
+                )
             )
-            session.add(finding)
-            created_findings.append(finding)
         await session.flush()
-        await schedule_analysis_outreach(session, job, created_findings)
+        # Build the downstream Care plan immediately, but do not contact the patient
+        # until the dentist has confirmed the relevant findings in the review endpoint.
+        await ensure_care_plan(session, job)
         await session.commit()
     except Exception as exc:
         await session.rollback()
@@ -92,8 +94,6 @@ async def process_one(session, session_factory, worker_id: str) -> bool:
 
 async def run() -> None:
     settings = get_settings()
-    # Release gate runs before model session creation or any job claim. It checks
-    # registry/manifest evidence and SHA-256 of the exact nine deployed ONNX files.
     require_release(
         settings.ai_release_registry_path,
         settings.ai_dataset_manifest_dir,

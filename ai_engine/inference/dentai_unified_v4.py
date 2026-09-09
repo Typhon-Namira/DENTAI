@@ -1,32 +1,31 @@
-
 import argparse
 import json
 from pathlib import Path
 
 import torch
-from torch import nn
 from PIL import Image, ImageDraw
+from torch import nn
 from torchvision import models
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.transforms.functional import to_tensor
 
+from ai_engine.evaluation.fdi_resolver_v3_eval import (
+    get_fdi_probs,
+)
+from ai_engine.evaluation.fdi_resolver_v3_eval import (
+    resolve_image as resolve_arch_v3,
+)
 from ai_engine.inference.dentai_unified_v2 import (
     DEVICE,
     FDI_CLASSES,
-    load_tooth,
-    load_fdi,
-    load_disease,
-    infer_fdi,
     # resolve_arch removed; V4 uses global resolver V3,
     infer_disease,
+    load_disease,
+    load_fdi,
+    load_tooth,
 )
 
-
-from ai_engine.evaluation.fdi_resolver_v3_eval import (
-    resolve_image as resolve_arch_v3,
-    get_fdi_probs,
-)
 REST_CLASSES = {
     1: "FILLING",
     2: "IMPLANT",
@@ -80,14 +79,16 @@ def load_restoration_classifier():
 def crop_classifier_image(image, box):
     from torchvision import transforms
 
-    tf = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            [0.485, 0.456, 0.406],
-            [0.229, 0.224, 0.225],
-        ),
-    ])
+    tf = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                [0.485, 0.456, 0.406],
+                [0.229, 0.224, 0.225],
+            ),
+        ]
+    )
 
     W, H = image.size
     x1, y1, x2, y2 = map(float, box)
@@ -98,12 +99,14 @@ def crop_classifier_image(image, box):
     px = max(15, int(bw * 0.45))
     py = max(15, int(bh * 0.45))
 
-    crop = image.crop((
-        max(0, int(x1) - px),
-        max(0, int(y1) - py),
-        min(W, int(x2) + px),
-        min(H, int(y2) + py),
-    ))
+    crop = image.crop(
+        (
+            max(0, int(x1) - px),
+            max(0, int(y1) - py),
+            min(W, int(x2) + px),
+            min(H, int(y2) + py),
+        )
+    )
 
     return tf(crop).unsqueeze(0).to(DEVICE)
 
@@ -111,10 +114,13 @@ def crop_classifier_image(image, box):
 def classify_restoration(classifier, image, box):
     tensor = crop_classifier_image(image, box)
 
-    with torch.no_grad(), torch.amp.autocast(
-        "cuda",
-        enabled=DEVICE.type == "cuda",
-        dtype=torch.bfloat16,
+    with (
+        torch.no_grad(),
+        torch.amp.autocast(
+            "cuda",
+            enabled=DEVICE.type == "cuda",
+            dtype=torch.bfloat16,
+        ),
     ):
         logits = classifier(tensor)
 
@@ -165,16 +171,18 @@ def run_restoration_detector(
 
         agreement = detector_type == classifier_type
 
-        results.append({
-            "bbox_xyxy": [round(x, 2) for x in box_list],
-            "detector_type": detector_type,
-            "detector_confidence": round(score, 4),
-            "classifier_type": classifier_type,
-            "classifier_confidence": round(classifier_conf, 4),
-            "type_agreement": agreement,
-            "final_type": detector_type,
-            "review_required": not agreement,
-        })
+        results.append(
+            {
+                "bbox_xyxy": [round(x, 2) for x in box_list],
+                "detector_type": detector_type,
+                "detector_confidence": round(score, 4),
+                "classifier_type": classifier_type,
+                "classifier_confidence": round(classifier_conf, 4),
+                "type_agreement": agreement,
+                "final_type": detector_type,
+                "review_required": not agreement,
+            }
+        )
 
     return results
 
@@ -210,9 +218,7 @@ def attach_restorations(restorations, teeth):
             continue
 
         linked = dict(rest)
-        linked["resolved_fdi_number"] = best_tooth[
-            "resolved_fdi_number"
-        ]
+        linked["resolved_fdi_number"] = best_tooth["resolved_fdi_number"]
 
         best_tooth["restorations"].append(linked)
 
@@ -268,17 +274,19 @@ def run(
         conf, idx = probs.max(0)
         fdi = FDI_CLASSES[idx.item()]
 
-        teeth.append({
-            "instance_id": i,
-            "bbox_xyxy": [round(x, 2) for x in box_list],
-            "bbox": box_list,
-            "segmentation_confidence": round(float(score), 4),
-            "fdi_number": fdi,
-            "raw": fdi,
-            "raw_conf": float(conf),
-            "fdi_confidence": round(float(conf), 4),
-            "probs": probs,
-        })
+        teeth.append(
+            {
+                "instance_id": i,
+                "bbox_xyxy": [round(x, 2) for x in box_list],
+                "bbox": box_list,
+                "segmentation_confidence": round(float(score), 4),
+                "fdi_number": fdi,
+                "raw": fdi,
+                "raw_conf": float(conf),
+                "fdi_confidence": round(float(conf), 4),
+                "probs": probs,
+            }
+        )
 
     resolved = resolve_arch_v3(teeth)
 
@@ -288,10 +296,7 @@ def run(
         t["raw_fdi_number"] = t["raw"]
         t["resolved_fdi_number"] = t["resolved"]
         t["fdi_was_changed"] = t["was_changed"]
-        t["fdi_review_required"] = (
-            float(t["raw_conf"]) < 0.70
-            or bool(t["unresolved_by_dp"])
-        )
+        t["fdi_review_required"] = float(t["raw_conf"]) < 0.70 or bool(t["unresolved_by_dp"])
 
         t.pop("probs", None)
         t.pop("raw", None)
@@ -307,15 +312,10 @@ def run(
     # Do not force duplicate correction; flag conflicts for review.
     from collections import Counter
 
-    fdi_counts = Counter(
-        t["resolved_fdi_number"]
-        for t in teeth
-    )
+    fdi_counts = Counter(t["resolved_fdi_number"] for t in teeth)
 
     for t in teeth:
-        duplicate = (
-            fdi_counts[t["resolved_fdi_number"]] > 1
-        )
+        duplicate = fdi_counts[t["resolved_fdi_number"]] > 1
 
         t["duplicate_fdi_conflict"] = duplicate
 
@@ -351,9 +351,7 @@ def run(
         teeth,
     )
 
-    teeth.sort(
-        key=lambda t: int(t["resolved_fdi_number"])
-    )
+    teeth.sort(key=lambda t: int(t["resolved_fdi_number"]))
 
     result = {
         "schema_version": "dentai-unified-v4",
@@ -382,10 +380,7 @@ def run(
         fdi = tooth["resolved_fdi_number"]
         disease = tooth["disease"]["candidate"]
 
-        rest_types = [
-            r["final_type"]
-            for r in tooth["restorations"]
-        ]
+        rest_types = [r["final_type"] for r in tooth["restorations"]]
 
         label = f"{fdi} {disease}"
 
@@ -415,9 +410,7 @@ def run(
             rest["final_type"],
         )
 
-    preview_path = (
-        out / "dentai_unified_v4_preview.jpg"
-    )
+    preview_path = out / "dentai_unified_v4_preview.jpg"
 
     preview.save(
         preview_path,
@@ -441,19 +434,19 @@ def run(
         if tooth["restorations"]:
             rest_text = "; ".join(
                 (
-                    f'{r["final_type"]} '
-                    f'det={r["detector_confidence"]:.3f} '
-                    f'cls={r["classifier_confidence"]:.3f} '
-                    f'agree={r["type_agreement"]}'
+                    f"{r['final_type']} "
+                    f"det={r['detector_confidence']:.3f} "
+                    f"cls={r['classifier_confidence']:.3f} "
+                    f"agree={r['type_agreement']}"
                 )
                 for r in tooth["restorations"]
             )
 
         print(
-            f'FDI {tooth["resolved_fdi_number"]:>2} | '
-            f'DISEASE={tooth["disease"]["candidate"]} '
-            f'({tooth["disease"]["confidence"]:.3f}) | '
-            f'REST={rest_text}'
+            f"FDI {tooth['resolved_fdi_number']:>2} | "
+            f"DISEASE={tooth['disease']['candidate']} "
+            f"({tooth['disease']['confidence']:.3f}) | "
+            f"REST={rest_text}"
         )
 
 

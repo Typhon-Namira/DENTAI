@@ -115,9 +115,7 @@ class ModelRegistry:
                 f"actual={payload.get('model_version')}"
             )
         if payload.get("freeze_status") != "PRODUCTION_FROZEN":
-            raise ValueError(
-                f"bundle is not PRODUCTION_FROZEN: {payload.get('freeze_status')!r}"
-            )
+            raise ValueError(f"bundle is not PRODUCTION_FROZEN: {payload.get('freeze_status')!r}")
         return payload
 
     @staticmethod
