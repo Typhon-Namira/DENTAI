@@ -1,4 +1,4 @@
-"""Authenticated deployment smoke test for the Care API and frontend proxy."""
+"""Authenticated deployment smoke test for the Care API."""
 
 import json  # noqa: I001 - kept explicit for the standalone deployment probe
 import os
@@ -32,7 +32,15 @@ def request_json(base: str, path: str, *, token: str | None = None, body: dict |
     try:
         with request.urlopen(req, timeout=20) as response:  # nosec B310 - HTTPS enforced above
             payload = response.read()
-            return response.status, json.loads(payload) if payload else None
+            if not payload:
+                return response.status, None
+            try:
+                return response.status, json.loads(payload)
+            except json.JSONDecodeError as exc:
+                content_type = response.headers.get("content-type", "unknown")
+                raise RuntimeError(
+                    f"{path} at {base} did not return JSON (content-type: {content_type})"
+                ) from exc
     except error.HTTPError as exc:
         raise RuntimeError(f"{path} returned {exc.code}: {exc.read().decode()[:500]}") from exc
 
@@ -97,10 +105,11 @@ def check_origin(base: str) -> None:
 
 
 def main() -> None:
+    # CARE_FRONTEND_URL is intentionally not probed here. The frontend is a static
+    # Vercel origin and does not expose backend routes such as /openapi.json.
+    # The deployment workflow verifies the authenticated frontend separately with
+    # Playwright after this API contract smoke test succeeds.
     check_origin(os.environ["CARE_BACKEND_URL"])
-    frontend = os.getenv("CARE_FRONTEND_URL")
-    if frontend:
-        check_origin(frontend)
     print("Care API authenticated smoke test passed", flush=True)
 
 
