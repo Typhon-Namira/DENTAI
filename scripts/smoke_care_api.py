@@ -1,6 +1,6 @@
 """Authenticated deployment smoke test for the Care API and frontend proxy."""
 
-import json
+import json  # noqa: I001 - kept explicit for the standalone deployment probe
 import os
 from urllib import error, parse, request
 
@@ -61,9 +61,6 @@ def check_origin(base: str) -> None:
     if status != 200 or ready.get("status") != "ready":
         raise RuntimeError(f"Readiness check failed for {base}")
 
-    # Fail the deployment before an authenticated UI can land on a newer frontend
-    # than its Care backend. This catches the exact class of release-skew that makes
-    # generation-readiness and sequential plan requests return 404 in production.
     check_openapi_contract(base)
 
     _, tokens = request_json(
