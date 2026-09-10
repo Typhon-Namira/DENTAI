@@ -7,10 +7,12 @@ from sqlalchemy import select
 from app.audit.service import audit
 from app.auth.dependencies import AuthContext, authorized_patient, current_context
 from app.care.generation_engine import build_followup_plan, generation_readiness
+from app.care.groq import care_outreach_drafts
 from app.care.models import CarePlanItem
+from app.care.service import settings_for_branch
 from app.common.serialization import model_dict
 from app.core.errors import AppError
-from app.database.models import AIAnalysis, AIStatus, Role
+from app.database.models import AIAnalysis, AIStatus, DentalFinding, FindingReview, Patient, Role
 
 router = APIRouter(prefix="/care", tags=["care"])
 
@@ -65,6 +67,43 @@ async def generate_followup_plan(
             .order_by(CarePlanItem.sequence_order.asc(), CarePlanItem.priority_score.desc())
         )
     ).all()
+
+    patient = await ctx.session.get(Patient, plan.patient_id)
+    findings = {
+        finding.id: finding
+        for finding in (
+            await ctx.session.scalars(
+                select(DentalFinding).where(DentalFinding.analysis_id == analysis.id)
+            )
+        ).all()
+    }
+    settings = await settings_for_branch(ctx.session, plan.branch_id)
+    groq_drafts: dict[str, str] = {}
+    if patient and items:
+        groq_drafts = await care_outreach_drafts(
+            language=plan.language,
+            patient_name=f"{patient.first_name} {patient.last_name}".strip(),
+            clinic_name=ctx.clinic.name,
+            care_items=[
+                {
+                    "tooth": item.tooth_fdi,
+                    "finding": item.finding_type,
+                    "window": item.recommended_window,
+                    "clinician_reviewed": bool(
+                        findings.get(item.finding_id)
+                        and findings[item.finding_id].review_status == FindingReview.CONFIRMED
+                    ),
+                    "visit_outcome": item.outcome,
+                }
+                for item in items
+            ],
+            booking_instructions=settings.booking_instructions,
+        )
+        for item in items:
+            draft = groq_drafts.get(item.tooth_fdi)
+            if draft:
+                item.message_preview = draft
+
     await audit(
         ctx.session,
         ctx.user,
@@ -72,7 +111,11 @@ async def generate_followup_plan(
         "CarePlan",
         plan.id,
         plan.branch_id,
-        {"review_status": str(analysis.review_status), "tooth_count": len(items)},
+        {
+            "review_status": str(analysis.review_status),
+            "tooth_count": len(items),
+            "groq_draft_count": len(groq_drafts),
+        },
     )
     await ctx.session.commit()
     return {**model_dict(plan), "items": [model_dict(item) for item in items]}
