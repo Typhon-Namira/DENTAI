@@ -122,7 +122,9 @@ def _next_local_contact(timezone_name: str) -> datetime:
 
 
 def _finding_labels(candidate: ToothCandidate) -> str:
-    labels = list(dict.fromkeys(row.finding_type.replace("_", " ").lower() for row in candidate.findings))
+    labels = list(
+        dict.fromkeys(row.finding_type.replace("_", " ").lower() for row in candidate.findings)
+    )
     if len(labels) == 1:
         return labels[0]
     return ", ".join(labels[:-1]) + f" and {labels[-1]}"
@@ -241,24 +243,24 @@ async def build_followup_plan(session: AsyncSession, analysis: AIAnalysis) -> Ca
     existing_items = (
         await session.scalars(select(CarePlanItem).where(CarePlanItem.care_plan_id == plan.id))
     ).all()
-    by_finding = {item.finding_id: item for item in existing_items}
+    by_finding = {existing_item.finding_id: existing_item for existing_item in existing_items}
     selected_ids = {candidate.primary.id for candidate in candidates}
     now = datetime.now(UTC)
 
-    for item in existing_items:
-        if item.finding_id not in selected_ids:
-            item.status = "REJECTED"
-            item.outcome = "NOT_SELECTED_FOR_TOOTH_PLAN"
-            item.outcome_at = now
+    for existing_item in existing_items:
+        if existing_item.finding_id not in selected_ids:
+            existing_item.status = "REJECTED"
+            existing_item.outcome = "NOT_SELECTED_FOR_TOOTH_PLAN"
+            existing_item.outcome_at = now
 
     first_start = _next_local_contact(settings.timezone)
     review_count = 0
     for order, candidate in enumerate(candidates, start=1):
         primary = candidate.primary
         timing = timing_for_finding(analysis, primary)
-        item = by_finding.get(primary.id)
-        if item is None:
-            item = CarePlanItem(
+        plan_item = by_finding.get(primary.id)
+        if plan_item is None:
+            plan_item = CarePlanItem(
                 care_plan_id=plan.id,
                 finding_id=primary.id,
                 tooth_fdi=candidate.tooth_fdi,
@@ -271,30 +273,30 @@ async def build_followup_plan(session: AsyncSession, analysis: AIAnalysis) -> Ca
                 appointment_required=True,
                 image_required=True,
             )
-            session.add(item)
+            session.add(plan_item)
         else:
-            item.tooth_fdi = candidate.tooth_fdi
-            item.finding_type = primary.finding_type
-            item.confidence = primary.confidence
-            if not item.recommended_window:
-                item.recommended_window = timing.recommended_window
-            if not item.rationale:
-                item.rationale = timing.timing_reason
-            if not item.message_preview:
-                item.message_preview = _message(language, patient_name, candidate)
+            plan_item.tooth_fdi = candidate.tooth_fdi
+            plan_item.finding_type = primary.finding_type
+            plan_item.confidence = primary.confidence
+            if not plan_item.recommended_window:
+                plan_item.recommended_window = timing.recommended_window
+            if not plan_item.rationale:
+                plan_item.rationale = timing.timing_reason
+            if not plan_item.message_preview:
+                plan_item.message_preview = _message(language, patient_name, candidate)
 
-        item.sequence_order = order
-        item.priority_level = candidate.priority_level
-        item.priority_score = candidate.priority_score
-        item.outcome = None
-        item.outcome_at = None
+        plan_item.sequence_order = order
+        plan_item.priority_level = candidate.priority_level
+        plan_item.priority_score = candidate.priority_score
+        plan_item.outcome = None
+        plan_item.outcome_at = None
         if order == 1:
-            item.status = "FOLLOWUP_READY"
-            if not item.conversation_start_at or item.conversation_start_at <= now:
-                item.conversation_start_at = first_start
+            plan_item.status = "FOLLOWUP_READY"
+            if not plan_item.conversation_start_at or plan_item.conversation_start_at <= now:
+                plan_item.conversation_start_at = first_start
         else:
-            item.status = "WAITING_PREVIOUS_TOOTH"
-            item.conversation_start_at = None
+            plan_item.status = "WAITING_PREVIOUS_TOOTH"
+            plan_item.conversation_start_at = None
         if all(row.review_status == FindingReview.CONFIRMED for row in candidate.findings):
             review_count += 1
 
