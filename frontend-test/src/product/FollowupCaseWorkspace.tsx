@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarClock, Check, ChevronRight, Clock3, FileHeart, MessageCircle, Save, Search, ShieldCheck, Smartphone, UserRound } from "lucide-react";
+import { Activity, CalendarClock, Check, ChevronRight, Clock3, FileHeart, MessageCircle, Phone, Save, Search, ShieldCheck, Smartphone, UserRound, X } from "lucide-react";
 
-import { errorMessage } from "../api/client";
+import { api, errorMessage } from "../api/client";
 import { productApi, type CarePlan, type CarePlanItem, type CareSettings } from "../api/product";
+import type { WhatsAppConnection } from "../api/types";
+import { WHATSAPP_QR_POLL_MS } from "../utils/whatsapp";
 
 function title(value: string | null | undefined): string {
   if (!value) return "—";
@@ -152,7 +154,7 @@ function CaseWorkspace() {
   return <section className="followup-case-shell">
     <header className="followup-case-topbar">
       <div><span>FOLLOW-UP CASES</span><h2>Patient follow-up workspace</h2><p>One patient = one organized case file. All dates are shown in the clinic timezone.</p></div>
-      <div className="case-timezone"><Clock3/><div><small>Clinic timezone</small><b>{zone}</b></div></div>
+      <div className="followup-top-actions"><ClinicWhatsAppControl/><div className="case-timezone"><Clock3/><div><small>Clinic timezone</small><b>{zone}</b></div></div></div>
     </header>
     {notice && <div className="case-notice"><Check/>{notice}</div>}
     {error && <div className="care-inline-error case-error">{error}</div>}
@@ -177,6 +179,84 @@ function CaseWorkspace() {
       </main>
     </div>
   </section>;
+}
+
+function ClinicWhatsAppControl() {
+  const [connection, setConnection] = useState<WhatsAppConnection>({ connected: false, connection: "unknown", sender: null });
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qr, setQr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const refresh = useCallback(async () => {
+    const next = await api.whatsappStatus();
+    setConnection(next);
+    if (next.connected) {
+      setQrOpen(false);
+      setQr(null);
+    }
+    return next;
+  }, []);
+
+  useEffect(() => { void refresh().catch((reason) => setError(errorMessage(reason))); }, [refresh]);
+  useEffect(() => {
+    if (!qrOpen || connection.connected) return;
+    let stopped = false;
+    let timer = 0;
+    const poll = async () => {
+      try {
+        const next = await api.whatsappQr();
+        if (stopped) return;
+        setConnection(next);
+        setQr(next.qr ?? null);
+        if (next.connected) {
+          setQrOpen(false);
+          setQr(null);
+          return;
+        }
+      } catch (reason) {
+        if (!stopped) setError(errorMessage(reason));
+      }
+      if (!stopped) timer = window.setTimeout(() => void poll(), WHATSAPP_QR_POLL_MS);
+    };
+    void poll();
+    return () => { stopped = true; window.clearTimeout(timer); };
+  }, [qrOpen, connection.connected]);
+
+  async function disconnect() {
+    setBusy(true);
+    setError("");
+    try {
+      await api.whatsappLogout();
+      setConnection({ connected: false, connection: "logged_out", sender: null });
+      setQr(null);
+    } catch (reason) {
+      setError(errorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <>
+    <div className={`clinic-wa-control ${connection.connected ? "connected" : "disconnected"}`} title={error || (connection.connected ? "Clinic WhatsApp connected" : "Clinic WhatsApp disconnected")}>
+      <span className="clinic-wa-logo" aria-hidden="true"><MessageCircle/><Phone/></span>
+      <div className="clinic-wa-copy"><small>Clinic WhatsApp</small><b>{connection.connected ? "Connected" : "Disconnected"}</b></div>
+      {connection.connected
+        ? <button type="button" disabled={busy} onClick={() => void disconnect()}>{busy ? "…" : "Disconnect"}</button>
+        : <button type="button" onClick={() => { setError(""); setQrOpen(true); }}>QR connect</button>}
+    </div>
+    {qrOpen && <div className="clinic-wa-qr-backdrop" role="dialog" aria-modal="true" aria-label="Connect clinic WhatsApp">
+      <div className="clinic-wa-qr-modal">
+        <button type="button" className="clinic-wa-qr-close" aria-label="Close QR" onClick={() => setQrOpen(false)}><X/></button>
+        <span className="clinic-wa-logo large" aria-hidden="true"><MessageCircle/><Phone/></span>
+        <small>CLINIC WHATSAPP</small>
+        <h3>Scan QR to connect</h3>
+        {qr ? <img src={qr} alt="Clinic WhatsApp QR code"/> : <div className="clinic-wa-qr-loading"><Activity/>Generating QR…</div>}
+        <p>WhatsApp → Linked devices → Link a device</p>
+        {error && <div className="care-inline-error">{error}</div>}
+      </div>
+    </div>}
+  </>;
 }
 
 function PatientCase({ plan, careSettings, busy, onApprove, onSaveFirstStart }: {
