@@ -17,9 +17,11 @@ describe("API origin configuration", () => {
   });
 });
 
-describe("login transport resilience", () => {
+describe("authenticated transport resilience", () => {
+  let values: Map<string, string>;
+
   beforeEach(() => {
-    const values = new Map<string, string>();
+    values = new Map<string, string>();
     vi.stubGlobal("sessionStorage", {
       getItem: (key: string) => values.get(key) ?? null,
       setItem: (key: string, value: string) => values.set(key, value),
@@ -27,7 +29,7 @@ describe("login transport resilience", () => {
     });
   });
 
-  it("retries transient network failures without retrying HTTP authentication errors", async () => {
+  it("retries transient login network failures without retrying HTTP authentication errors", async () => {
     const fetchMock = vi.fn()
       .mockRejectedValueOnce(new TypeError("Failed to fetch"))
       .mockRejectedValueOnce(new TypeError("Failed to fetch"))
@@ -48,5 +50,53 @@ describe("login transport resilience", () => {
     await expect(api.login({ clinic_slug: "clinic", identifier: "doctor", password: "wrongpass" }))
       .rejects.toMatchObject({ status: 401 });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rotates an expired access token once and retries the original request", async () => {
+    values.set("dentai-test-auth", JSON.stringify({ accessToken: "expired", refreshToken: "refresh-1" }));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ detail: "expired" }), {
+        status: 401,
+        headers: { "content-type": "application/json" }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        access_token: "access-2",
+        refresh_token: "refresh-2",
+        expires_in: 900
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "user-1", clinic_id: "clinic-1" }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(api.me()).resolves.toMatchObject({ id: "user-1" });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1]?.[0]).toContain("/api/v1/auth/refresh");
+    const retryHeaders = fetchMock.mock.calls[2]?.[1]?.headers as Headers;
+    expect(retryHeaders.get("Authorization")).toBe("Bearer access-2");
+    expect(JSON.parse(values.get("dentai-test-auth") ?? "{}")).toEqual({
+      accessToken: "access-2",
+      refreshToken: "refresh-2"
+    });
+  });
+
+  it("migrates the legacy product session key into the canonical session key", async () => {
+    values.set("teta2-auth", JSON.stringify({ accessToken: "access", refreshToken: "refresh" }));
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({
+      id: "user-1",
+      clinic_id: "clinic-1"
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(api.me()).resolves.toMatchObject({ id: "user-1" });
+    expect(values.has("teta2-auth")).toBe(false);
+    expect(values.has("dentai-test-auth")).toBe(true);
   });
 });

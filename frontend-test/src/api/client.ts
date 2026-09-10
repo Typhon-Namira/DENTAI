@@ -38,6 +38,8 @@ export function resolveApiBaseUrl(value: string | undefined): string {
 
 export const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_DENTAI_API_BASE_URL);
 const SESSION_KEY = "dentai-test-auth";
+const LEGACY_SESSION_KEY = "teta2-auth";
+const SESSION_KEYS = [SESSION_KEY, LEGACY_SESSION_KEY] as const;
 
 interface StoredSession {
   accessToken: string;
@@ -58,25 +60,41 @@ export class ApiError extends Error {
   }
 }
 
-function getSession(): StoredSession | null {
-  const value = sessionStorage.getItem(SESSION_KEY);
-  if (!value) return null;
+function parseStoredSession(value: string): StoredSession | null {
   try {
     const parsed = JSON.parse(value) as Partial<StoredSession>;
     if (typeof parsed.accessToken === "string" && typeof parsed.refreshToken === "string") {
       return { accessToken: parsed.accessToken, refreshToken: parsed.refreshToken };
     }
   } catch {
-    sessionStorage.removeItem(SESSION_KEY);
+    return null;
   }
   return null;
 }
 
-function saveSession(tokens: TokenPair): void {
-  sessionStorage.setItem(
-    SESSION_KEY,
-    JSON.stringify({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token })
-  );
+function getSession(): StoredSession | null {
+  for (const key of SESSION_KEYS) {
+    const value = sessionStorage.getItem(key);
+    if (!value) continue;
+    const parsed = parseStoredSession(value);
+    if (!parsed) {
+      sessionStorage.removeItem(key);
+      continue;
+    }
+    if (key !== SESSION_KEY) {
+      sessionStorage.setItem(SESSION_KEY, value);
+      sessionStorage.removeItem(key);
+    }
+    return parsed;
+  }
+  return null;
+}
+
+function saveSession(tokens: TokenPair): StoredSession {
+  const stored = { accessToken: tokens.access_token, refreshToken: tokens.refresh_token };
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(stored));
+  sessionStorage.removeItem(LEGACY_SESSION_KEY);
+  return stored;
 }
 
 export function hasSession(): boolean {
@@ -84,25 +102,54 @@ export function hasSession(): boolean {
 }
 
 export function clearSession(): void {
-  sessionStorage.removeItem(SESSION_KEY);
+  for (const key of SESSION_KEYS) sessionStorage.removeItem(key);
 }
 
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-  authenticated = true,
-  networkAttempts = 1,
-  timeoutMs = 20_000
-): Promise<T> {
-  const headers = new Headers(init.headers);
+let refreshPromise: Promise<StoredSession | null> | null = null;
+
+async function refreshSession(): Promise<StoredSession | null> {
   const session = getSession();
-  if (authenticated) {
-    if (!session) throw new ApiError(401, "NOT_AUTHENTICATED", "Please sign in to continue.");
-    headers.set("Authorization", "Bearer " + session.accessToken);
+  if (!session) return null;
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(API_BASE_URL + "/api/v1/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ refresh_token: session.refreshToken })
+      });
+      if (!response.ok) {
+        if (response.status === 400 || response.status === 401 || response.status === 403) {
+          clearSession();
+        }
+        return null;
+      }
+      const payload = await response.json() as TokenPair;
+      if (typeof payload.access_token !== "string" || typeof payload.refresh_token !== "string") {
+        clearSession();
+        return null;
+      }
+      return saveSession(payload);
+    } catch {
+      return null;
+    }
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
   }
-  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
+}
+
+async function fetchWithNetworkRetry(
+  path: string,
+  init: RequestInit,
+  headers: Headers,
+  networkAttempts: number,
+  timeoutMs: number
+): Promise<Response> {
   let response: Response | undefined;
   let lastNetworkError: unknown;
   for (let attempt = 1; attempt <= networkAttempts; attempt += 1) {
@@ -126,6 +173,35 @@ async function request<T>(
     const detail = lastNetworkError instanceof Error ? lastNetworkError.message : "Network request failed";
     throw new ApiError(0, "API_UNAVAILABLE", `The clinic service is temporarily unavailable. Please retry. (${detail})`);
   }
+  return response;
+}
+
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  authenticated = true,
+  networkAttempts = 1,
+  timeoutMs = 20_000
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  const session = getSession();
+  if (authenticated) {
+    if (!session) throw new ApiError(401, "NOT_AUTHENTICATED", "Please sign in to continue.");
+    headers.set("Authorization", "Bearer " + session.accessToken);
+  }
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  let response = await fetchWithNetworkRetry(path, init, headers, networkAttempts, timeoutMs);
+  if (authenticated && response.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      headers.set("Authorization", "Bearer " + refreshed.accessToken);
+      response = await fetchWithNetworkRetry(path, init, headers, 1, timeoutMs);
+    }
+  }
+
   const contentType = response.headers.get("content-type") ?? "";
   const payload = contentType.includes("application/json")
     ? await response.json()
@@ -139,6 +215,10 @@ async function request<T>(
     throw new ApiError(response.status, code, message, body.error?.request_id);
   }
   return payload as T;
+}
+
+export function authenticatedRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return request<T>(path, init);
 }
 
 function radarQuery(filters: RadarOpportunityFilters = {}): string {
@@ -179,7 +259,7 @@ export const api = {
       await request<void>("/api/v1/auth/logout", {
         method: "POST",
         body: JSON.stringify({ refresh_token: session.refreshToken })
-      });
+      }, false);
     } finally {
       clearSession();
     }
