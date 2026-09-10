@@ -9,7 +9,7 @@ import subprocess  # nosec B404
 from pathlib import Path
 
 from sqlalchemy import select
-from sqlalchemy.engine import URL, make_url
+from sqlalchemy.engine import make_url
 
 from app.clinic_resolution.service import resolver
 from app.database.control_models import ClinicRegistry
@@ -20,11 +20,6 @@ def _safe_name(value: str) -> str:
     return "".join(
         character if character.isalnum() or character in "-_" else "_" for character in value
     )
-
-
-def _postgres_url(url: URL) -> URL:
-    driver = url.drivername.split("+", 1)[0]
-    return url.set(drivername=driver, password=None)
 
 
 def backup_database(label: str, database_url: str, destination: Path) -> dict[str, object]:
@@ -38,16 +33,27 @@ def backup_database(label: str, database_url: str, destination: Path) -> dict[st
         environment = os.environ.copy()
         if parsed.password:
             environment["PGPASSWORD"] = parsed.password
+        command = [
+            pg_dump,
+            "--format=custom",
+            "--no-owner",
+            "--no-acl",
+            "--file",
+            str(output),
+        ]
+        if parsed.host:
+            command.extend(["--host", parsed.host])
+        if parsed.port:
+            command.extend(["--port", str(parsed.port)])
+        if parsed.username:
+            command.extend(["--username", parsed.username])
+        if parsed.database:
+            command.extend(["--dbname", parsed.database])
+        ssl_mode = parsed.query.get("sslmode")
+        if isinstance(ssl_mode, str):
+            environment["PGSSLMODE"] = ssl_mode
         subprocess.run(
-            [
-                pg_dump,
-                "--format=custom",
-                "--no-owner",
-                "--no-acl",
-                "--file",
-                str(output),
-                _postgres_url(parsed).render_as_string(hide_password=True),
-            ],
+            command,
             check=True,
             env=environment,
         )  # nosec B603
