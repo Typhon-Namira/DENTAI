@@ -75,7 +75,10 @@ async def search_sequential_plans(
         items = (
             await ctx.session.scalars(
                 select(CarePlanItem)
-                .where(CarePlanItem.care_plan_id == plan.id, CarePlanItem.status != "REJECTED")
+                .where(
+                    CarePlanItem.care_plan_id == plan.id,
+                    CarePlanItem.status != "REJECTED",
+                )
                 .order_by(CarePlanItem.sequence_order.asc(), CarePlanItem.priority_score.desc())
             )
         ).all()
@@ -122,7 +125,11 @@ async def update_sequence_schedule(
         "CarePlanItem",
         item.id,
         plan.branch_id,
-        {"conversation_start_at": body.conversation_start_at.isoformat() if body.conversation_start_at else None},
+        {
+            "conversation_start_at": body.conversation_start_at.isoformat()
+            if body.conversation_start_at
+            else None
+        },
     )
     await ctx.session.commit()
     return model_dict(item)
