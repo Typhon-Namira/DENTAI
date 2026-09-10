@@ -27,11 +27,12 @@ for (const viewport of viewports) {
       await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
       await page.getByRole("button", { name: "Open navigation" }).click();
     }
+    const clinicalNavigation = page.getByRole("navigation", { name: "Clinical workspace" });
     for (const label of ["Dashboard", "Patients & records", "OPG + AI", "Follow-up plans", "AI conversations", "Appointments", "Working hours"]) {
       if (viewport.width <= 760) {
         await page.getByRole("button", { name: "Open navigation" }).click();
       }
-      await page.getByRole("button", { name: label }).click();
+      await clinicalNavigation.getByRole("button", { name: label }).click();
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, `${label} overflows at ${viewport.width}px`).toBeLessThanOrEqual(1);
     }
