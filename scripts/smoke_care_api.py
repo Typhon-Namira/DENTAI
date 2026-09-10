@@ -2,9 +2,7 @@
 
 import json
 import os
-import urllib.error
-import urllib.parse
-import urllib.request
+from urllib import error, parse, request
 
 
 REQUIRED_CARE_ROUTES = {
@@ -15,8 +13,8 @@ REQUIRED_CARE_ROUTES = {
 }
 
 
-def request(base: str, path: str, *, token: str | None = None, body: dict | None = None):
-    if urllib.parse.urlparse(base).scheme != "https":
+def request_json(base: str, path: str, *, token: str | None = None, body: dict | None = None):
+    if parse.urlparse(base).scheme != "https":
         raise RuntimeError("Smoke-test origins must use HTTPS")
     headers = {"Accept": "application/json"}
     if token:
@@ -25,22 +23,22 @@ def request(base: str, path: str, *, token: str | None = None, body: dict | None
     if body is not None:
         headers["Content-Type"] = "application/json"
         data = json.dumps(body).encode()
-    req = urllib.request.Request(
+    req = request.Request(
         base.rstrip("/") + path,
         data=data,
         headers=headers,
         method="POST" if body is not None else "GET",
     )
     try:
-        with urllib.request.urlopen(req, timeout=20) as response:  # nosec B310 - HTTPS enforced above
+        with request.urlopen(req, timeout=20) as response:  # nosec B310 - HTTPS enforced above
             payload = response.read()
             return response.status, json.loads(payload) if payload else None
-    except urllib.error.HTTPError as exc:
+    except error.HTTPError as exc:
         raise RuntimeError(f"{path} returned {exc.code}: {exc.read().decode()[:500]}") from exc
 
 
 def check_openapi_contract(base: str) -> None:
-    status, schema = request(base, "/openapi.json")
+    status, schema = request_json(base, "/openapi.json")
     if status != 200 or not isinstance(schema, dict):
         raise RuntimeError(f"OpenAPI contract unavailable at {base}")
     paths = schema.get("paths")
@@ -56,10 +54,10 @@ def check_openapi_contract(base: str) -> None:
 def check_origin(base: str) -> None:
     # A single successful request can hide a partially wedged worker or proxy route.
     for probe in range(1, 6):
-        status, health = request(base, "/health")
+        status, health = request_json(base, "/health")
         if status != 200 or health.get("status") != "ok":
             raise RuntimeError(f"Health check {probe}/5 failed for {base}")
-    status, ready = request(base, "/ready")
+    status, ready = request_json(base, "/ready")
     if status != 200 or ready.get("status") != "ready":
         raise RuntimeError(f"Readiness check failed for {base}")
 
@@ -68,7 +66,7 @@ def check_origin(base: str) -> None:
     # generation-readiness and sequential plan requests return 404 in production.
     check_openapi_contract(base)
 
-    _, tokens = request(
+    _, tokens = request_json(
         base,
         "/api/v1/auth/login",
         body={
@@ -78,11 +76,11 @@ def check_origin(base: str) -> None:
         },
     )
     token = tokens["access_token"]
-    _, me = request(base, "/api/v1/auth/me", token=token)
+    _, me = request_json(base, "/api/v1/auth/me", token=token)
     if not isinstance(me, dict) or not me.get("id") or not me.get("clinic_id"):
         raise RuntimeError(f"Authenticated session contract failed at {base}")
 
-    _, dashboard = request(base, "/api/v1/care/dashboard", token=token)
+    _, dashboard = request_json(base, "/api/v1/care/dashboard", token=token)
     required = {
         "appointments_awaiting_approval",
         "active_care_plans",
@@ -98,7 +96,7 @@ def check_origin(base: str) -> None:
         "/api/v1/care/appointments",
         "/api/v1/care/conversations",
     ):
-        request(base, path, token=token)
+        request_json(base, path, token=token)
 
 
 def main() -> None:
