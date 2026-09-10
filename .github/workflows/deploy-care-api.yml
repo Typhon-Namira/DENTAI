@@ -143,20 +143,29 @@ jobs:
           docker rename teta2-web "$backup"
           switched=1
           docker run -d --name teta2-web --restart unless-stopped --network teta2-internal --env-file "$release/runtime.env" --volumes-from "$backup" "dentai-care:$RELEASE_SHA"
-          for _ in $(seq 1 30); do docker exec teta2-web python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/ready", timeout=2)' && break; sleep 2; done
-          docker exec teta2-web python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/ready", timeout=2)'
+          wait_for_production() {
+            for _ in $(seq 1 30); do
+              if docker exec teta2-web python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/ready", timeout=2)'; then
+                return 0
+              fi
+              sleep 2
+            done
+            docker logs --tail 100 teta2-web >&2 || true
+            return 1
+          }
+          wait_for_production
           printf '%s' "$backup" > "$release/previous-container"
           trap - ERR
           REMOTE
           if ! CARE_BACKEND_URL="$CARE_BACKEND_URL" CARE_FRONTEND_URL="$CARE_FRONTEND_URL" CARE_SMOKE_CLINIC_SLUG="$CARE_SMOKE_CLINIC_SLUG" CARE_SMOKE_IDENTIFIER="$CARE_SMOKE_IDENTIFIER" CARE_SMOKE_PASSWORD="$CARE_SMOKE_PASSWORD" python scripts/smoke_care_api.py; then
-            ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'ROLLBACK'
-            set -euo pipefail
-            previous=$(cat "$RELEASE_ROOT/$RELEASE_SHA/previous-container")
-            test -n "$previous"
-            docker rm -f teta2-web
-            docker rename "$previous" teta2-web
-            docker start teta2-web
-            ROLLBACK
+          ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'ROLLBACK'
+          set -euo pipefail
+          previous=$(cat "$RELEASE_ROOT/$RELEASE_SHA/previous-container")
+          test -n "$previous"
+          docker rm -f teta2-web
+          docker rename "$previous" teta2-web
+          docker start teta2-web
+          ROLLBACK
             exit 1
           fi
       - name: Verify responsive authenticated frontend
