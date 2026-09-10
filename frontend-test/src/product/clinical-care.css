@@ -31,6 +31,47 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.care-shell .ai-control {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+}
+
+.care-shell .ai-control label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: #48546c;
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+.care-shell .ai-control select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid var(--care-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--care-ink);
+}
+
+@media(max-width:900px){
+  .care-shell .ai-control {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(max-width:520px){
+  .care-shell .ai-control {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .care-shell .findings-only-opg .finding-stage > img,
 .care-shell .findings-only-opg .finding-only-overlay {
   width: 100% !important;
