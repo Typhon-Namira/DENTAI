@@ -3,8 +3,8 @@
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
-from urllib.parse import urlparse
 
 
 REQUIRED_CARE_ROUTES = {
@@ -16,7 +16,7 @@ REQUIRED_CARE_ROUTES = {
 
 
 def request(base: str, path: str, *, token: str | None = None, body: dict | None = None):
-    if urlparse(base).scheme != "https":
+    if urllib.parse.urlparse(base).scheme != "https":
         raise RuntimeError("Smoke-test origins must use HTTPS")
     headers = {"Accept": "application/json"}
     if token:
