@@ -1,7 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import ProductApp from "./product/ProductApp";
+
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
+import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
+import ProductApp from "./product/ProductApp";
 import "./styles/medical-workspace.css";
 import "./v4/v4.css";
 import "./v4/v4-real-opg.css";
@@ -16,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
     <>
       <ProductApp />
       <CareExperienceEnhancer />
+      <CareGenerationContractPanel />
     </>
   </StrictMode>
 );
