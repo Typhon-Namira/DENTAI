@@ -143,7 +143,9 @@ async def update_sequence_schedule(
         value = body.conversation_start_at
         normalized = value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
         if normalized <= datetime.now(UTC):
-            raise AppError("INVALID_OUTREACH_TIME", "First outreach must be scheduled in the future.", 422)
+            raise AppError(
+                "INVALID_OUTREACH_TIME", "First outreach must be scheduled in the future.", 422
+            )
         item.conversation_start_at = normalized
     else:
         item.conversation_start_at = None
@@ -160,11 +162,11 @@ async def update_sequence_schedule(
         .limit(1)
     )
     if outreach:
-        outreach.scheduled_send_at = item.conversation_start_at
-        if item.conversation_start_at is None:
-            outreach.status = WhatsAppOutreachStatus.QUEUED
-        else:
+        if item.conversation_start_at is not None:
+            outreach.scheduled_send_at = item.conversation_start_at
             outreach.status = WhatsAppOutreachStatus.SCHEDULED
+        else:
+            outreach.status = WhatsAppOutreachStatus.QUEUED
 
     await audit(
         ctx.session,
