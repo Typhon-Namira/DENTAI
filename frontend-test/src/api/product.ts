@@ -38,6 +38,7 @@ export interface CarePlan {
   id: string; patient_id: string; analysis_id: string; branch_id: string; doctor_id: string | null; status: string;
   language: string; summary: string | null; created_at: string; items: CarePlanItem[]; patient?: Patient | null;
 }
+export interface SequentialPlanPage { items: CarePlan[]; offset: number; limit: number; has_more: boolean; }
 export interface CareAppointment {
   id: string; patient_id: string; branch_id: string; doctor_id: string | null; conversation_id: string | null;
   care_plan_item_id: string | null; starts_at: string; ends_at: string; timezone: string; status: string; source: string;
@@ -85,13 +86,14 @@ export const productApi = {
   listFollowUps(status?: FollowUpStatus) { const params = new URLSearchParams({ page: "1", page_size: "100" }); if (status) params.set("status", status); return productRequest<FollowUpPage>(`/api/v1/follow-ups?${params.toString()}`); },
   createFollowUp(patientId: string, body: { reason: string; due_at: string; priority: FollowUpPriority; notes?: string | null; doctor_id?: string | null; }) { return productRequest<FollowUp>(`/api/v1/patients/${encodeURIComponent(patientId)}/follow-ups`, { method: "POST", body: JSON.stringify(body) }); },
   updateFollowUp(followUpId: string, status: FollowUpStatus) { return productRequest<FollowUp>(`/api/v1/follow-ups/${encodeURIComponent(followUpId)}`, { method: "PATCH", body: JSON.stringify({ status }) }); },
-
   careSettings(branchId: string) { return productRequest<CareSettings>(`/api/v1/care/settings/${encodeURIComponent(branchId)}`); },
   updateCareSettings(branchId: string, body: Omit<CareSettings, "id" | "branch_id">) { return productRequest<CareSettings>(`/api/v1/care/settings/${encodeURIComponent(branchId)}`, { method: "PUT", body: JSON.stringify(body) }); },
   carePlans(patientId?: string) { const query = patientId ? `?patient_id=${encodeURIComponent(patientId)}` : ""; return productRequest<CarePlan[]>(`/api/v1/care/plans${query}`); },
   sequentialCarePlans() { return productRequest<CarePlan[]>("/api/v1/care/sequential-plans?limit=200"); },
+  searchSequentialCarePlans(q = "", offset = 0, limit = 50) { const params = new URLSearchParams({ offset:String(offset), limit:String(limit) }); if (q.trim()) params.set("q",q.trim()); return productRequest<SequentialPlanPage>(`/api/v1/care/sequential-plans/search?${params.toString()}`); },
   generateCarePlan(analysisId: string) { return productRequest<CarePlan>(`/api/v1/care/analyses/${encodeURIComponent(analysisId)}/generate-plan`, { method: "POST" }); },
   updateCarePlanItem(planId: string, itemId: string, body: { target_followup_at?: string; recommended_window?: string; rationale?: string; message_preview?: string | null; }) { return productRequest<CarePlanItem>(`/api/v1/care/plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}`, { method: "PATCH", body: JSON.stringify(body) }); },
+  updateSequenceSchedule(planId:string,itemId:string,conversationStartAt:string|null) { return productRequest<CarePlanItem>(`/api/v1/care/plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}/sequence-schedule`, {method:"PATCH",body:JSON.stringify({conversation_start_at:conversationStartAt})}); },
   approveCarePlan(planId: string) { return productRequest<CarePlan>(`/api/v1/care/plans/${encodeURIComponent(planId)}/approve`, { method: "POST" }); },
   approveSequentialCarePlan(planId: string) { return productRequest<CarePlan>(`/api/v1/care/plans/${encodeURIComponent(planId)}/approve-sequential`, { method: "POST" }); },
   transitionCarePlan(planId:string, action:"reject"|"pause"|"resume"|"complete", reason?:string) { return productRequest<CarePlan>(`/api/v1/care/plans/${encodeURIComponent(planId)}/${action}`, {method:"POST",body:JSON.stringify({reason:reason||null})}); },
