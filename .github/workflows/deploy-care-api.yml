@@ -98,6 +98,9 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
         run: |
+          printf 'GROQ_API_KEY=%s\n' "$GROQ_API_KEY" | \
+           ssh "$EC2_USER@$EC2_HOST" \
+           "umask 077; cat > '$RELEASE_ROOT/${{ github.sha }}/groq.env'"
           ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'REMOTE'
           set -euo pipefail
           release="$RELEASE_ROOT/$RELEASE_SHA"
@@ -116,6 +119,10 @@ jobs:
           docker inspect -f '{{json .Mounts}}' teta2-web > "$release/predeploy/mounts.json"
           docker inspect -f '{{json .NetworkSettings.Networks}}' teta2-web > "$release/predeploy/networks.json"
           docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' teta2-web > "$release/runtime.env"
+          chmod 600 "$release/runtime.env"
+          sed -i '/^GROQ_API_KEY=/d' "$release/runtime.env"
+          cat "$release/groq.env" >> "$release/runtime.env"
+          rm -f "$release/groq.env"
           chmod 600 "$release/runtime.env"
           docker build -t "dentai-care:$RELEASE_SHA" "$release"
           docker run --rm --network teta2-internal --env-file "$release/runtime.env" \
