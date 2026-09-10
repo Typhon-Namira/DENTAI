@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -11,7 +11,13 @@ from app.auth.dependencies import AuthContext, authorized_patient, current_conte
 from app.care.models import CarePlan, CarePlanItem
 from app.common.serialization import model_dict
 from app.core.errors import AppError
-from app.database.models import Patient, PatientDoctorAssignment, Role
+from app.database.models import (
+    Patient,
+    PatientDoctorAssignment,
+    Role,
+    WhatsAppOutreach,
+    WhatsAppOutreachStatus,
+)
 
 router = APIRouter(prefix="/care", tags=["care-sequential"])
 
@@ -106,8 +112,12 @@ async def update_sequence_schedule(
     if not _branch_allowed(ctx, plan.branch_id):
         raise AppError("BRANCH_NOT_AUTHORIZED", "Care plan is outside your scope.", 403)
     await authorized_patient(ctx, plan.patient_id)
-    if plan.status != "PENDING_APPROVAL":
-        raise AppError("CARE_PLAN_LOCKED", "Only a pending plan can be edited.", 409)
+    if plan.status not in {"PENDING_APPROVAL", "ACTIVE"}:
+        raise AppError(
+            "CARE_PLAN_LOCKED",
+            "Only a pending or active plan can have its first outreach time changed.",
+            409,
+        )
     item = await ctx.session.get(CarePlanItem, item_id)
     if not item or item.care_plan_id != plan.id:
         raise AppError("CARE_PLAN_ITEM_NOT_FOUND", "Care plan item was not found.", 404)
@@ -117,7 +127,47 @@ async def update_sequence_schedule(
             "Later tooth conversations are unlocked by the previous tooth outcome and cannot be pre-scheduled independently.",
             409,
         )
-    item.conversation_start_at = body.conversation_start_at
+    if item.sequence_order != 1:
+        raise AppError(
+            "FIRST_OUTREACH_ONLY",
+            "Only the first tooth outreach can be manually scheduled.",
+            409,
+        )
+    if item.status in {"CONTACTED", "BOOKED", "COMPLETED", "NO_SHOW"}:
+        raise AppError(
+            "OUTREACH_ALREADY_STARTED",
+            "The first outreach time cannot be changed after patient contact has started.",
+            409,
+        )
+    if body.conversation_start_at is not None:
+        value = body.conversation_start_at
+        normalized = value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+        if normalized <= datetime.now(UTC):
+            raise AppError(
+                "INVALID_OUTREACH_TIME", "First outreach must be scheduled in the future.", 422
+            )
+        item.conversation_start_at = normalized
+    else:
+        item.conversation_start_at = None
+
+    outreach = await ctx.session.scalar(
+        select(WhatsAppOutreach)
+        .where(
+            WhatsAppOutreach.finding_id == item.finding_id,
+            WhatsAppOutreach.status.in_(
+                [WhatsAppOutreachStatus.QUEUED, WhatsAppOutreachStatus.SCHEDULED]
+            ),
+        )
+        .order_by(WhatsAppOutreach.created_at.desc())
+        .limit(1)
+    )
+    if outreach:
+        if item.conversation_start_at is not None:
+            outreach.scheduled_send_at = item.conversation_start_at
+            outreach.status = WhatsAppOutreachStatus.SCHEDULED
+        else:
+            outreach.status = WhatsAppOutreachStatus.QUEUED
+
     await audit(
         ctx.session,
         ctx.user,
@@ -126,8 +176,8 @@ async def update_sequence_schedule(
         item.id,
         plan.branch_id,
         {
-            "conversation_start_at": body.conversation_start_at.isoformat()
-            if body.conversation_start_at
+            "conversation_start_at": item.conversation_start_at.isoformat()
+            if item.conversation_start_at
             else None
         },
     )

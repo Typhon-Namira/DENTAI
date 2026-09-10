@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronRight, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
+import { Check, ChevronRight, LoaderCircle, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
 
 import { careGenerationApi, type GenerationReadiness } from "../api/careGeneration";
 import { api, errorMessage } from "../api/client";
@@ -67,16 +67,15 @@ function GenerationPanel({ patientId }: { patientId: string }) {
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
 
-  const analysis = useMemo<AIAnalysis | null>(() => {
-    if (!profile) return null;
-    return [...profile.ai_analyses]
-      .filter((item) => item.status === "COMPLETED")
-      .sort((left, right) => right.requested_at.localeCompare(left.requested_at))[0] ?? null;
+  const latestAnalysis = useMemo<AIAnalysis | null>(() => {
+    if (!profile?.ai_analyses.length) return null;
+    return [...profile.ai_analyses].sort((left, right) => right.requested_at.localeCompare(left.requested_at))[0] ?? null;
   }, [profile]);
 
-  const loadBase = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  const completedAnalysis = latestAnalysis?.status === "COMPLETED" ? latestAnalysis : null;
+
+  const loadBase = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const [nextProfile, nextPlans] = await Promise.all([
         api.patientProfile(patientId),
@@ -84,24 +83,35 @@ function GenerationPanel({ patientId }: { patientId: string }) {
       ]);
       setProfile(nextProfile);
       setPlans(nextPlans);
+      setError("");
     } catch (reason) {
       setError(errorMessage(reason));
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   }, [patientId]);
 
-  useEffect(() => {
-    void loadBase();
-  }, [loadBase]);
+  useEffect(() => { void loadBase(); }, [loadBase]);
 
   useEffect(() => {
-    if (!analysis) {
+    if (!latestAnalysis || latestAnalysis.status === "COMPLETED" || latestAnalysis.status === "FAILED") return;
+    let stopped = false;
+    const poll = async () => {
+      if (stopped) return;
+      await loadBase(false);
+      if (!stopped) window.setTimeout(() => void poll(), 1800);
+    };
+    const timer = window.setTimeout(() => void poll(), 1200);
+    return () => { stopped = true; window.clearTimeout(timer); };
+  }, [latestAnalysis?.id, latestAnalysis?.status, loadBase]);
+
+  useEffect(() => {
+    if (!completedAnalysis) {
       setReadiness(null);
       return;
     }
     let active = true;
-    careGenerationApi.readiness(analysis.id)
+    careGenerationApi.readiness(completedAnalysis.id)
       .then((value) => {
         if (active) {
           setReadiness(value);
@@ -118,21 +128,19 @@ function GenerationPanel({ patientId }: { patientId: string }) {
         }
       });
     return () => { active = false; };
-  }, [analysis]);
+  }, [completedAnalysis?.id]);
 
-  const plan = analysis ? plans.find((item) => item.analysis_id === analysis.id) : undefined;
+  const plan = completedAnalysis ? plans.find((item) => item.analysis_id === completedAnalysis.id) : undefined;
   const generated = Boolean(plan && ["PENDING_APPROVAL", "ACTIVE", "PAUSED", "COMPLETED"].includes(plan.status));
 
   async function generate() {
-    if (!analysis || !readiness?.ready) return;
-    setBusy(true);
-    setError("");
-    setDone("");
+    if (!completedAnalysis || !readiness?.ready) return;
+    setBusy(true); setError(""); setDone("");
     try {
-      const next = await careGenerationApi.generate(analysis.id);
+      const next = await careGenerationApi.generate(completedAnalysis.id);
       setPlans((items) => [next, ...items.filter((item) => item.id !== next.id)]);
       setDone(`Sequential follow-up plan generated for ${next.items.length} pathological tooth${next.items.length === 1 ? "" : "s"}.`);
-      setReadiness(await careGenerationApi.readiness(analysis.id));
+      setReadiness(await careGenerationApi.readiness(completedAnalysis.id));
     } catch (reason) {
       setError(errorMessage(reason));
     } finally {
@@ -145,7 +153,15 @@ function GenerationPanel({ patientId }: { patientId: string }) {
     buttons.find((button) => ["Follow-up plans", "Հետագա պլաններ"].includes(button.getAttribute("aria-label") ?? ""))?.click();
   }
 
-  if (loading || !analysis) return null;
+  if (loading || !latestAnalysis) return null;
+
+  if (!completedAnalysis) {
+    return <section className="care-flow-banner care-card bottom-placement authoritative-generation-panel">
+      <div className="flow-orb"><LoaderCircle className="spin" /></div>
+      <div className="flow-copy"><span>AI FOLLOW-UP ORCHESTRATION</span><h2>Waiting for analysis to complete</h2><p>The Generate button will unlock automatically as soon as the current OPG analysis finishes. No page refresh is required.</p></div>
+      <div className="flow-actions"><button className="care-primary" disabled><Sparkles />Generate with AI</button><small><ShieldCheck />Analysis status: {title(latestAnalysis.status)}</small></div>
+    </section>;
+  }
 
   const candidates = readiness?.candidates ?? [];
   return (
@@ -154,49 +170,16 @@ function GenerationPanel({ patientId }: { patientId: string }) {
       <div className="flow-copy">
         <span>AI FOLLOW-UP ORCHESTRATION</span>
         <h2>{generated ? "Follow-up plan ready" : "Generate follow-up plan"}</h2>
-        {readiness ? (
-          <>
-            <p>
-              {readiness.ready
-                ? `${readiness.candidate_count} pathological/red tooth${readiness.candidate_count === 1 ? "" : "s"} can enter the plan. Confidence affects priority and review guidance, not eligibility.`
-                : "No pathological tooth findings with a resolved FDI are available in this completed OPG analysis."}
-            </p>
-            <div className="flow-teeth">
-              {candidates.slice(0, 16).map((candidate) => (
-                <span key={`${candidate.tooth_fdi}-${candidate.finding_id}`}>
-                  Tooth {candidate.tooth_fdi} · {title(candidate.finding_type)}
-                  {candidate.confidence == null ? "" : ` · ${Math.round(candidate.confidence * 100)}%`}
-                  {candidate.review_status === "CONFIRMED" ? " · reviewed" : ""}
-                </span>
-              ))}
-            </div>
-            {readiness.review_recommended_count > 0 && (
-              <div className="review-advice">
-                <ShieldCheck />
-                Review recommended for {readiness.review_recommended_count} tooth{readiness.review_recommended_count === 1 ? "" : "s"}, but generation is available now.
-              </div>
-            )}
-          </>
-        ) : (
-          <p>Checking pathological tooth eligibility with the care backend…</p>
-        )}
+        {readiness ? <>
+          <p>{readiness.ready ? `${readiness.candidate_count} pathological/red tooth${readiness.candidate_count === 1 ? "" : "s"} can enter the plan. Confidence affects priority and review guidance, not eligibility.` : "No pathological tooth findings with a resolved FDI are available in this completed OPG analysis."}</p>
+          <div className="flow-teeth">{candidates.slice(0, 16).map((candidate) => <span key={`${candidate.tooth_fdi}-${candidate.finding_id}`}>Tooth {candidate.tooth_fdi} · {title(candidate.finding_type)}{candidate.confidence == null ? "" : ` · ${Math.round(candidate.confidence * 100)}%`}{candidate.review_status === "CONFIRMED" ? " · reviewed" : ""}</span>)}</div>
+          {readiness.review_recommended_count > 0 && <div className="review-advice"><ShieldCheck />Review recommended for {readiness.review_recommended_count} tooth{readiness.review_recommended_count === 1 ? "" : "s"}, but generation is available now.</div>}
+        </> : <p>Checking pathological tooth eligibility with the care backend…</p>}
         {done && <div className="flow-success"><Check />{done}</div>}
         {error && <div className="care-inline-error">{error}</div>}
       </div>
       <div className="flow-actions">
-        {generated ? (
-          <button className="care-primary" onClick={openFollowUps}>
-            Open follow-up plans <ChevronRight />
-          </button>
-        ) : (
-          <button
-            className="care-primary"
-            disabled={!readiness?.ready || busy}
-            onClick={() => void generate()}
-          >
-            <Sparkles />{busy ? "Generating…" : "Generate with AI"}
-          </button>
-        )}
+        {generated ? <button className="care-primary" onClick={openFollowUps}>Open follow-up plans <ChevronRight /></button> : <button className="care-primary" disabled={!readiness?.ready || busy} onClick={() => void generate()}><Sparkles />{busy ? "Generating…" : "Generate with AI"}</button>}
         <small><ShieldCheck />Clinician review is recommended; doctor remains in control.</small>
       </div>
     </section>
