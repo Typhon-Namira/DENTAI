@@ -171,7 +171,7 @@ jobs:
           fi
       - name: Verify responsive authenticated frontend
         env:
-          CARE_E2E_URL: ${{ secrets.CARE_FRONTEND_URL || 'https://www.teta2.com' }}/login
+          CARE_E2E_URL: ${{ secrets.CARE_FRONTEND_URL || 'https://www.teta2.com' }}
           CARE_E2E_CLINIC: ${{ secrets.CARE_SMOKE_CLINIC_SLUG }}
           CARE_E2E_USER: ${{ secrets.CARE_SMOKE_IDENTIFIER }}
           CARE_E2E_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
