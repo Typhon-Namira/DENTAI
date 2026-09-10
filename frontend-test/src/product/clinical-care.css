@@ -25,6 +25,12 @@
   max-width: 100%;
 }
 
+.care-shell .care-page,
+.care-shell .ai-results-shell,
+.care-shell .pro-analysis-workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .care-shell .findings-only-opg .finding-stage > img,
 .care-shell .findings-only-opg .finding-only-overlay {
   width: 100% !important;
