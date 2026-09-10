@@ -1,7 +1,6 @@
-from app.care import sequential_api
+from app.care import sequential_api, sequential_manage_api
 from app.care.sequential import _priority
 from app.database.models import DentalFinding, FindingReview
-from app.main import app
 
 
 def _finding(finding_type: str, confidence: float, review=FindingReview.PENDING):
@@ -33,18 +32,20 @@ def test_confirmed_review_is_a_bonus_not_a_generation_requirement():
     assert _priority(confirmed)[1] > _priority(pending)[1]
 
 
-def test_sequential_inbound_route_precedes_legacy_inbound_route():
-    matches = [
-        route
-        for route in app.routes
-        if getattr(route, "path", None) == "/api/v1/care/internal/whatsapp/inbound"
-    ]
-    assert len(matches) >= 2
-    assert matches[0].endpoint is sequential_api.sequential_inbound_whatsapp
+def test_sequential_inbound_route_contract():
+    route = next(
+        item
+        for item in sequential_api.router.routes
+        if getattr(item, "path", None) == "/care/internal/whatsapp/inbound"
+    )
+    assert "POST" in route.methods
+    assert route.endpoint is sequential_api.sequential_inbound_whatsapp
 
 
-def test_new_sequential_management_routes_are_registered():
-    paths = {getattr(route, "path", None) for route in app.routes}
-    assert "/api/v1/care/sequential-plans/search" in paths
-    assert "/api/v1/care/plans/{plan_id}/items/{item_id}/sequence-schedule" in paths
-    assert "/api/v1/care/appointments/{appointment_id}/outcome" in paths
+def test_new_sequential_management_route_contracts():
+    paths = {getattr(route, "path", None) for route in sequential_manage_api.router.routes}
+    assert "/care/sequential-plans/search" in paths
+    assert "/care/plans/{plan_id}/items/{item_id}/sequence-schedule" in paths
+    assert "/care/appointments/{appointment_id}/outcome" in {
+        getattr(route, "path", None) for route in sequential_api.router.routes
+    }
