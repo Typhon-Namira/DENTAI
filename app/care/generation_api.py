@@ -7,7 +7,7 @@ from sqlalchemy import select
 from app.audit.service import audit
 from app.auth.dependencies import AuthContext, authorized_patient, current_context
 from app.care.models import CarePlanItem
-from app.care.service import activate_reviewed_plan
+from app.care.sequential import generate_sequential_plan
 from app.common.serialization import model_dict
 from app.core.errors import AppError
 from app.database.models import AIAnalysis, AIStatus, Role
@@ -35,12 +35,7 @@ async def generate_followup_plan(
             409,
         )
 
-    plan = await activate_reviewed_plan(
-        ctx.session,
-        clinic_id=ctx.clinic.id,
-        clinic_name=ctx.clinic.name,
-        analysis=analysis,
-    )
+    plan = await generate_sequential_plan(ctx.session, analysis)
     if not plan:
         raise AppError(
             "NO_FOLLOWUP_CANDIDATES",
@@ -50,7 +45,7 @@ async def generate_followup_plan(
     if plan.status == "REVIEWED_NO_ACTION":
         raise AppError(
             "NO_FOLLOWUP_CANDIDATES",
-            "All eligible findings were rejected during clinician review.",
+            "All eligible pathological findings were rejected during clinician review.",
             409,
         )
 
