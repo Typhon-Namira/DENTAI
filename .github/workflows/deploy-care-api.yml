@@ -46,6 +46,27 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate protected deployment configuration
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+          EC2_RELEASE_ROOT: ${{ secrets.EC2_RELEASE_ROOT }}
+          CARE_BACKEND_URL: ${{ secrets.CARE_BACKEND_URL }}
+          CARE_FRONTEND_URL: ${{ secrets.CARE_FRONTEND_URL }}
+          CARE_SMOKE_CLINIC_SLUG: ${{ secrets.CARE_SMOKE_CLINIC_SLUG }}
+          CARE_SMOKE_IDENTIFIER: ${{ secrets.CARE_SMOKE_IDENTIFIER }}
+          CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
+        run: |
+          missing=0
+          for name in EC2_USER EC2_SSH_PRIVATE_KEY EC2_KNOWN_HOSTS CARE_SMOKE_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error title=Missing production secret::$name is not configured in the selected GitHub environment."
+              missing=1
+            fi
+          done
+          exit "$missing"
       - name: Configure SSH
         env:
           EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -57,50 +78,83 @@ jobs:
           printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
       - name: Upload immutable release source
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_HOST: ${{ secrets.EC2_HOST || '35.159.65.156' }}
           EC2_USER: ${{ secrets.EC2_USER }}
-          RELEASE_ROOT: ${{ secrets.EC2_RELEASE_ROOT }}
+          RELEASE_ROOT: ${{ secrets.EC2_RELEASE_ROOT || '/tmp/dentai-releases' }}
         run: |
           tar --exclude=.git --exclude=node_modules --exclude=dist -czf /tmp/release.tgz .
           ssh "$EC2_USER@$EC2_HOST" "mkdir -p '$RELEASE_ROOT/${{ github.sha }}'"
           scp /tmp/release.tgz "$EC2_USER@$EC2_HOST:$RELEASE_ROOT/${{ github.sha }}/release.tgz"
       - name: Build, migrate, switch, and verify
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_HOST: ${{ secrets.EC2_HOST || '35.159.65.156' }}
           EC2_USER: ${{ secrets.EC2_USER }}
-          RELEASE_ROOT: ${{ secrets.EC2_RELEASE_ROOT }}
-          EC2_ENV_FILE: ${{ secrets.EC2_ENV_FILE }}
-          CARE_BACKEND_URL: ${{ secrets.CARE_BACKEND_URL }}
-          CARE_FRONTEND_URL: ${{ secrets.CARE_FRONTEND_URL }}
-          CARE_SMOKE_CLINIC_SLUG: ${{ secrets.CARE_SMOKE_CLINIC_SLUG }}
-          CARE_SMOKE_IDENTIFIER: ${{ secrets.CARE_SMOKE_IDENTIFIER }}
+          RELEASE_ROOT: ${{ secrets.EC2_RELEASE_ROOT || '/tmp/dentai-releases' }}
+          CARE_BACKEND_URL: ${{ secrets.CARE_BACKEND_URL || 'https://35-159-65-156.sslip.io' }}
+          CARE_FRONTEND_URL: ${{ secrets.CARE_FRONTEND_URL || 'https://www.teta2.com' }}
+          CARE_SMOKE_CLINIC_SLUG: ${{ secrets.CARE_SMOKE_CLINIC_SLUG || 'teta2-test' }}
+          CARE_SMOKE_IDENTIFIER: ${{ secrets.CARE_SMOKE_IDENTIFIER || 'testdentist' }}
           CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
         run: |
-          ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' ENV_FILE='$EC2_ENV_FILE' bash -s" <<'REMOTE'
+          ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'REMOTE'
           set -euo pipefail
           release="$RELEASE_ROOT/$RELEASE_SHA"
           tar -xzf "$release/release.tgz" -C "$release"
+          docker inspect teta2-web >/dev/null
+          docker network inspect teta2-internal >/dev/null
+          docker inspect teta2-caddy >/dev/null
+          mkdir -p "$release/predeploy"
+          chmod 700 "$release/predeploy"
+          docker inspect teta2-web > "$release/predeploy/teta2-web.inspect.json"
+          docker inspect teta2-caddy > "$release/predeploy/teta2-caddy.inspect.json"
+          docker network inspect teta2-internal > "$release/predeploy/teta2-internal.inspect.json"
+          docker inspect -f '{{.Config.Image}}' teta2-web > "$release/predeploy/current-image"
+          docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' teta2-web > "$release/predeploy/restart-policy"
+          docker inspect -f '{{json .Config.Cmd}}' teta2-web > "$release/predeploy/command.json"
+          docker inspect -f '{{json .Mounts}}' teta2-web > "$release/predeploy/mounts.json"
+          docker inspect -f '{{json .NetworkSettings.Networks}}' teta2-web > "$release/predeploy/networks.json"
+          docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' teta2-web > "$release/runtime.env"
+          chmod 600 "$release/runtime.env"
           docker build -t "dentai-care:$RELEASE_SHA" "$release"
-          docker run --rm --env-file "$ENV_FILE" "dentai-care:$RELEASE_SHA" python scripts/migrate_all_tenants.py
-          previous=$(docker inspect -f '{{.Config.Image}}' dentai-backend 2>/dev/null || true)
-          printf '%s' "$previous" > "$release/previous-image"
-          docker rm -f dentai-backend-next >/dev/null 2>&1 || true
-          docker run -d --name dentai-backend-next --env-file "$ENV_FILE" -e WHATSAPP_EMBEDDED_SERVICE=false -p 127.0.0.1:8001:8000 "dentai-care:$RELEASE_SHA"
+          docker run --rm --env-file "$release/runtime.env" \
+            -e BACKUP_DESTINATION="/backups/pre-migration" \
+            -v "$release:/backups" \
+            "dentai-care:$RELEASE_SHA" python scripts/backup_all_tenants.py
+          test -s "$release/pre-migration/manifest.json"
+          docker run --rm --env-file "$release/runtime.env" "dentai-care:$RELEASE_SHA" python scripts/migrate_all_tenants.py
+          backup="teta2-web-previous-$RELEASE_SHA"
+          docker rm -f "$backup" >/dev/null 2>&1 || true
+          docker rm -f teta2-web-next >/dev/null 2>&1 || true
+          docker run -d --name teta2-web-next --network teta2-internal --env-file "$release/runtime.env" -e WHATSAPP_EMBEDDED_SERVICE=false -p 127.0.0.1:8001:8000 "dentai-care:$RELEASE_SHA"
           for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8001/ready && break; sleep 2; done
           curl -fsS http://127.0.0.1:8001/ready
-          docker rm -f dentai-backend-next
-          docker rm -f dentai-backend >/dev/null 2>&1 || true
-          docker run -d --name dentai-backend --env-file "$ENV_FILE" -v dentai-whatsapp-sessions:/app/data/whatsapp_sessions -p 127.0.0.1:8000:8000 "dentai-care:$RELEASE_SHA"
-          for _ in $(seq 1 15); do curl -fsS http://127.0.0.1:8000/ready && break; sleep 2; done
-          curl -fsS http://127.0.0.1:8000/ready
+          docker rm -f teta2-web-next
+          switched=0
+          rollback_switch() {
+            if [ "$switched" = 1 ]; then
+              docker rm -f teta2-web >/dev/null 2>&1 || true
+              docker rename "$backup" teta2-web
+              docker start teta2-web
+            fi
+          }
+          trap rollback_switch ERR
+          docker stop teta2-web
+          docker rename teta2-web "$backup"
+          switched=1
+          docker run -d --name teta2-web --restart unless-stopped --network teta2-internal --env-file "$release/runtime.env" --volumes-from "$backup" "dentai-care:$RELEASE_SHA"
+          for _ in $(seq 1 30); do docker exec teta2-web python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/ready", timeout=2)' && break; sleep 2; done
+          docker exec teta2-web python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/ready", timeout=2)'
+          printf '%s' "$backup" > "$release/previous-container"
+          trap - ERR
           REMOTE
           if ! CARE_BACKEND_URL="$CARE_BACKEND_URL" CARE_FRONTEND_URL="$CARE_FRONTEND_URL" CARE_SMOKE_CLINIC_SLUG="$CARE_SMOKE_CLINIC_SLUG" CARE_SMOKE_IDENTIFIER="$CARE_SMOKE_IDENTIFIER" CARE_SMOKE_PASSWORD="$CARE_SMOKE_PASSWORD" python scripts/smoke_care_api.py; then
-            ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' ENV_FILE='$EC2_ENV_FILE' bash -s" <<'ROLLBACK'
+            ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'ROLLBACK'
             set -euo pipefail
-            previous=$(cat "$RELEASE_ROOT/$RELEASE_SHA/previous-image")
+            previous=$(cat "$RELEASE_ROOT/$RELEASE_SHA/previous-container")
             test -n "$previous"
-            docker rm -f dentai-backend
-            docker run -d --name dentai-backend --env-file "$ENV_FILE" -v dentai-whatsapp-sessions:/app/data/whatsapp_sessions -p 127.0.0.1:8000:8000 "$previous"
+            docker rm -f teta2-web
+            docker rename "$previous" teta2-web
+            docker start teta2-web
             ROLLBACK
             exit 1
           fi

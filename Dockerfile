@@ -17,6 +17,9 @@ RUN npm install --omit=dev --no-audit --no-fund
 FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 COPY pyproject.toml uv.lock ./
 RUN pip install --no-cache-dir uv==0.12.3 \
     && uv export --frozen --no-dev --no-emit-project --format requirements-txt > requirements.txt \
