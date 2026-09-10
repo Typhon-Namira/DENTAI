@@ -20,6 +20,7 @@ from app.api.v1 import (
     xrays,
 )
 from app.care import api as care
+from app.care import generation_api as care_generation
 from app.clinic_resolution.service import resolver
 from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler, unexpected_error_handler
@@ -63,6 +64,7 @@ for router in (
     clinical.router,
     administration.router,
     care.router,
+    care_generation.router,
     radar.router,
     radar_connections.router,
     outreach.router,
