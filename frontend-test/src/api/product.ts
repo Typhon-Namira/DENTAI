@@ -77,6 +77,19 @@ async function productRequest<T>(path: string, init: RequestInit = {}): Promise<
   return payload as T;
 }
 
+async function fetchAllSequentialPlans(): Promise<CarePlan[]> {
+  const items: CarePlan[] = [];
+  let offset = 0;
+  const limit = 100;
+  while (true) {
+    const page = await productRequest<SequentialPlanPage>(`/api/v1/care/sequential-plans/search?offset=${offset}&limit=${limit}`);
+    items.push(...page.items);
+    if (!page.has_more) return items;
+    offset += page.items.length;
+    if (page.items.length === 0) return items;
+  }
+}
+
 export const productApi = {
   dashboard(_role?: Role) { return productRequest<DashboardSummary>("/api/v1/care/dashboard"); },
   branches() { return productRequest<BranchSummary[]>("/api/v1/branches"); },
@@ -89,7 +102,7 @@ export const productApi = {
   careSettings(branchId: string) { return productRequest<CareSettings>(`/api/v1/care/settings/${encodeURIComponent(branchId)}`); },
   updateCareSettings(branchId: string, body: Omit<CareSettings, "id" | "branch_id">) { return productRequest<CareSettings>(`/api/v1/care/settings/${encodeURIComponent(branchId)}`, { method: "PUT", body: JSON.stringify(body) }); },
   carePlans(patientId?: string) { const query = patientId ? `?patient_id=${encodeURIComponent(patientId)}` : ""; return productRequest<CarePlan[]>(`/api/v1/care/plans${query}`); },
-  sequentialCarePlans() { return productRequest<CarePlan[]>("/api/v1/care/sequential-plans?limit=200"); },
+  sequentialCarePlans() { return fetchAllSequentialPlans(); },
   searchSequentialCarePlans(q = "", offset = 0, limit = 50) { const params = new URLSearchParams({ offset:String(offset), limit:String(limit) }); if (q.trim()) params.set("q",q.trim()); return productRequest<SequentialPlanPage>(`/api/v1/care/sequential-plans/search?${params.toString()}`); },
   generateCarePlan(analysisId: string) { return productRequest<CarePlan>(`/api/v1/care/analyses/${encodeURIComponent(analysisId)}/generate-plan`, { method: "POST" }); },
   updateCarePlanItem(planId: string, itemId: string, body: { target_followup_at?: string; recommended_window?: string; rationale?: string; message_preview?: string | null; }) { return productRequest<CarePlanItem>(`/api/v1/care/plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}`, { method: "PATCH", body: JSON.stringify(body) }); },
