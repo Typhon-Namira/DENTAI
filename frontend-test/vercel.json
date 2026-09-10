@@ -15,6 +15,10 @@
     {
       "source": "/ready",
       "destination": "https://35-159-65-156.sslip.io/ready"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
