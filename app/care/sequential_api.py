@@ -361,9 +361,7 @@ async def sequential_inbound_whatsapp(
                 active_item.status = "APPOINTMENT_PENDING_APPROVAL"
 
         normalized_phone = normalize_phone(body.phone)
-        sent = await WhatsAppServiceClient().send_message(
-            clinic.id, normalized_phone, reply.reply
-        )
+        sent = await WhatsAppServiceClient().send_message(clinic.id, normalized_phone, reply.reply)
         session.add(
             CareConversationMessage(
                 conversation_id=conversation.id,
