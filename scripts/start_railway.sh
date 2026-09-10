@@ -7,6 +7,11 @@ if [ "${WHATSAPP_EMBEDDED_SERVICE:-true}" = "true" ]; then
   if [ -z "${WHATSAPP_SERVICE_URL:-}" ] || [ "${WHATSAPP_SERVICE_URL}" = "http://whatsapp-service:3001" ]; then
     export WHATSAPP_SERVICE_URL="http://127.0.0.1:${WHATSAPP_SERVICE_PORT}"
   fi
+  if [ -z "${WHATSAPP_SERVICE_TOKEN:-}" ]; then
+    export WHATSAPP_SERVICE_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+  fi
+  export TETA2_CARE_CALLBACK_URL="${TETA2_CARE_CALLBACK_URL:-http://127.0.0.1:${PORT:-8000}/api/v1/care/internal/whatsapp/inbound}"
+  export TETA2_CARE_STATUS_CALLBACK_URL="${TETA2_CARE_STATUS_CALLBACK_URL:-http://127.0.0.1:${PORT:-8000}/api/v1/care/internal/whatsapp/status}"
   mkdir -p "$WHATSAPP_SESSION_DIR"
   echo "Starting embedded WhatsApp service on 127.0.0.1:${WHATSAPP_SERVICE_PORT}"
   (
