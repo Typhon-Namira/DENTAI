@@ -28,7 +28,7 @@ for (const viewport of viewports) {
       await page.getByRole("button", { name: "Open navigation" }).click();
     }
     for (const label of ["Dashboard", "Patients & records", "OPG + AI", "Follow-up plans", "AI conversations", "Appointments", "Working hours"]) {
-      if (viewport.width <= 760 && !(await page.getByRole("button", { name: label }).isVisible())) {
+      if (viewport.width <= 760) {
         await page.getByRole("button", { name: "Open navigation" }).click();
       }
       await page.getByRole("button", { name: label }).click();
