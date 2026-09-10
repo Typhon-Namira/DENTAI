@@ -107,6 +107,7 @@ export function createService(deps = {}) {
   const delayMs = deps.delayMs ?? 1400;
   const reconnect = deps.reconnect !== false;
   const states = new Map();
+  const diagnostics = new Map();
   const app = express();
   app.use(express.json({ limit: "5mb" }));
 
@@ -117,12 +118,36 @@ export function createService(deps = {}) {
     return next();
   }
 
+  function noteDiagnostic(accountId, patch) {
+    const current = diagnostics.get(accountId) || {
+      upsert_count: 0,
+      inbound_candidate_count: 0,
+      forwarded_count: 0,
+      unresolved_count: 0,
+      callback_rejected_count: 0,
+      last_upsert_at: null,
+      last_upsert_type: null,
+      last_remote_jid_domain: null,
+      last_forwarded_at: null,
+      last_callback_status: null
+    };
+    diagnostics.set(accountId, { ...current, ...patch });
+    return diagnostics.get(accountId);
+  }
+
   async function forwardInbound(accountId, message, socket) {
     if (!CARE_CALLBACK_URL || message?.key?.fromMe) return;
     const text = messageText(message);
     if (!text) return;
+    const before = diagnostics.get(accountId) || {};
+    noteDiagnostic(accountId, {
+      inbound_candidate_count: (before.inbound_candidate_count || 0) + 1,
+      last_remote_jid_domain: jidDomain(message?.key?.remoteJid)
+    });
     const phone = await resolveInboundPhone(message, socket);
     if (!phone) {
+      const current = diagnostics.get(accountId) || {};
+      noteDiagnostic(accountId, { unresolved_count: (current.unresolved_count || 0) + 1 });
       logger.warn({
         event: "care_inbound_phone_unresolved",
         account: accountId,
@@ -144,12 +169,20 @@ export function createService(deps = {}) {
           },
           body: JSON.stringify({ account_id: accountId, phone, text, message_id: message?.key?.id || null })
         });
+        const responseText = await response.text().catch(() => "");
+        noteDiagnostic(accountId, { last_callback_status: response.status });
         if (response.ok) {
+          const current = diagnostics.get(accountId) || {};
+          noteDiagnostic(accountId, {
+            forwarded_count: (current.forwarded_count || 0) + 1,
+            last_forwarded_at: new Date().toISOString()
+          });
           logger.info({ event: "care_inbound_forwarded", account: accountId, message_id: message?.key?.id || null, attempt });
           return;
         }
-        const responseText = await response.text().catch(() => "");
         if (response.status < 500) {
+          const current = diagnostics.get(accountId) || {};
+          noteDiagnostic(accountId, { callback_rejected_count: (current.callback_rejected_count || 0) + 1 });
           logger.warn({
             event: "care_inbound_callback_rejected",
             account: accountId,
@@ -181,7 +214,21 @@ export function createService(deps = {}) {
     entry.socket = socket;
     socket.ev.on("creds.update", saveCreds);
     socket.ev.on("messages.upsert", ({ messages, type }) => {
-      if (type && type !== "notify") return;
+      const current = diagnostics.get(safeId) || {};
+      noteDiagnostic(safeId, {
+        upsert_count: (current.upsert_count || 0) + (messages?.length || 0),
+        last_upsert_at: new Date().toISOString(),
+        last_upsert_type: type || null,
+        last_remote_jid_domain: messages?.[0] ? jidDomain(messages[0]?.key?.remoteJid) : current.last_remote_jid_domain || null
+      });
+      logger.info({
+        event: "care_messages_upsert",
+        account: safeId,
+        type: type || null,
+        count: messages?.length || 0,
+        remote_jid_domain: messages?.[0] ? jidDomain(messages[0]?.key?.remoteJid) : null,
+        from_me: messages?.[0]?.key?.fromMe ?? null
+      });
       for (const message of messages || []) void forwardInbound(safeId, message, socket);
     });
     socket.ev.on("messages.update", (updates) => {
@@ -250,6 +297,15 @@ export function createService(deps = {}) {
     try {
       const { entry } = await entryFor(req);
       res.json({ connected: entry.connection === "open", connection: entry.connection, sender: maskPhone(entry.phone) });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  app.get("/whatsapp/diagnostics", async (req, res) => {
+    try {
+      const accountId = normalizeAccountId(req.query.account_id);
+      await startClient(accountId);
+      res.json({ account_id: accountId, ...(diagnostics.get(accountId) || {}) });
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
