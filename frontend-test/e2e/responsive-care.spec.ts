@@ -33,8 +33,30 @@ for (const viewport of viewports) {
         await page.getByRole("button", { name: "Open navigation" }).click();
       }
       await clinicalNavigation.getByRole("button", { name: label }).click();
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      expect(overflow, `${label} overflows at ${viewport.width}px`).toBeLessThanOrEqual(1);
+      const overflowReport = await page.evaluate(() => {
+        const viewportWidth = document.documentElement.clientWidth;
+        const offenders = [...document.querySelectorAll<HTMLElement>("body *")]
+          .map((element) => {
+            const bounds = element.getBoundingClientRect();
+            return {
+              element: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${[...element.classList].slice(0, 3).map((name) => `.${name}`).join("")}`,
+              left: Math.round(bounds.left),
+              right: Math.round(bounds.right),
+              width: Math.round(bounds.width),
+            };
+          })
+          .filter(({ left, right }) => left < -1 || right > viewportWidth + 1)
+          .sort((a, b) => (b.right - viewportWidth) - (a.right - viewportWidth))
+          .slice(0, 8);
+        return {
+          overflow: document.documentElement.scrollWidth - viewportWidth,
+          offenders,
+        };
+      });
+      expect(
+        overflowReport.overflow,
+        `${label} overflows at ${viewport.width}px: ${JSON.stringify(overflowReport.offenders)}`,
+      ).toBeLessThanOrEqual(1);
     }
   });
 }
