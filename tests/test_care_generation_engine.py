@@ -34,9 +34,7 @@ def test_low_confidence_red_pathology_is_eligible_for_draft_plan():
 
 def test_restorative_and_rejected_findings_do_not_enter_plan():
     assert not is_pathological_finding(_finding("FILLING", 0.99))
-    assert not is_pathological_finding(
-        _finding("CARIES", 0.99, review=FindingReview.REJECTED)
-    )
+    assert not is_pathological_finding(_finding("CARIES", 0.99, review=FindingReview.REJECTED))
 
 
 def test_multiple_pathologies_on_same_tooth_create_one_candidate():
