@@ -134,7 +134,7 @@ def _fallback_reply(language: str) -> str:
             "دریافت کنید. همکاران کلینیک گفتگو را با شما ادامه می‌دهند."
         ),
         "tr": (
-            "Mesajınız için teşekkürler. Size doğru ve güvenli şekilde yardımcı olabilmeleri için "
+            "Mesajınız için teşekkürлер. Size doğru ve güvenli şekilde yardımcı olabilmeleri için "
             "sorunuzu klinik ekibine ilettim. Görüşmeye onlar devam edecek."
         ),
     }.get(
@@ -189,7 +189,8 @@ Return only the requested structured JSON."""
             schema_name="teta2_care_outreach_drafts",
             temperature=0.35,
         )
-        assert isinstance(result, _OutreachDraftBatch)
+        if not isinstance(result, _OutreachDraftBatch):
+            raise ValueError("Groq returned an invalid outreach draft payload")
         expected = {str(item["tooth"]) for item in safe_items}
         drafts: dict[str, str] = {}
         for item in result.messages:
@@ -263,7 +264,8 @@ Return only the requested structured JSON."""
             schema_name="teta2_care_reply",
             temperature=0.3,
         )
-        assert isinstance(result, _CareReplySchema)
+        if not isinstance(result, _CareReplySchema):
+            raise ValueError("Groq returned an invalid Care reply payload")
         selected = result.selected_slot
         if selected is not None and selected not in available_slots:
             selected = None
@@ -276,7 +278,14 @@ Return only the requested structured JSON."""
             provider="groq",
             model=settings.groq_model,
         )
-    except (httpx.HTTPError, ValidationError, ValueError, KeyError, IndexError, RuntimeError) as exc:
+    except (
+        httpx.HTTPError,
+        ValidationError,
+        ValueError,
+        KeyError,
+        IndexError,
+        RuntimeError,
+    ) as exc:
         logger.warning(
             "groq_care_reply_unavailable",
             reason=type(exc).__name__,
