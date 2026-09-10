@@ -39,6 +39,48 @@ export function maskPhone(value) {
   return digits ? `+***${digits.slice(-4)}` : null;
 }
 
+function phoneFromPnJid(value) {
+  const jid = String(value || "");
+  if (!jid.endsWith("@s.whatsapp.net")) return null;
+  const digits = jid.split("@")[0].split(":")[0].replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : null;
+}
+
+export async function resolveInboundPhone(message, socket = null) {
+  const key = message?.key || {};
+  const directCandidates = [
+    key.remoteJid,
+    key.remoteJidAlt,
+    key.participantPn,
+    key.participantAlt,
+    key.senderPn,
+    key.senderAlt,
+    message?.participantPn,
+    message?.senderPn
+  ];
+  for (const candidate of directCandidates) {
+    const phone = phoneFromPnJid(candidate);
+    if (phone) return phone;
+  }
+
+  const lidCandidates = [key.remoteJid, key.participant].filter((jid) =>
+    String(jid || "").endsWith("@lid")
+  );
+  const mapper = socket?.signalRepository?.lidMapping?.getPNForLID;
+  if (typeof mapper === "function") {
+    for (const lid of lidCandidates) {
+      try {
+        const mapped = await mapper.call(socket.signalRepository.lidMapping, lid);
+        const phone = phoneFromPnJid(mapped);
+        if (phone) return phone;
+      } catch (error) {
+        logger.debug({ event: "care_inbound_lid_mapping_failed", error: error?.name || "Error" });
+      }
+    }
+  }
+  return null;
+}
+
 function messageText(message) {
   const content = message?.message || {};
   return String(
@@ -48,6 +90,12 @@ function messageText(message) {
     content.videoMessage?.caption ||
     ""
   ).trim();
+}
+
+function jidDomain(value) {
+  const jid = String(value || "");
+  const at = jid.lastIndexOf("@");
+  return at >= 0 ? jid.slice(at + 1) : "unknown";
 }
 
 export function createService(deps = {}) {
@@ -69,13 +117,23 @@ export function createService(deps = {}) {
     return next();
   }
 
-  async function forwardInbound(accountId, message) {
+  async function forwardInbound(accountId, message, socket) {
     if (!CARE_CALLBACK_URL || message?.key?.fromMe) return;
-    const remoteJid = String(message?.key?.remoteJid || "");
-    if (!remoteJid.endsWith("@s.whatsapp.net")) return;
     const text = messageText(message);
     if (!text) return;
-    const phone = `+${remoteJid.split("@")[0].split(":")[0]}`;
+    const phone = await resolveInboundPhone(message, socket);
+    if (!phone) {
+      logger.warn({
+        event: "care_inbound_phone_unresolved",
+        account: accountId,
+        message_id: message?.key?.id || null,
+        remote_jid_domain: jidDomain(message?.key?.remoteJid),
+        has_remote_jid_alt: Boolean(message?.key?.remoteJidAlt),
+        has_participant_pn: Boolean(message?.key?.participantPn),
+        has_participant_alt: Boolean(message?.key?.participantAlt)
+      });
+      return;
+    }
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
         const response = await fetch(CARE_CALLBACK_URL, {
@@ -90,10 +148,17 @@ export function createService(deps = {}) {
           logger.info({ event: "care_inbound_forwarded", account: accountId, message_id: message?.key?.id || null, attempt });
           return;
         }
+        const responseText = await response.text().catch(() => "");
         if (response.status < 500) {
-          logger.warn({ event: "care_inbound_callback_rejected", account: accountId, status: response.status });
+          logger.warn({
+            event: "care_inbound_callback_rejected",
+            account: accountId,
+            status: response.status,
+            response: responseText.slice(0, 240)
+          });
           return;
         }
+        logger.warn({ event: "care_inbound_callback_server_error", account: accountId, status: response.status, attempt });
       } catch (error) {
         logger.warn({ event: "care_inbound_callback_unavailable", account: accountId, attempt, error: error?.name || "Error" });
       }
@@ -115,8 +180,9 @@ export function createService(deps = {}) {
     const socket = makeSocket({ auth: state, version, printQRInTerminal: false, logger: logger.child({ account: safeId }) });
     entry.socket = socket;
     socket.ev.on("creds.update", saveCreds);
-    socket.ev.on("messages.upsert", ({ messages }) => {
-      for (const message of messages || []) void forwardInbound(safeId, message);
+    socket.ev.on("messages.upsert", ({ messages, type }) => {
+      if (type && type !== "notify") return;
+      for (const message of messages || []) void forwardInbound(safeId, message, socket);
     });
     socket.ev.on("messages.update", (updates) => {
       for (const update of updates || []) {

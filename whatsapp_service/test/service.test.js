@@ -4,7 +4,14 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { cleanPhone, createService, jidForPhone, normalizeAccountId, sessionDirFor } from "../src/index.js";
+import {
+  cleanPhone,
+  createService,
+  jidForPhone,
+  normalizeAccountId,
+  resolveInboundPhone,
+  sessionDirFor
+} from "../src/index.js";
 
 const A = "clinic_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const B = "clinic_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -61,4 +68,27 @@ test("connected fake validates and sends with provider message id", async () => 
   assert.equal(registered.exists, true);
   const result = await entry.socket.sendMessage(jidForPhone("+37493156663"), { text: "test" });
   assert.equal(result.key.id, "wamid-test");
+});
+test("inbound phone resolves from alternate PN when remote jid is LID", async () => {
+  const phone = await resolveInboundPhone({
+    key: {
+      remoteJid: "123456789012345@lid",
+      remoteJidAlt: "37493156663@s.whatsapp.net"
+    }
+  });
+  assert.equal(phone, "+37493156663");
+});
+test("inbound phone resolves LID through the socket mapping when PN fields are absent", async () => {
+  const socket = {
+    signalRepository: {
+      lidMapping: {
+        getPNForLID: async (lid) => {
+          assert.equal(lid, "123456789012345@lid");
+          return "37493156663@s.whatsapp.net";
+        }
+      }
+    }
+  };
+  const phone = await resolveInboundPhone({ key: { remoteJid: "123456789012345@lid" } }, socket);
+  assert.equal(phone, "+37493156663");
 });
