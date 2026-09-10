@@ -151,7 +151,10 @@ jobs:
           docker stop teta2-web
           docker rename teta2-web "$backup"
           switched=1
-          docker run -d --name teta2-web --restart unless-stopped --network teta2-internal --env-file "$release/runtime.env" --volumes-from "$backup" -e WHATSAPP_OUTREACH_WORKER_ENABLED=true "dentai-care:$RELEASE_SHA"
+          docker run -d --name teta2-web --restart unless-stopped --network teta2-internal --env-file "$release/runtime.env" --volumes-from "$backup" \
+            -e WHATSAPP_EMBEDDED_SERVICE=true \
+            -e WHATSAPP_OUTREACH_WORKER_ENABLED=true \
+            "dentai-care:$RELEASE_SHA"
           wait_for_production() {
             for _ in $(seq 1 30); do
               if docker exec teta2-web python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/ready", timeout=2)'; then
@@ -163,22 +166,27 @@ jobs:
             return 1
           }
           wait_for_production
-          docker exec teta2-web sh -c 'test "$WHATSAPP_OUTREACH_WORKER_ENABLED" = true'
+          docker exec teta2-web sh -c 'test "$WHATSAPP_EMBEDDED_SERVICE" = true && test "$WHATSAPP_OUTREACH_WORKER_ENABLED" = true'
           docker exec teta2-web python - <<'PY'
           from pathlib import Path
+          import urllib.request
 
-          expected = "python -m app.outreach.worker"
-          found = False
+          commands = []
           for cmdline in Path("/proc").glob("[0-9]*/cmdline"):
               try:
                   command = cmdline.read_bytes().replace(b"\0", b" ").decode("utf-8", "ignore")
               except OSError:
                   continue
-              if expected in command:
-                  found = True
-                  break
-          if not found:
+              commands.append(command)
+
+          if not any("python -m app.outreach.worker" in command for command in commands):
               raise SystemExit("scheduled WhatsApp outreach worker process not found")
+          if not any("node src/index.js" in command for command in commands):
+              raise SystemExit("embedded WhatsApp service process not found")
+
+          with urllib.request.urlopen("http://127.0.0.1:3001/health", timeout=3) as response:
+              if response.status != 200:
+                  raise SystemExit("embedded WhatsApp service health check failed")
           PY
           printf '%s' "$backup" > "$release/previous-container"
           trap - ERR
