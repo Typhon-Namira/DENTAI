@@ -19,8 +19,7 @@ def test_generation_readiness_route_is_registered():
         (
             item
             for item in router.routes
-            if getattr(item, "path", None)
-            == "/care/analyses/{analysis_id}/generation-readiness"
+            if getattr(item, "path", None) == "/care/analyses/{analysis_id}/generation-readiness"
         ),
         None,
     )
