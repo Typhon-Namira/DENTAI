@@ -11,7 +11,13 @@ from app.audit.service import audit
 from app.auth.dependencies import AuthContext, authorized_patient, current_context, roles
 from app.care.groq import care_agent_reply
 from app.care.language import language_name
-from app.care.models import CareAppointment, CareConversation, CareConversationMessage, CarePlan, CarePlanItem
+from app.care.models import (
+    CareAppointment,
+    CareConversation,
+    CareConversationMessage,
+    CarePlan,
+    CarePlanItem,
+)
 from app.care.sequential import approve_sequential_plan, record_visit_outcome
 from app.care.service import available_slots, settings_for_branch
 from app.clinic_resolution.service import resolver
@@ -84,12 +90,16 @@ async def sequential_plans(
         )
     plans = (await ctx.session.scalars(query)).all()
     patient_ids = {plan.patient_id for plan in plans}
-    patients = {
-        patient.id: patient
-        for patient in (
-            await ctx.session.scalars(select(Patient).where(Patient.id.in_(patient_ids)))
-        ).all()
-    } if patient_ids else {}
+    patients = (
+        {
+            patient.id: patient
+            for patient in (
+                await ctx.session.scalars(select(Patient).where(Patient.id.in_(patient_ids)))
+            ).all()
+        }
+        if patient_ids
+        else {}
+    )
     result = []
     for plan in plans:
         items = (
@@ -143,7 +153,10 @@ async def approve_plan_sequential(
             .order_by(CarePlanItem.sequence_order.asc())
         )
     ).all()
-    return {**model_dict(plan), "items": [model_dict(item) for item in items if item.status != "REJECTED"]}
+    return {
+        **model_dict(plan),
+        "items": [model_dict(item) for item in items if item.status != "REJECTED"],
+    }
 
 
 @router.post("/appointments/{appointment_id}/outcome")
@@ -241,7 +254,11 @@ async def sequential_inbound_whatsapp(
         session.add(inbound)
         await session.flush()
 
-        plan = await session.get(CarePlan, conversation.care_plan_id) if conversation.care_plan_id else None
+        plan = (
+            await session.get(CarePlan, conversation.care_plan_id)
+            if conversation.care_plan_id
+            else None
+        )
         active_item = None
         if plan:
             active_item = await session.scalar(
@@ -249,7 +266,12 @@ async def sequential_inbound_whatsapp(
                 .where(
                     CarePlanItem.care_plan_id == plan.id,
                     CarePlanItem.status.in_(
-                        ["FOLLOWUP_READY", "CONTACTED", "APPOINTMENT_PENDING_APPROVAL", "BOOKED"]
+                        [
+                            "FOLLOWUP_READY",
+                            "CONTACTED",
+                            "APPOINTMENT_PENDING_APPROVAL",
+                            "BOOKED",
+                        ]
                     ),
                 )
                 .order_by(CarePlanItem.sequence_order.asc())
@@ -283,18 +305,23 @@ async def sequential_inbound_whatsapp(
             patient_name=f"{patient.first_name} {patient.last_name}".strip(),
             clinic_name=clinic.name,
             care_items=(
-                [{
-                    "tooth": active_item.tooth_fdi,
-                    "finding": active_item.finding_type,
-                    "window": active_item.recommended_window,
-                    "priority": active_item.priority_level,
-                    "visit_outcome": active_item.outcome,
-                }]
+                [
+                    {
+                        "tooth": active_item.tooth_fdi,
+                        "finding": active_item.finding_type,
+                        "window": active_item.recommended_window,
+                        "priority": active_item.priority_level,
+                        "visit_outcome": active_item.outcome,
+                    }
+                ]
                 if active_item
                 else []
             ),
             history=[
-                {"role": "assistant" if item.direction == "OUT" else "user", "content": item.body}
+                {
+                    "role": "assistant" if item.direction == "OUT" else "user",
+                    "content": item.body,
+                }
                 for item in history
             ],
             available_slots=slot_strings,
@@ -334,7 +361,9 @@ async def sequential_inbound_whatsapp(
                 active_item.status = "APPOINTMENT_PENDING_APPROVAL"
 
         normalized_phone = normalize_phone(body.phone)
-        sent = await WhatsAppServiceClient().send_message(clinic.id, normalized_phone, reply.reply)
+        sent = await WhatsAppServiceClient().send_message(
+            clinic.id, normalized_phone, reply.reply
+        )
         session.add(
             CareConversationMessage(
                 conversation_id=conversation.id,
