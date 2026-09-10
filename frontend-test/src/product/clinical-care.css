@@ -8,3 +8,46 @@
 @media(max-width:760px){.care-shell{display:block;padding-top:64px}.care-mobile-menu{display:grid;place-items:center;position:fixed;left:12px;top:13px;width:40px;height:40px;border:1px solid var(--care-line);border-radius:10px;background:#fff;color:var(--care-ink);z-index:32}.care-nav-scrim{display:block;position:fixed;inset:0;border:0;background:#11193699;z-index:29}.care-sidebar{position:fixed;inset:0 auto 0 0;width:min(310px,86vw);height:100dvh;padding:20px 14px;display:flex;transform:translateX(-105%);transition:transform .2s ease;z-index:31}.care-sidebar.open{transform:none}.care-brand{display:flex}.care-doctor{display:grid;grid-template-columns:38px 1fr 34px}.care-doctor>div:not(.care-avatar),.care-doctor button{display:block}.care-sidebar nav{display:grid;overflow:auto;gap:5px}.care-sidebar nav button{display:grid;grid-template-columns:22px 1fr auto;min-width:0;padding:0 13px;min-height:48px}.care-sidebar nav span{display:block}.care-topbar{position:fixed;inset:0 0 auto 0;height:64px;padding:10px 12px 10px 62px;align-items:center;z-index:28}.care-topbar>div:first-child span{display:none}.care-top-actions{align-items:center;min-width:0}.care-quick-patient{max-width:min(44vw,220px);min-width:0}.care-quick-patient select{max-width:calc(44vw - 35px);min-width:0}.care-icon{display:grid}.care-main{padding:18px 12px 40px;overflow-x:hidden}.record-header{align-items:flex-start;flex-direction:column}.record-actions{justify-content:flex-start}.record-tabs{overflow-x:auto}.plan-items article>button{grid-column:2}.appointment-actions{flex-wrap:wrap}.chat-messages article{max-width:88%}}
 @media(max-width:520px){.care-quick-patient{max-width:46vw}.care-quick-patient select{max-width:calc(46vw - 34px)}.care-lang button{padding:6px}.availability-list article{align-items:flex-start;flex-direction:column}.care-plan>header{flex-direction:column}.plan-actions{justify-content:flex-start}.record-vitals{grid-template-columns:1fr 1fr}}
 @media(pointer:coarse){.care-shell button,.care-shell input,.care-shell select{min-height:44px}}
+
+/* The shared diagnostic viewer keeps its native OPG aspect ratio. At the
+ * tablet breakpoint every wrapper still has to be allowed to shrink below
+ * the image's intrinsic width, otherwise the SVG viewBox becomes min-content
+ * width and expands the complete Care shell. */
+.care-shell .ai-page,
+.care-shell .ai-results-shell,
+.care-shell .ai-results-shell > *,
+.care-shell .pro-analysis-workspace,
+.care-shell .opg-workspace,
+.care-shell .opg-cinematic-shell,
+.care-shell .finding-stage {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.care-shell .findings-only-opg .finding-stage > img,
+.care-shell .findings-only-opg .finding-only-overlay {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+@media(max-width:820px){
+  .care-shell .medical-opg-header,
+  .care-shell .medical-viewer-actions {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .care-shell .medical-viewer-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .care-shell .finding-filter-pills {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .care-shell .findings-only-opg,
+  .care-shell .opg-cinematic-shell,
+  .care-shell .finding-stage {
+    overflow: hidden !important;
+  }
+}
