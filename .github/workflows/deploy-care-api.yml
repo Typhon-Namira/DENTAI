@@ -135,7 +135,7 @@ jobs:
           backup="teta2-web-previous-$RELEASE_SHA"
           docker rm -f "$backup" >/dev/null 2>&1 || true
           docker rm -f teta2-web-next >/dev/null 2>&1 || true
-          docker run -d --name teta2-web-next --network teta2-internal --env-file "$release/runtime.env" -e WHATSAPP_EMBEDDED_SERVICE=false -p 127.0.0.1:8001:8000 "dentai-care:$RELEASE_SHA"
+          docker run -d --name teta2-web-next --network teta2-internal --env-file "$release/runtime.env" -e WHATSAPP_EMBEDDED_SERVICE=false -e WHATSAPP_OUTREACH_WORKER_ENABLED=false -p 127.0.0.1:8001:8000 "dentai-care:$RELEASE_SHA"
           for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8001/ready && break; sleep 2; done
           curl -fsS http://127.0.0.1:8001/ready
           docker rm -f teta2-web-next
@@ -151,7 +151,7 @@ jobs:
           docker stop teta2-web
           docker rename teta2-web "$backup"
           switched=1
-          docker run -d --name teta2-web --restart unless-stopped --network teta2-internal --env-file "$release/runtime.env" --volumes-from "$backup" "dentai-care:$RELEASE_SHA"
+          docker run -d --name teta2-web --restart unless-stopped --network teta2-internal --env-file "$release/runtime.env" --volumes-from "$backup" -e WHATSAPP_OUTREACH_WORKER_ENABLED=true "dentai-care:$RELEASE_SHA"
           wait_for_production() {
             for _ in $(seq 1 30); do
               if docker exec teta2-web python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/ready", timeout=2)'; then
@@ -163,6 +163,8 @@ jobs:
             return 1
           }
           wait_for_production
+          docker exec teta2-web sh -c 'test "$WHATSAPP_OUTREACH_WORKER_ENABLED" = true'
+          docker exec teta2-web sh -c 'ps -ef | grep "[p]ython -m app.outreach.worker" >/dev/null'
           printf '%s' "$backup" > "$release/previous-container"
           trap - ERR
           REMOTE
