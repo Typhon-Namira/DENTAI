@@ -10,10 +10,16 @@ const viewports = [
 for (const viewport of viewports) {
   test(`${viewport.name} clinical pages have no horizontal overflow`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.goto(process.env.CARE_E2E_URL ?? "http://127.0.0.1:5173/login");
-    await page.locator('input[autocomplete="username"]').fill(process.env.CARE_E2E_USER ?? "doctor");
-    await page.locator('input[autocomplete="current-password"]').fill(process.env.CARE_E2E_PASSWORD ?? "VisualPass123!");
-    await page.locator('input[placeholder="marstom"]').fill(process.env.CARE_E2E_CLINIC ?? "visual");
+    await page.goto(process.env.CARE_E2E_URL ?? "http://127.0.0.1:5173/");
+    const english = page.getByRole("button", { name: /Continue in English/i });
+    if (await english.isVisible()) await english.click();
+    await page.evaluate(() => {
+      window.history.pushState({}, "", "/login");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await page.getByRole("textbox", { name: "Email or username" }).fill(process.env.CARE_E2E_USER ?? "doctor");
+    await page.getByRole("textbox", { name: "Password" }).fill(process.env.CARE_E2E_PASSWORD ?? "VisualPass123!");
+    await page.getByRole("textbox", { name: "Clinic slug" }).fill(process.env.CARE_E2E_CLINIC ?? "visual");
     await page.getByRole("button", { name: /sign in securely/i }).click();
     await expect(page.getByText("Your clinical day, in one place.")).toBeVisible();
 
