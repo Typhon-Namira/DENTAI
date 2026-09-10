@@ -17,6 +17,21 @@ else
   echo "Embedded WhatsApp service disabled; using WHATSAPP_SERVICE_URL=${WHATSAPP_SERVICE_URL:-unset}"
 fi
 
+if [ "${WHATSAPP_OUTREACH_WORKER_ENABLED:-false}" = "true" ]; then
+  echo "Starting scheduled WhatsApp outreach worker"
+  (
+    set +e
+    while true; do
+      python -m app.outreach.worker
+      worker_status=$?
+      echo "WhatsApp outreach worker exited with code ${worker_status}; restarting in 2 seconds" >&2
+      sleep 2
+    done
+  ) &
+else
+  echo "Scheduled WhatsApp outreach worker disabled"
+fi
+
 exec uvicorn app.main:app \
   --host 0.0.0.0 \
   --port "${PORT:-8000}" \
