@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import or_, select
 
+from app.care.sequential import record_scheduled_outreach_sent
 from app.clinic_resolution.service import resolver
 from app.core.config import get_settings
 from app.database.control_models import ClinicRegistry
@@ -148,6 +149,11 @@ async def process_due(
         row.sent_at = datetime.now(UTC)
         row.retry_at = None
         row.safe_error = None
+        await record_scheduled_outreach_sent(
+            session,
+            outreach=row,
+            provider_message_id=row.provider_message_id,
+        )
     except WhatsAppServiceError as exc:
         if dispatch_started:
             row.status = WhatsAppOutreachStatus.SEND_UNKNOWN
