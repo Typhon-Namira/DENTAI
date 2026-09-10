@@ -116,12 +116,13 @@ jobs:
           docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' teta2-web > "$release/runtime.env"
           chmod 600 "$release/runtime.env"
           docker build -t "dentai-care:$RELEASE_SHA" "$release"
-          docker run --rm --env-file "$release/runtime.env" \
+          docker run --rm --network teta2-internal --env-file "$release/runtime.env" \
             -e BACKUP_DESTINATION="/backups/pre-migration" \
             -v "$release:/backups" \
             "dentai-care:$RELEASE_SHA" python -m scripts.backup_all_tenants
           test -s "$release/pre-migration/manifest.json"
-          docker run --rm --env-file "$release/runtime.env" "dentai-care:$RELEASE_SHA" python -m scripts.migrate_all_tenants
+          docker run --rm --network teta2-internal --env-file "$release/runtime.env" \
+            "dentai-care:$RELEASE_SHA" python -m scripts.migrate_all_tenants
           backup="teta2-web-previous-$RELEASE_SHA"
           docker rm -f "$backup" >/dev/null 2>&1 || true
           docker rm -f teta2-web-next >/dev/null 2>&1 || true
