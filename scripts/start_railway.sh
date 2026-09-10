@@ -4,16 +4,19 @@ set -eu
 if [ "${WHATSAPP_EMBEDDED_SERVICE:-true}" = "true" ]; then
   export WHATSAPP_SERVICE_PORT="${WHATSAPP_SERVICE_PORT:-3001}"
   export WHATSAPP_SESSION_DIR="${WHATSAPP_SESSION_DIR:-/app/data/whatsapp_sessions}"
-  if [ -z "${WHATSAPP_SERVICE_URL:-}" ] || [ "${WHATSAPP_SERVICE_URL}" = "http://whatsapp-service:3001" ]; then
-    export WHATSAPP_SERVICE_URL="http://127.0.0.1:${WHATSAPP_SERVICE_PORT}"
-  fi
+  # When the embedded service is enabled it is the authoritative clinic WhatsApp
+  # transport. Do not inherit a stale external service URL or callback from an
+  # older container environment: both inbound and outbound must use this same
+  # process/session.
+  export WHATSAPP_SERVICE_URL="http://127.0.0.1:${WHATSAPP_SERVICE_PORT}"
   if [ -z "${WHATSAPP_SERVICE_TOKEN:-}" ]; then
     export WHATSAPP_SERVICE_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
   fi
-  export TETA2_CARE_CALLBACK_URL="${TETA2_CARE_CALLBACK_URL:-http://127.0.0.1:${PORT:-8000}/api/v1/care/internal/whatsapp/inbound}"
-  export TETA2_CARE_STATUS_CALLBACK_URL="${TETA2_CARE_STATUS_CALLBACK_URL:-http://127.0.0.1:${PORT:-8000}/api/v1/care/internal/whatsapp/status}"
+  export TETA2_CARE_CALLBACK_URL="http://127.0.0.1:${PORT:-8000}/api/v1/care/internal/whatsapp/inbound"
+  export TETA2_CARE_STATUS_CALLBACK_URL="http://127.0.0.1:${PORT:-8000}/api/v1/care/internal/whatsapp/status"
   mkdir -p "$WHATSAPP_SESSION_DIR"
   echo "Starting embedded WhatsApp service on 127.0.0.1:${WHATSAPP_SERVICE_PORT}"
+  echo "Care WhatsApp inbound callback configured on local API"
   (
     cd /app/whatsapp_service
     node src/index.js
