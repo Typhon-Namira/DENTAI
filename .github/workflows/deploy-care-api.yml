@@ -35,7 +35,7 @@ jobs:
           npm ci --no-audit --no-fund
           npm test -- --run
           npm run build
-          ! grep -R -E "https?://api-domain|your-dentai-production-domain\\.example" dist
+          ! grep -R -E "https?://api-domain|your-dentai-production-domain\.example" dist
       - working-directory: whatsapp_service
         run: npm install --no-audit --no-fund && npm test
       - run: docker build -t dentai-care:${{ github.sha }} .
@@ -164,7 +164,22 @@ jobs:
           }
           wait_for_production
           docker exec teta2-web sh -c 'test "$WHATSAPP_OUTREACH_WORKER_ENABLED" = true'
-          docker exec teta2-web sh -c 'ps -ef | grep "[p]ython -m app.outreach.worker" >/dev/null'
+          docker exec teta2-web python - <<'PY'
+          from pathlib import Path
+
+          expected = "python -m app.outreach.worker"
+          found = False
+          for cmdline in Path("/proc").glob("[0-9]*/cmdline"):
+              try:
+                  command = cmdline.read_bytes().replace(b"\0", b" ").decode("utf-8", "ignore")
+              except OSError:
+                  continue
+              if expected in command:
+                  found = True
+                  break
+          if not found:
+              raise SystemExit("scheduled WhatsApp outreach worker process not found")
+          PY
           printf '%s' "$backup" > "$release/previous-container"
           trap - ERR
           REMOTE
