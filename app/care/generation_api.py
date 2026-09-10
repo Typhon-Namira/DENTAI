@@ -7,10 +7,10 @@ from sqlalchemy import select
 from app.audit.service import audit
 from app.auth.dependencies import AuthContext, authorized_patient, current_context
 from app.care.models import CarePlanItem
-from app.care.service import activate_reviewed_plan
+from app.care.sequential import generate_sequential_plan
 from app.common.serialization import model_dict
 from app.core.errors import AppError
-from app.database.models import AIAnalysis, AIStatus, ReviewStatus, Role
+from app.database.models import AIAnalysis, AIStatus, Role
 
 router = APIRouter(prefix="/care", tags=["care"])
 
@@ -26,7 +26,6 @@ async def generate_followup_plan(
     analysis = await ctx.session.get(AIAnalysis, analysis_id)
     if not analysis:
         raise AppError("ANALYSIS_NOT_FOUND", "Analysis was not found.", 404)
-
     await authorized_patient(ctx, analysis.patient_id)
 
     if analysis.status != AIStatus.COMPLETED:
@@ -35,35 +34,18 @@ async def generate_followup_plan(
             "The OPG analysis must be completed before a follow-up plan can be generated.",
             409,
         )
-    if analysis.review_status != ReviewStatus.REVIEWED:
-        raise AppError(
-            "CLINICIAN_REVIEW_REQUIRED",
-            "Review the AI findings before generating the follow-up plan.",
-            409,
-        )
 
-    plan = await activate_reviewed_plan(
-        ctx.session,
-        clinic_id=ctx.clinic.id,
-        clinic_name=ctx.clinic.name,
-        analysis=analysis,
-    )
+    plan = await generate_sequential_plan(ctx.session, analysis)
     if not plan:
         raise AppError(
             "NO_FOLLOWUP_CANDIDATES",
-            "No eligible tooth findings are available for a follow-up plan.",
+            "No eligible pathological tooth findings are available for follow-up.",
             409,
         )
     if plan.status == "REVIEWED_NO_ACTION":
         raise AppError(
-            "NO_CONFIRMED_FINDINGS",
-            "No clinician-confirmed problem teeth require follow-up.",
-            409,
-        )
-    if plan.status == "READY_FOR_REVIEW":
-        raise AppError(
-            "CLINICIAN_REVIEW_REQUIRED",
-            "Confirm or reject the detected problem teeth before generating the plan.",
+            "NO_FOLLOWUP_CANDIDATES",
+            "All eligible pathological findings were rejected during clinician review.",
             409,
         )
 
@@ -71,7 +53,7 @@ async def generate_followup_plan(
         await ctx.session.scalars(
             select(CarePlanItem)
             .where(CarePlanItem.care_plan_id == plan.id)
-            .order_by(CarePlanItem.target_followup_at.asc())
+            .order_by(CarePlanItem.sequence_order.asc(), CarePlanItem.priority_score.desc())
         )
     ).all()
     await audit(
@@ -81,6 +63,7 @@ async def generate_followup_plan(
         "CarePlan",
         plan.id,
         plan.branch_id,
+        {"review_status": str(analysis.review_status)},
     )
     await ctx.session.commit()
     return {**model_dict(plan), "items": [model_dict(item) for item in items]}

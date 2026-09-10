@@ -28,9 +28,24 @@ export interface CareSettings {
   buffer_minutes: number; preferred_times: unknown[]; blocked_windows: unknown[]; auto_followup_enabled: boolean;
   auto_outreach_after_review: boolean; attach_tooth_image: boolean; default_language: string; booking_instructions: string | null;
 }
-export interface CarePlanItem { id: string; finding_id: string; tooth_fdi: string; finding_type: string; confidence: number | null; recommended_window: string; target_followup_at: string; status: string; rationale: string; message_preview: string | null; }
-export interface CarePlan { id: string; patient_id: string; analysis_id: string; branch_id: string; doctor_id: string | null; status: string; language: string; summary: string | null; created_at: string; items: CarePlanItem[]; }
-export interface CareAppointment { id: string; patient_id: string; branch_id: string; doctor_id: string | null; conversation_id: string | null; care_plan_item_id: string | null; starts_at: string; ends_at: string; timezone: string; status: string; source: string; tooth_fdi: string | null; finding_type: string | null; reason: string; doctor_note: string | null; reschedule_count: number; notification_status?:string; notification_attempt_count?:number; notification_error?:string|null; patient?: Patient | null; }
+export interface CarePlanItem {
+  id: string; finding_id: string; tooth_fdi: string; finding_type: string; confidence: number | null;
+  recommended_window: string; target_followup_at: string; status: string; rationale: string; message_preview: string | null;
+  sequence_order?: number; priority_score?: number; priority_level?: string; conversation_start_at?: string | null;
+  outcome?: string | null; outcome_at?: string | null;
+}
+export interface CarePlan {
+  id: string; patient_id: string; analysis_id: string; branch_id: string; doctor_id: string | null; status: string;
+  language: string; summary: string | null; created_at: string; items: CarePlanItem[]; patient?: Patient | null;
+}
+export interface SequentialPlanPage { items: CarePlan[]; offset: number; limit: number; has_more: boolean; }
+export interface CareAppointment {
+  id: string; patient_id: string; branch_id: string; doctor_id: string | null; conversation_id: string | null;
+  care_plan_item_id: string | null; starts_at: string; ends_at: string; timezone: string; status: string; source: string;
+  tooth_fdi: string | null; finding_type: string | null; reason: string; doctor_note: string | null; reschedule_count: number;
+  notification_status?:string; notification_attempt_count?:number; notification_error?:string|null; patient?: Patient | null;
+  visit_outcome?: string | null; outcome_recorded_at?: string | null;
+}
 export interface CareConversation { id: string; patient_id: string; care_plan_id: string | null; branch_id: string; whatsapp_phone: string; language: string; status: string; summary: string | null; last_message_at: string | null; patient?: Patient | null; latest_appointment?: CareAppointment | null; }
 export interface CareMessage { id: string; conversation_id: string; direction: "IN" | "OUT"; body: string; language: string; status: string; provider_message_id: string | null; created_at: string; }
 export interface AvailabilityException { id:string; branch_id:string; doctor_id:string|null; starts_at:string; ends_at:string; kind:"UNAVAILABLE"|"BREAK"; reason:string|null; }
@@ -62,6 +77,19 @@ async function productRequest<T>(path: string, init: RequestInit = {}): Promise<
   return payload as T;
 }
 
+async function fetchAllSequentialPlans(): Promise<CarePlan[]> {
+  const items: CarePlan[] = [];
+  let offset = 0;
+  const limit = 100;
+  while (true) {
+    const page = await productRequest<SequentialPlanPage>(`/api/v1/care/sequential-plans/search?offset=${offset}&limit=${limit}`);
+    items.push(...page.items);
+    if (!page.has_more) return items;
+    offset += page.items.length;
+    if (page.items.length === 0) return items;
+  }
+}
+
 export const productApi = {
   dashboard(_role?: Role) { return productRequest<DashboardSummary>("/api/v1/care/dashboard"); },
   branches() { return productRequest<BranchSummary[]>("/api/v1/branches"); },
@@ -71,18 +99,22 @@ export const productApi = {
   listFollowUps(status?: FollowUpStatus) { const params = new URLSearchParams({ page: "1", page_size: "100" }); if (status) params.set("status", status); return productRequest<FollowUpPage>(`/api/v1/follow-ups?${params.toString()}`); },
   createFollowUp(patientId: string, body: { reason: string; due_at: string; priority: FollowUpPriority; notes?: string | null; doctor_id?: string | null; }) { return productRequest<FollowUp>(`/api/v1/patients/${encodeURIComponent(patientId)}/follow-ups`, { method: "POST", body: JSON.stringify(body) }); },
   updateFollowUp(followUpId: string, status: FollowUpStatus) { return productRequest<FollowUp>(`/api/v1/follow-ups/${encodeURIComponent(followUpId)}`, { method: "PATCH", body: JSON.stringify({ status }) }); },
-
   careSettings(branchId: string) { return productRequest<CareSettings>(`/api/v1/care/settings/${encodeURIComponent(branchId)}`); },
   updateCareSettings(branchId: string, body: Omit<CareSettings, "id" | "branch_id">) { return productRequest<CareSettings>(`/api/v1/care/settings/${encodeURIComponent(branchId)}`, { method: "PUT", body: JSON.stringify(body) }); },
   carePlans(patientId?: string) { const query = patientId ? `?patient_id=${encodeURIComponent(patientId)}` : ""; return productRequest<CarePlan[]>(`/api/v1/care/plans${query}`); },
+  sequentialCarePlans() { return fetchAllSequentialPlans(); },
+  searchSequentialCarePlans(q = "", offset = 0, limit = 50) { const params = new URLSearchParams({ offset:String(offset), limit:String(limit) }); if (q.trim()) params.set("q",q.trim()); return productRequest<SequentialPlanPage>(`/api/v1/care/sequential-plans/search?${params.toString()}`); },
   generateCarePlan(analysisId: string) { return productRequest<CarePlan>(`/api/v1/care/analyses/${encodeURIComponent(analysisId)}/generate-plan`, { method: "POST" }); },
   updateCarePlanItem(planId: string, itemId: string, body: { target_followup_at?: string; recommended_window?: string; rationale?: string; message_preview?: string | null; }) { return productRequest<CarePlanItem>(`/api/v1/care/plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}`, { method: "PATCH", body: JSON.stringify(body) }); },
+  updateSequenceSchedule(planId:string,itemId:string,conversationStartAt:string|null) { return productRequest<CarePlanItem>(`/api/v1/care/plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}/sequence-schedule`, {method:"PATCH",body:JSON.stringify({conversation_start_at:conversationStartAt})}); },
   approveCarePlan(planId: string) { return productRequest<CarePlan>(`/api/v1/care/plans/${encodeURIComponent(planId)}/approve`, { method: "POST" }); },
+  approveSequentialCarePlan(planId: string) { return productRequest<CarePlan>(`/api/v1/care/plans/${encodeURIComponent(planId)}/approve-sequential`, { method: "POST" }); },
   transitionCarePlan(planId:string, action:"reject"|"pause"|"resume"|"complete", reason?:string) { return productRequest<CarePlan>(`/api/v1/care/plans/${encodeURIComponent(planId)}/${action}`, {method:"POST",body:JSON.stringify({reason:reason||null})}); },
   completeCarePlanItem(planId:string,itemId:string) { return productRequest<CarePlanItem>(`/api/v1/care/plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}/complete`,{method:"POST"}); },
   careAppointments(start: string, end: string, status?: string) { const params = new URLSearchParams({ start, end }); if (status) params.set("status", status); return productRequest<CareAppointment[]>(`/api/v1/care/appointments?${params.toString()}`); },
   requestCareReschedule(appointmentId: string, preferredStart: string | null, doctorNote?: string) { return productRequest<CareAppointment>(`/api/v1/care/appointments/${encodeURIComponent(appointmentId)}/reschedule`, { method: "POST", body: JSON.stringify({ preferred_start: preferredStart, doctor_note: doctorNote || null }) }); },
   confirmCareAppointment(appointmentId: string) { return productRequest<CareAppointment>(`/api/v1/care/appointments/${encodeURIComponent(appointmentId)}/approve`, { method: "POST" }); },
+  recordAppointmentOutcome(appointmentId:string,outcome:"TREATED"|"ATTENDED_NOT_TREATED"|"NO_SHOW",note?:string) { return productRequest<CareAppointment>(`/api/v1/care/appointments/${encodeURIComponent(appointmentId)}/outcome`, {method:"POST",body:JSON.stringify({outcome,note:note||null})}); },
   transitionCareAppointment(appointmentId:string,action:"reject"|"cancel"|"complete",reason?:string) { return productRequest<CareAppointment>(`/api/v1/care/appointments/${encodeURIComponent(appointmentId)}/${action}`,{method:"POST",body:JSON.stringify({reason:reason||null})}); },
   careConversations() { return productRequest<CareConversation[]>("/api/v1/care/conversations"); },
   careConversationMessages(conversationId: string) { return productRequest<CareMessage[]>(`/api/v1/care/conversations/${encodeURIComponent(conversationId)}/messages`); },

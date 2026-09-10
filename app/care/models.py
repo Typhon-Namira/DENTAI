@@ -1,7 +1,17 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base, TimestampMixin, UUIDMixin, utc_now
@@ -71,6 +81,14 @@ class CarePlanItem(UUIDMixin, TimestampMixin, Base):
     message_preview: Mapped[str | None] = mapped_column(Text)
     appointment_required: Mapped[bool] = mapped_column(Boolean, default=True)
     image_required: Mapped[bool] = mapped_column(Boolean, default=True)
+    sequence_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    priority_score: Mapped[float] = mapped_column(Float, default=0.0)
+    priority_level: Mapped[str] = mapped_column(String(24), default="ROUTINE")
+    conversation_start_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), index=True
+    )
+    outcome: Mapped[str | None] = mapped_column(String(40))
+    outcome_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class CareConversation(UUIDMixin, TimestampMixin, Base):
@@ -153,6 +171,8 @@ class CareAppointment(UUIDMixin, TimestampMixin, Base):
     notification_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notification_failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notification_error: Mapped[str | None] = mapped_column(Text)
+    visit_outcome: Mapped[str | None] = mapped_column(String(40), index=True)
+    outcome_recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         UniqueConstraint(
