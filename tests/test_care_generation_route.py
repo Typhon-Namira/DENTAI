@@ -1,13 +1,12 @@
-from app.main import app
+from app.care.generation_api import router
 
 
 def test_explicit_followup_generation_route_is_registered():
     route = next(
         (
             item
-            for item in app.routes
-            if getattr(item, "path", None)
-            == "/api/v1/care/analyses/{analysis_id}/generate-plan"
+            for item in router.routes
+            if getattr(item, "path", None) == "/care/analyses/{analysis_id}/generate-plan"
         ),
         None,
     )
