@@ -28,10 +28,11 @@ Run the **Deploy Care API** workflow manually against the protected environment.
 
 1. runs Python formatting, lint, typing, tests, frontend tests/build, and a Docker build;
 2. uploads an immutable source release and builds an image tagged with the commit SHA;
-3. runs `scripts/migrate_all_tenants.py`, which upgrades the control plane and every active tenant to Alembic head;
-4. health-checks a loopback-only candidate, renames the existing `teta2-web` container as the rollback unit, and starts the replacement with its mounted volumes on `teta2-internal` so the existing Caddy service continues to route to it;
-5. checks authenticated Care dashboard, plan, appointment, and conversation endpoints at both the backend origin and the Vercel frontend proxy;
-6. restores the exact previous container, including its environment, network configuration, and volumes, if post-deployment smoke testing fails.
+3. records the current `teta2-web`/`teta2-caddy` container and `teta2-internal` network configuration on EC2, then creates and verifies a control-plane backup plus one backup for every active tenant;
+4. runs `scripts/migrate_all_tenants.py`, which upgrades the control plane and every active tenant to Alembic head;
+5. health-checks a loopback-only candidate, renames the existing `teta2-web` container as the rollback unit, and starts the replacement with its mounted volumes on `teta2-internal` so the existing Caddy service continues to route to it;
+6. checks authenticated Care dashboard, plan, appointment, and conversation endpoints at both the backend origin and the Vercel frontend proxy;
+7. restores the exact previous container, including its environment, network configuration, and volumes, if post-deployment smoke testing fails.
 
 Database migrations are additive. Back up the control database and every tenant database before approving the production job. Application rollback does not downgrade the database; the new columns and table are backward-compatible with the preceding application release.
 

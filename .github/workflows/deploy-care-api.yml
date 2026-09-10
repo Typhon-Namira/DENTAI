@@ -102,9 +102,25 @@ jobs:
           tar -xzf "$release/release.tgz" -C "$release"
           docker inspect teta2-web >/dev/null
           docker network inspect teta2-internal >/dev/null
+          docker inspect teta2-caddy >/dev/null
+          mkdir -p "$release/predeploy"
+          chmod 700 "$release/predeploy"
+          docker inspect teta2-web > "$release/predeploy/teta2-web.inspect.json"
+          docker inspect teta2-caddy > "$release/predeploy/teta2-caddy.inspect.json"
+          docker network inspect teta2-internal > "$release/predeploy/teta2-internal.inspect.json"
+          docker inspect -f '{{.Config.Image}}' teta2-web > "$release/predeploy/current-image"
+          docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' teta2-web > "$release/predeploy/restart-policy"
+          docker inspect -f '{{json .Config.Cmd}}' teta2-web > "$release/predeploy/command.json"
+          docker inspect -f '{{json .Mounts}}' teta2-web > "$release/predeploy/mounts.json"
+          docker inspect -f '{{json .NetworkSettings.Networks}}' teta2-web > "$release/predeploy/networks.json"
           docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' teta2-web > "$release/runtime.env"
           chmod 600 "$release/runtime.env"
           docker build -t "dentai-care:$RELEASE_SHA" "$release"
+          docker run --rm --env-file "$release/runtime.env" \
+            -e BACKUP_DESTINATION="/backups/pre-migration" \
+            -v "$release:/backups" \
+            "dentai-care:$RELEASE_SHA" python scripts/backup_all_tenants.py
+          test -s "$release/pre-migration/manifest.json"
           docker run --rm --env-file "$release/runtime.env" "dentai-care:$RELEASE_SHA" python scripts/migrate_all_tenants.py
           backup="teta2-web-previous-$RELEASE_SHA"
           docker rm -f "$backup" >/dev/null 2>&1 || true
