@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "./client";
 import type { Patient, Role } from "./types";
 
 const SESSION_KEYS = ["teta2-auth", "dentai-test-auth"] as const;
@@ -65,7 +66,7 @@ async function productRequest<T>(path: string, init: RequestInit = {}): Promise<
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${session.accessToken}`);
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const response = await fetch(path, { ...init, headers });
+  const response = await fetch(API_BASE_URL + path, { ...init, headers });
   const contentType = response.headers.get("content-type") ?? "";
   const payload = contentType.includes("application/json") ? await response.json() : await response.text();
   if (!response.ok) {
