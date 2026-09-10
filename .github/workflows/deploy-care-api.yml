@@ -95,6 +95,7 @@ jobs:
           CARE_FRONTEND_URL: ${{ secrets.CARE_FRONTEND_URL || 'https://www.teta2.com' }}
           CARE_SMOKE_CLINIC_SLUG: ${{ secrets.CARE_SMOKE_CLINIC_SLUG || 'teta2-test' }}
           CARE_SMOKE_IDENTIFIER: ${{ secrets.CARE_SMOKE_IDENTIFIER || 'testdentist' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
         run: |
           ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'REMOTE'
