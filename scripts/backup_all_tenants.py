@@ -91,7 +91,7 @@ def main() -> None:
         entries.append(backup_database(f"tenant-{slug}", database_url, destination))
     manifest = destination / "manifest.json"
     manifest.write_text(json.dumps({"databases": entries}, indent=2) + "\n", encoding="utf-8")
-    os.chmod(destination, 0o600)
+    os.chmod(manifest, 0o600)
     print(f"Created and verified {len(entries)} database backups", flush=True)
 
 
