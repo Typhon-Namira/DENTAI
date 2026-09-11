@@ -1,6 +1,6 @@
 """Platform access requests and renewable Teta2 Care subscriptions.
 
-Revision ID: 0012_platform_access_subscriptions
+Revision ID: 0012_platform_access
 Revises: 0011_sequential_care_followup
 """
 
@@ -9,7 +9,7 @@ import os
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0012_platform_access_subscriptions"
+revision = "0012_platform_access"
 down_revision = "0011_sequential_care_followup"
 branch_labels = None
 depends_on = None
