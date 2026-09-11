@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     whatsapp_max_attempts: int = 5
 
     # Platform administration and subscription onboarding.
+    platform_admin_email: str | None = None
+    platform_admin_password: str | None = None
     platform_admin_token: str | None = None
     platform_public_url: str = "https://www.teta2.com"
     platform_support_email: str | None = None
@@ -74,7 +76,7 @@ class Settings(BaseSettings):
     radar_enabled: bool = True
     radar_worker_poll_seconds: float = 5.0
     radar_worker_concurrency: int = 8
-    radar_worker_heartbeat_seconds: int = 30
+    radar_worker_heartbeat_seconds: float = 30.0
     radar_claim_seconds: int = 180
     radar_http_timeout_seconds: int = 20
     radar_http_max_bytes: int = 2 * 1024 * 1024
