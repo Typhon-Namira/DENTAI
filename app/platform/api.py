@@ -1,5 +1,4 @@
 import hashlib
-import hmac
 import uuid
 from collections import Counter
 from datetime import UTC, datetime, timedelta
@@ -20,6 +19,11 @@ from app.database.control_models import (
     PlatformVisit,
 )
 from app.database.sessions import control_session
+from app.platform.admin_auth import (
+    ADMIN_SESSION_HOURS,
+    authenticate_platform_admin,
+    verify_platform_admin_session,
+)
 from app.platform.service import (
     activation_email_body,
     payment_email_body,
@@ -45,6 +49,11 @@ class AccessRequestCreate(BaseModel):
     dentists_count: int = Field(default=1, ge=1, le=500)
     branches_count: int = Field(default=1, ge=1, le=100)
     notes: str | None = Field(default=None, max_length=4000)
+
+
+class AdminLogin(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=512)
 
 
 class AdminDecision(BaseModel):
@@ -141,20 +150,18 @@ def _serialize_settings(row: PlatformSettings) -> dict:
 async def require_platform_admin(
     authorization: Annotated[str | None, Header()] = None,
 ) -> None:
-    expected = get_settings().platform_admin_token
-    if not expected:
-        raise AppError(
-            "PLATFORM_ADMIN_NOT_CONFIGURED",
-            "Platform administration is unavailable.",
-            503,
-        )
     supplied = authorization.removeprefix("Bearer ") if authorization else ""
-    if not hmac.compare_digest(supplied, expected):
-        raise AppError(
-            "PLATFORM_ADMIN_AUTH_REQUIRED",
-            "Platform administrator authentication is required.",
-            401,
-        )
+    verify_platform_admin_session(supplied)
+
+
+@router.post("/admin/login")
+async def platform_admin_login(body: AdminLogin):
+    token = authenticate_platform_admin(str(body.email), body.password)
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": ADMIN_SESSION_HOURS * 60 * 60,
+    }
 
 
 @router.post("/access-requests", status_code=201)
