@@ -56,6 +56,17 @@ class Settings(BaseSettings):
     whatsapp_claim_timeout_seconds: int = 300
     whatsapp_max_attempts: int = 5
 
+    # Platform access/subscription control plane.
+    platform_admin_email: str | None = None
+    platform_admin_password: str | None = None
+    platform_admin_token_minutes: int = 30
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_starttls: bool = True
+
     # Armenia Patient Radar operational runtime.
     radar_enabled: bool = True
     radar_worker_poll_seconds: float = 5.0
