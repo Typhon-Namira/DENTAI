@@ -2,20 +2,18 @@ import asyncio
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
 import smtplib
-import subprocess
 import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
-from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
 
 from cryptography.fernet import Fernet
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.auth.security import hash_password
 from app.core.config import get_settings
@@ -83,15 +81,21 @@ def validate_admin_token(token: str) -> str:
             raise ValueError
         return str(payload["sub"])
     except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        raise AppError("PLATFORM_ADMIN_AUTH_REQUIRED", "Platform admin authentication is required.", 401) from exc
+        raise AppError(
+            "PLATFORM_ADMIN_AUTH_REQUIRED",
+            "Platform admin authentication is required.",
+            401,
+        ) from exc
 
 
 def verify_admin_credentials(username: str, password: str) -> bool:
     configured_user = settings.platform_admin_username or ""
     configured_password = settings.platform_admin_password or ""
-    return bool(configured_user and configured_password) and hmac.compare_digest(
-        username, configured_user
-    ) and hmac.compare_digest(password, configured_password)
+    return (
+        bool(configured_user and configured_password)
+        and hmac.compare_digest(username, configured_user)
+        and hmac.compare_digest(password, configured_password)
+    )
 
 
 async def commercial_config(session: AsyncSession) -> PlatformCommercialConfig:
@@ -131,7 +135,7 @@ def _payment_email_body(row: AccessRequest, config: PlatformCommercialConfig) ->
             "After payment, reply to this email with the transfer receipt and include the payment reference above.",
             "After payment verification, Teta2 will activate your clinic workspace for 30 days and send the login credentials.",
             "",
-            "Teta2 Care",
+            PLAN_NAME,
         ]
     )
     return "\n".join(lines)
@@ -149,7 +153,7 @@ def _activation_email_body(
         [
             f"Hello {row.contact_name},",
             "",
-            "Your Teta2 Care clinic workspace is now active.",
+            f"Your {PLAN_NAME} clinic workspace is now active.",
             f"Access period: {SUBSCRIPTION_DAYS} days.",
             f"Access expires: {expires_at.astimezone(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
             "",
@@ -158,10 +162,9 @@ def _activation_email_body(
             f"Username: {username}",
             f"Temporary password: {password}",
             "",
-            "Please sign in and change operational credentials according to your clinic security policy.",
-            "Your clinic data is preserved when access expires. Renewing extends dashboard access without deleting prior records.",
+            "Your clinic data is preserved if access expires. Renewal extends dashboard access without deleting prior records.",
             "",
-            "Teta2 Care",
+            PLAN_NAME,
         ]
     )
 
@@ -171,11 +174,11 @@ def _renewal_email_body(row: AccessRequest, expires_at: datetime) -> str:
         [
             f"Hello {row.contact_name},",
             "",
-            "Your Teta2 Care subscription has been renewed.",
+            f"Your {PLAN_NAME} subscription has been renewed.",
             f"New access expiry: {expires_at.astimezone(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
-            "Your existing clinic data, patient records, analyses, follow-ups, and conversations remain unchanged.",
+            "Your existing clinic data, patient records, analyses, follow-ups and conversations remain unchanged.",
             "",
-            "Teta2 Care",
+            PLAN_NAME,
         ]
     )
 
@@ -231,7 +234,11 @@ async def send_logged_email(
 
 async def send_payment_request(session: AsyncSession, row: AccessRequest) -> None:
     if row.status not in {"SUBMITTED", "PAYMENT_REQUEST_SENT"}:
-        raise AppError("ACCESS_REQUEST_STATE_INVALID", "This request cannot receive payment instructions now.", 409)
+        raise AppError(
+            "ACCESS_REQUEST_STATE_INVALID",
+            "This request cannot receive payment instructions now.",
+            409,
+        )
     config = await commercial_config(session)
     row.plan_name = PLAN_NAME
     row.quoted_price_amount = config.price_amount
@@ -244,6 +251,7 @@ async def send_payment_request(session: AsyncSession, row: AccessRequest) -> Non
         subject=f"Teta2 Care payment instructions · {row.payment_reference}",
         body=_payment_email_body(row, config),
         request_id=row.id,
+        clinic_id=row.clinic_registry_id,
     )
     row.status = "PAYMENT_REQUEST_SENT"
     row.payment_email_sent_at = utcnow()
@@ -251,7 +259,8 @@ async def send_payment_request(session: AsyncSession, row: AccessRequest) -> Non
 
 
 async def _create_postgres_database(database_name: str) -> None:
-    if not settings.platform_tenant_database_admin_url:
+    admin_url = settings.platform_tenant_database_admin_url
+    if not admin_url:
         raise AppError(
             "TENANT_PROVISIONING_NOT_CONFIGURED",
             "Automatic tenant database provisioning is not configured.",
@@ -259,10 +268,7 @@ async def _create_postgres_database(database_name: str) -> None:
         )
     if not re.fullmatch(r"[a-z0-9_]+", database_name):
         raise AppError("TENANT_DATABASE_NAME_INVALID", "Tenant database name is invalid.", 500)
-    engine = create_async_engine(
-        settings.platform_tenant_database_admin_url,
-        isolation_level="AUTOCOMMIT",
-    )
+    engine = create_async_engine(admin_url, isolation_level="AUTOCOMMIT")
     try:
         async with engine.connect() as connection:
             await connection.execute(text(f'CREATE DATABASE "{database_name}"'))
@@ -272,34 +278,32 @@ async def _create_postgres_database(database_name: str) -> None:
 
 def _tenant_url(database_name: str) -> str:
     template = settings.platform_tenant_database_url_template
-    if not template:
-        if settings.app_env in {"development", "test"}:
-            return f"sqlite+aiosqlite:///./{database_name}.db"
-        raise AppError(
-            "TENANT_PROVISIONING_NOT_CONFIGURED",
-            "Automatic tenant database provisioning is not configured.",
-            503,
-        )
-    return template.format(database=database_name)
+    if template:
+        return template.format(database=database_name)
+    if settings.app_env in {"development", "test"}:
+        return f"sqlite+aiosqlite:///./{database_name}.db"
+    raise AppError(
+        "TENANT_PROVISIONING_NOT_CONFIGURED",
+        "Automatic tenant database provisioning is not configured.",
+        503,
+    )
 
 
 async def _migrate_tenant(database_url: str) -> None:
-    env = dict(**__import__("os").environ)
+    env = os.environ.copy()
     env["DATABASE_URL"] = database_url
     env["MIGRATION_PLANE"] = "clinic"
     process = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
         "alembic",
-        "-c",
-        str(Path("alembic.ini")),
         "upgrade",
         "head",
         env=env,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    _, stderr = await process.communicate()
+    await process.communicate()
     if process.returncode != 0:
         raise AppError(
             "TENANT_MIGRATION_FAILED",
@@ -334,9 +338,15 @@ async def provision_clinic(
     username = _username(row.contact_name, row.clinic_name)
     password = _temporary_password()
     engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
-        async with AsyncSession(engine, expire_on_commit=False) as tenant, tenant.begin():
-            branch = Branch(name=row.clinic_name, code="MAIN", address=row.address, phone=row.contact_phone)
+        async with factory() as tenant, tenant.begin():
+            branch = Branch(
+                name=row.clinic_name,
+                code="MAIN",
+                address=row.address,
+                phone=row.contact_phone,
+            )
             tenant.add(branch)
             await tenant.flush()
             parts = row.contact_name.split(" ", 1)
@@ -354,14 +364,20 @@ async def provision_clinic(
     finally:
         await engine.dispose()
 
-    key = settings.tenant_dsn_encryption_key
-    if not key:
-        if settings.app_env in {"development", "test"}:
-            encrypted = "plain:" + database_url
-        else:
-            raise AppError("TENANT_ENCRYPTION_NOT_CONFIGURED", "Tenant encryption is unavailable.", 503)
+    if settings.tenant_dsn_encryption_key:
+        encrypted = (
+            Fernet(settings.tenant_dsn_encryption_key.encode())
+            .encrypt(database_url.encode())
+            .decode()
+        )
+    elif settings.app_env in {"development", "test"}:
+        encrypted = "plain:" + database_url
     else:
-        encrypted = Fernet(key.encode()).encrypt(database_url.encode()).decode()
+        raise AppError(
+            "TENANT_ENCRYPTION_NOT_CONFIGURED",
+            "Tenant encryption is unavailable.",
+            503,
+        )
 
     registry = ClinicRegistry(
         slug=slug,
@@ -379,9 +395,16 @@ async def provision_clinic(
     return registry, username, password
 
 
-async def activate_or_renew(session: AsyncSession, row: AccessRequest) -> tuple[ClinicRegistry, datetime]:
-    if row.status not in {"PAYMENT_CONFIRMED", "ACTIVATED"}:
-        raise AppError("ACCESS_REQUEST_STATE_INVALID", "Payment must be verified before activation.", 409)
+async def activate_or_renew(
+    session: AsyncSession,
+    row: AccessRequest,
+) -> tuple[ClinicRegistry, datetime]:
+    if row.status != "PAYMENT_CONFIRMED":
+        raise AppError(
+            "ACCESS_REQUEST_STATE_INVALID",
+            "Payment must be verified before activation.",
+            409,
+        )
 
     registry, username, password = await provision_clinic(session, row=row)
     now = utcnow()
@@ -390,7 +413,8 @@ async def activate_or_renew(session: AsyncSession, row: AccessRequest) -> tuple[
         current_expiry = current_expiry.replace(tzinfo=UTC)
     start = current_expiry if current_expiry and current_expiry > now else now
     end = start + timedelta(days=SUBSCRIPTION_DAYS)
-    kind = "RENEWAL" if registry.access_expires_at else "INITIAL"
+    kind = "RENEWAL" if current_expiry else "INITIAL"
+
     registry.is_active = True
     registry.subscription_enforced = True
     registry.access_expires_at = end
