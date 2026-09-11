@@ -13,6 +13,7 @@ from app.care.models import (
     CareConversationMessage,
     CarePlan,
     CarePlanItem,
+    ClinicCareSettings,
 )
 from app.care.service import available_slots, settings_for_branch
 from app.database.models import Patient
@@ -32,7 +33,7 @@ _ACTIVE_ITEM_STATES = {
 
 _BOOKING_PATTERNS = (
     r"\b(book|booking|appointment|schedule|reserve|reservation)\b",
-    r"\b(i want|i'd like|i would like|can i|could i)\b.*\b(come|visit|appointment|book)\b",
+    r"\b(i want|i'd like|i would like|can i|could i)\b.*\b(come|visit|book)\b",
     r"وقت\s*(می.?خوام|میخواهم|بگیرم|رزرو)",
     r"رزرو\s*(وقت|نوبت)?",
     r"نوبت\s*(می.?خوام|بگیرم|رزرو)",
@@ -42,7 +43,7 @@ _BOOKING_PATTERNS = (
     r"(ժամադր|գրանցվ|այցել|ժամ վերցն)\w*",
 )
 
-_CANCEL_BOOKING_PATTERNS = (
+_CANCEL_PATTERNS = (
     r"\b(don't|do not|dont|no longer|cancel)\b.*\b(appointment|book|booking|visit)\b",
     r"\b(i don't want|i do not want|not interested)\b",
     r"وقت\s*(نمی.?خوام|نمیخواهم)",
@@ -54,15 +55,15 @@ _CANCEL_BOOKING_PATTERNS = (
 )
 
 _RESCHEDULE_PATTERNS = (
-    r"\b(another|different|other|change|reschedule|later|earlier)\b.*\b(time|slot|day|appointment)?\b",
+    r"\b(another|different|other|change|reschedule|later|earlier)\b",
     r"\bthat (time|slot) (doesn't|does not|won't|will not) work\b",
     r"\b(can't|cannot|cant) make (it|that time)\b",
-    r"(وقت|زمان|ساعت|روز)\s*(دیگه|دیگری|دیگه‌ای|دیگری‌ای)",
+    r"(وقت|زمان|ساعت|روز)\s*(دیگه|دیگری|دیگه‌ای)",
     r"(این|اون)\s*(وقت|زمان|ساعت).*مناسب\s*نیست",
     r"(عوض|تغییر)\s*(کن|بدین|بده|زمان|وقت)",
     r"\b(другое|другой|перенести|поменять|не подходит)\b",
     r"\b(başka|değiştir|ertele|uygun değil)\b",
-    r"(այլ|փոխել|հարմար չէ).*(ժամ|օր)?",
+    r"(այլ|փոխել|հարմար չէ)",
 )
 
 _CONFIRM_WORDS = {
@@ -99,61 +100,46 @@ _CONFIRM_WORDS = {
     "այո",
     "հա",
     "լավ",
-    "հարմար է",
 }
 
-_NEGATIVE_SLOT_WORDS = {
-    "no",
-    "nope",
-    "nah",
-    "نه",
-    "خیر",
-    "нет",
-    "hayır",
-    "ոչ",
-}
+_NEGATIVE_WORDS = {"no", "nope", "nah", "نه", "خیر", "нет", "hayır", "ոչ"}
 
 
-def _normalize_text(value: str) -> str:
-    value = value.casefold().strip()
-    value = re.sub(r"[\s\u200c]+", " ", value)
-    return value
+def _normalized(value: str) -> str:
+    return re.sub(r"[\s\u200c]+", " ", value.casefold().strip())
 
 
-def _matches_any(value: str, patterns: tuple[str, ...]) -> bool:
+def _matches(value: str, patterns: tuple[str, ...]) -> bool:
     return any(re.search(pattern, value, flags=re.IGNORECASE) for pattern in patterns)
 
 
 def _clear_booking_request(value: str) -> bool:
-    normalized = _normalize_text(value)
-    if _matches_any(normalized, _CANCEL_BOOKING_PATTERNS):
-        return False
-    return _matches_any(normalized, _BOOKING_PATTERNS)
+    text = _normalized(value)
+    return not _matches(text, _CANCEL_PATTERNS) and _matches(text, _BOOKING_PATTERNS)
 
 
 def _slot_signal(value: str) -> str | None:
-    normalized = _normalize_text(value)
-    if _matches_any(normalized, _CANCEL_BOOKING_PATTERNS):
+    text = _normalized(value)
+    if _matches(text, _CANCEL_PATTERNS):
         return "CANCEL"
-    if _matches_any(normalized, _RESCHEDULE_PATTERNS):
+    if _matches(text, _RESCHEDULE_PATTERNS):
         return "RESCHEDULE"
-    tokens = set(re.findall(r"[\w\u0530-\u058f\u0600-\u06ff]+", normalized))
-    if normalized in _CONFIRM_WORDS or tokens.intersection(_CONFIRM_WORDS):
+    tokens = set(re.findall(r"[\w\u0530-\u058f\u0600-\u06ff]+", text))
+    if text in _CONFIRM_WORDS or tokens.intersection(_CONFIRM_WORDS):
         return "CONFIRM"
-    if normalized in _NEGATIVE_SLOT_WORDS or tokens.intersection(_NEGATIVE_SLOT_WORDS):
+    if text in _NEGATIVE_WORDS or tokens.intersection(_NEGATIVE_WORDS):
         return "RESCHEDULE"
     return None
 
 
-def _local_slot(slot: datetime, timezone_name: str) -> datetime:
+def _local(slot: datetime, timezone_name: str) -> datetime:
     if slot.tzinfo is None:
         slot = slot.replace(tzinfo=UTC)
     return slot.astimezone(ZoneInfo(timezone_name))
 
 
 def _slot_label(slot: datetime, timezone_name: str) -> str:
-    local = _local_slot(slot, timezone_name)
-    return local.strftime("%Y-%m-%d %H:%M")
+    return _local(slot, timezone_name).strftime("%Y-%m-%d %H:%M")
 
 
 def slot_offer_message(language: str, slot: datetime, timezone_name: str) -> str:
@@ -217,7 +203,7 @@ def waiting_doctor_message(language: str, slot: datetime, timezone_name: str) ->
 def still_waiting_doctor_message(language: str) -> str:
     return {
         "hy": "Ձեր ընտրած ժամը դեռ սպասում է բժշկի հաստատմանը։ Հաստատվելուն պես անմիջապես կգրենք ձեզ։",
-        "ru": "Выбранное время всё ещё ожидает подтверждения врача. Мы сразу напишем вам, как только оно будет подтверждено.",
+        "ru": "Выбранное время всё ещё ожидает подтверждения врача. Мы сразу напишем вам после подтверждения.",
         "fa": "زمانی که انتخاب کردید هنوز منتظر تأیید پزشک است. به محض تأیید، فوراً به شما پیام می‌دهیم.",
         "tr": "Seçtiğiniz saat hâlâ doktor onayını bekliyor. Onaylanır onaylanmaz size hemen yazacağız.",
     }.get(
@@ -228,22 +214,22 @@ def still_waiting_doctor_message(language: str) -> str:
 
 def no_slot_message(language: str) -> str:
     return {
-        "hy": "Այս պահին բժշկի ժամանակացույցում ազատ ժամ չեմ գտնում։ Կլինիկայի թիմը պետք է օգնի ձեզ ժամ նշանակել։",
+        "hy": "Այս պահին բժշկի ժամանակացույցում ազատ ժամ չեմ գտնում։ Կլինիկայի թիմը կօգնի ձեզ ժամ նշանակել։",
         "ru": "Сейчас я не вижу свободного времени в расписании врача. Команда клиники поможет подобрать время.",
-        "fa": "در حال حاضر زمان خالی مناسبی در برنامه پزشک پیدا نکردم. تیم کلینیک باید برای هماهنگی وقت به شما کمک کند.",
+        "fa": "در حال حاضر زمان خالی مناسبی در برنامه پزشک پیدا نکردم. تیم کلینیک برای هماهنگی وقت به شما کمک می‌کند.",
         "tr": "Şu anda doktorun programında uygun boş saat bulamıyorum. Klinik ekibi size saat ayarlamada yardımcı olacak.",
     }.get(
         language,
-        "I can't find an available time in the doctor's schedule right now. The clinic team will need to help arrange a time.",
+        "I can't find an available time in the doctor's schedule right now. The clinic team will help arrange a time.",
     )
 
 
 def clarify_slot_message(language: str, slot: datetime, timezone_name: str) -> str:
     label = _slot_label(slot, timezone_name)
     return {
-        "hy": f"Պարզապես հաստատեք՝ {label} ժամը հարմար է, թե ցանկանում եք այլ ժամ։",
+        "hy": f"Խնդրում եմ հաստատեք՝ {label} ժամը հարմար է, թե ցանկանում եք այլ ժամ։",
         "ru": f"Пожалуйста, подтвердите: время {label} вам подходит или предложить другое?",
-        "fa": f"لطفاً فقط مشخص کنید: زمان {label} برایتان مناسب است یا زمان دیگری پیشنهاد بدهم؟",
+        "fa": f"لطفاً مشخص کنید: زمان {label} برایتان مناسب است یا زمان دیگری پیشنهاد بدهم؟",
         "tr": f"Lütfen netleştirin: {label} size uygun mu, yoksa başka bir saat önereyim mi?",
     }.get(
         language,
@@ -253,10 +239,10 @@ def clarify_slot_message(language: str, slot: datetime, timezone_name: str) -> s
 
 def booking_cancelled_message(language: str) -> str:
     return {
-        "hy": "Լավ, այս պահին ժամ չեմ ամրագրի։ Եթե հետագայում ցանկանաք այցելություն կազմակերպել, պարզապես գրեք մեզ։",
+        "hy": "Լավ, այս պահին ժամ չեմ ամրագրի։ Եթե հետո ցանկանաք այց կազմակերպել, պարզապես գրեք մեզ։",
         "ru": "Хорошо, сейчас запись оформлять не буду. Если позже захотите записаться, просто напишите нам.",
-        "fa": "باشه، فعلاً وقتی برای شما رزرو نمی‌کنم. اگر بعداً خواستید وقت بگیرید، کافی است دوباره به ما پیام بدهید.",
-        "tr": "Tamam, şimdilik randevu oluşturmayacağım. Daha sonra randevu isterseniz bize tekrar yazmanız yeterli.",
+        "fa": "باشه، فعلاً وقتی برای شما رزرو نمی‌کنم. اگر بعداً خواستید وقت بگیرید، دوباره به ما پیام بدهید.",
+        "tr": "Tamam, şimdilik randevu oluşturmayacağım. Daha sonra isterseniz bize tekrar yazmanız yeterli.",
     }.get(
         language,
         "Okay, I won't create an appointment right now. If you'd like to book later, just message us again.",
@@ -296,9 +282,33 @@ def appointment_confirmed_message(
     )
 
 
-def _safe_context(conversation: CareConversation) -> dict:
+def _context(conversation: CareConversation) -> dict:
     value = conversation.booking_context
     return dict(value) if isinstance(value, dict) else {}
+
+
+async def _find_patient(session: AsyncSession, phone: str) -> Patient | None:
+    try:
+        normalized = normalize_phone(phone)
+    except ValueError:
+        return None
+    rows = (
+        await session.scalars(
+            select(Patient).where(
+                (Patient.whatsapp_phone.is_not(None)) | (Patient.phone.is_not(None))
+            )
+        )
+    ).all()
+    for patient in rows:
+        for candidate in (patient.whatsapp_phone, patient.phone):
+            if not candidate:
+                continue
+            try:
+                if normalize_phone(candidate) == normalized:
+                    return patient
+            except ValueError:
+                continue
+    return None
 
 
 async def _active_item(session: AsyncSession, plan: CarePlan | None) -> CarePlanItem | None:
@@ -315,7 +325,9 @@ async def _active_item(session: AsyncSession, plan: CarePlan | None) -> CarePlan
     )
 
 
-async def _history(session: AsyncSession, conversation_id: uuid.UUID) -> list[CareConversationMessage]:
+async def _history(
+    session: AsyncSession, conversation_id: uuid.UUID
+) -> list[CareConversationMessage]:
     return list(
         (
             await session.scalars(
@@ -327,7 +339,7 @@ async def _history(session: AsyncSession, conversation_id: uuid.UUID) -> list[Ca
     )
 
 
-async def _send_and_record(
+async def _send(
     session: AsyncSession,
     *,
     clinic_id: uuid.UUID,
@@ -336,8 +348,8 @@ async def _send_and_record(
     phone: str,
     message: str,
     metadata: dict,
-) -> dict:
-    sent = await WhatsAppServiceClient().send_message(clinic_id, phone, message)
+) -> None:
+    result = await WhatsAppServiceClient().send_message(clinic_id, phone, message)
     now = datetime.now(UTC)
     session.add(
         CareConversationMessage(
@@ -349,15 +361,14 @@ async def _send_and_record(
             status="SENT",
             sent_at=now,
             attempt_count=1,
-            provider_message_id=sent.get("message_id"),
+            provider_message_id=result.get("message_id"),
             message_metadata=metadata,
         )
     )
     conversation.last_message_at = now
-    return sent
 
 
-async def _agent_decision(
+async def _agent(
     *,
     conversation: CareConversation,
     patient: Patient,
@@ -403,7 +414,7 @@ async def _next_slot(
     patient: Patient,
     plan: CarePlan | None,
     exclude: str | None = None,
-) -> tuple[datetime | None, object]:
+) -> tuple[datetime | None, ClinicCareSettings]:
     settings = await settings_for_branch(session, patient.branch_id)
     slots = await available_slots(
         session,
@@ -412,34 +423,81 @@ async def _next_slot(
         doctor_id=plan.doctor_id if plan else None,
         limit=64,
     )
-    for slot in slots:
-        if slot.isoformat() != exclude:
-            return slot, settings
-    return None, settings
+    return next((slot for slot in slots if slot.isoformat() != exclude), None), settings
 
 
-async def _find_patient_by_phone(session: AsyncSession, phone: str) -> Patient | None:
-    try:
-        normalized = normalize_phone(phone)
-    except ValueError:
-        return None
-    rows = (
-        await session.scalars(
-            select(Patient).where(
-                (Patient.whatsapp_phone.is_not(None)) | (Patient.phone.is_not(None))
-            )
+async def _offer_slot(
+    session: AsyncSession,
+    *,
+    clinic_id: uuid.UUID,
+    conversation: CareConversation,
+    patient: Patient,
+    plan: CarePlan | None,
+    item: CarePlanItem | None,
+    phone: str,
+    context: dict,
+    exclude: str | None = None,
+) -> dict:
+    slot, settings = await _next_slot(
+        session,
+        patient=patient,
+        plan=plan,
+        exclude=exclude,
+    )
+    if slot is None:
+        await _send(
+            session,
+            clinic_id=clinic_id,
+            conversation=conversation,
+            item=item,
+            phone=phone,
+            message=no_slot_message(conversation.language),
+            metadata={"kind": "booking_no_slot", "needs_human": True},
         )
-    ).all()
-    for patient in rows:
-        for value in (patient.whatsapp_phone, patient.phone):
-            if not value:
-                continue
-            try:
-                if normalize_phone(value) == normalized:
-                    return patient
-            except ValueError:
-                continue
-    return None
+        context["needs_human"] = True
+        conversation.booking_context = context
+        conversation.summary = "Patient wants an appointment; no doctor slot is available."
+        return {
+            "handled": True,
+            "stage": context.get("stage", WAITING_PATIENT_REPLY),
+            "appointment_proposed": False,
+            "needs_human": True,
+        }
+
+    context.update(
+        {
+            "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
+            "booking_requested": True,
+            "offered_slot": slot.isoformat(),
+            "offered_at": datetime.now(UTC).isoformat(),
+            "appointment_id": None,
+            "needs_human": False,
+        }
+    )
+    await _send(
+        session,
+        clinic_id=clinic_id,
+        conversation=conversation,
+        item=item,
+        phone=phone,
+        message=slot_offer_message(conversation.language, slot, settings.timezone),
+        metadata={
+            "kind": "booking_slot_offer",
+            "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
+            "offered_slot": slot.isoformat(),
+        },
+    )
+    conversation.booking_context = context
+    conversation.summary = (
+        f"Offered {_slot_label(slot, settings.timezone)}; waiting for patient confirmation."
+    )
+    return {
+        "handled": True,
+        "intent": "BOOKING",
+        "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
+        "offered_slot": slot.isoformat(),
+        "appointment_proposed": False,
+    }
 
 
 async def process_staged_inbound_message(
@@ -451,14 +509,7 @@ async def process_staged_inbound_message(
     text: str,
     provider_message_id: str | None,
 ) -> dict:
-    """Process one patient message through the deterministic booking state machine.
-
-    Groq may classify ambiguous language, but it never controls slot selection or appointment state.
-    The database state machine is authoritative and only creates a PROPOSED appointment after the
-    patient explicitly confirms the exact slot that DENTAI offered.
-    """
-
-    patient = await _find_patient_by_phone(session, phone)
+    patient = await _find_patient(session, phone)
     if not patient:
         return {"handled": False, "reason": "patient_not_found"}
     try:
@@ -491,42 +542,45 @@ async def process_staged_inbound_message(
         else None
     )
     item = await _active_item(session, plan)
-    context = _safe_context(conversation)
-
+    context = _context(conversation)
     active_item_id = str(item.id) if item else None
-    previous_active_item = context.get("active_item_id")
+
     if (
         item
-        and previous_active_item
-        and previous_active_item != active_item_id
+        and context.get("active_item_id")
+        and context.get("active_item_id") != active_item_id
         and item.status in {"FOLLOWUP_READY", "CONTACTED"}
     ):
-        preserved = {
+        context = {
             key: value
             for key, value in context.items()
             if key.startswith("last_visit_") or key == "sequence_mode"
         }
-        context = preserved
-        context["stage"] = WAITING_PATIENT_REPLY
 
     stage = str(context.get("stage") or WAITING_PATIENT_REPLY)
-    context["active_item_id"] = active_item_id
-    context["stage"] = stage
-
-    inbound = CareConversationMessage(
-        conversation_id=conversation.id,
-        care_plan_item_id=item.id if item else None,
-        direction="IN",
-        body=text,
-        language=conversation.language,
-        status="RECEIVED",
-        provider_message_id=provider_message_id,
-        message_metadata={"stage_received": stage},
+    context.update({"stage": stage, "active_item_id": active_item_id})
+    session.add(
+        CareConversationMessage(
+            conversation_id=conversation.id,
+            care_plan_item_id=item.id if item else None,
+            direction="IN",
+            body=text,
+            language=conversation.language,
+            status="RECEIVED",
+            provider_message_id=provider_message_id,
+            message_metadata={"stage_received": stage},
+        )
     )
-    session.add(inbound)
     await session.flush()
+
     history = await _history(session, conversation.id)
     settings = await settings_for_branch(session, patient.branch_id)
+
+    if stage == APPOINTMENT_CONFIRMED:
+        conversation.last_message_at = datetime.now(UTC)
+        conversation.booking_context = context
+        conversation.summary = "Appointment confirmed; automated booking exchange completed."
+        return {"handled": True, "stage": APPOINTMENT_CONFIRMED, "terminal": True}
 
     if stage == WAITING_DOCTOR_APPROVAL:
         proposed = await session.scalar(
@@ -539,22 +593,21 @@ async def process_staged_inbound_message(
             .limit(1)
         )
         if proposed:
-            message = still_waiting_doctor_message(conversation.language)
-            await _send_and_record(
+            await _send(
                 session,
                 clinic_id=clinic_id,
                 conversation=conversation,
                 item=item,
                 phone=normalized_phone,
-                message=message,
+                message=still_waiting_doctor_message(conversation.language),
                 metadata={
                     "kind": "booking_waiting_doctor",
                     "stage": WAITING_DOCTOR_APPROVAL,
                     "appointment_id": str(proposed.id),
                 },
             )
-            conversation.summary = "Patient confirmed a slot; waiting for doctor approval."
             conversation.booking_context = context
+            conversation.summary = "Patient confirmed a slot; waiting for doctor approval."
             return {
                 "handled": True,
                 "stage": WAITING_DOCTOR_APPROVAL,
@@ -563,29 +616,11 @@ async def process_staged_inbound_message(
         context["stage"] = WAITING_PATIENT_REPLY
         stage = WAITING_PATIENT_REPLY
 
-    if stage == APPOINTMENT_CONFIRMED:
-        conversation.booking_context = context
-        conversation.last_message_at = datetime.now(UTC)
-        conversation.summary = "Appointment confirmed; automated booking conversation completed."
-        return {
-            "handled": True,
-            "stage": APPOINTMENT_CONFIRMED,
-            "terminal": True,
-        }
-
     if stage == WAITING_PATIENT_REPLY:
-        clear_booking = _clear_booking_request(text)
-        reply = None
-        wants_booking = clear_booking
-        if not clear_booking:
-            instructions = (
-                (settings.booking_instructions or "")
-                + "\nCurrent workflow stage: WAITING_PATIENT_REPLY. "
-                "Decide whether the patient's latest message means they want to arrange an appointment. "
-                "Use intent=BOOKING for a clear booking request or agreement to arrange a visit. "
-                "Do not offer or invent a time at this stage; DENTAI will choose the slot separately."
-            )
-            reply = await _agent_decision(
+        booking = _clear_booking_request(text)
+        reply: CareAgentReply | None = None
+        if not booking:
+            reply = await _agent(
                 conversation=conversation,
                 patient=patient,
                 clinic_name=clinic_name,
@@ -593,83 +628,28 @@ async def process_staged_inbound_message(
                 history=history,
                 text=text,
                 available_slot_strings=[],
-                instructions=instructions,
+                instructions=(
+                    (settings.booking_instructions or "")
+                    + "\nStage: WAITING_PATIENT_REPLY. Decide whether the latest patient message clearly requests an appointment. "
+                    "Use intent=BOOKING only for a clear wish to arrange a visit. Do not invent or offer a time."
+                ),
             )
-            wants_booking = reply.intent in {"BOOKING", "RESCHEDULE"}
+            booking = reply.intent in {"BOOKING", "RESCHEDULE"}
 
-        if wants_booking:
-            slot, settings = await _next_slot(session, patient=patient, plan=plan)
-            if not slot:
-                message = no_slot_message(conversation.language)
-                await _send_and_record(
-                    session,
-                    clinic_id=clinic_id,
-                    conversation=conversation,
-                    item=item,
-                    phone=normalized_phone,
-                    message=message,
-                    metadata={
-                        "kind": "booking_no_slot",
-                        "stage": WAITING_PATIENT_REPLY,
-                        "needs_human": True,
-                    },
-                )
-                context.update(
-                    {
-                        "stage": WAITING_PATIENT_REPLY,
-                        "booking_requested": True,
-                        "needs_human": True,
-                    }
-                )
-                conversation.summary = "Patient wants an appointment; no free doctor slot is available."
-                conversation.booking_context = context
-                return {
-                    "handled": True,
-                    "intent": "BOOKING",
-                    "stage": WAITING_PATIENT_REPLY,
-                    "appointment_proposed": False,
-                    "needs_human": True,
-                }
-
-            context.update(
-                {
-                    "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                    "booking_requested": True,
-                    "offered_slot": slot.isoformat(),
-                    "offered_at": datetime.now(UTC).isoformat(),
-                    "appointment_id": None,
-                    "needs_human": False,
-                }
-            )
-            message = slot_offer_message(conversation.language, slot, settings.timezone)
-            await _send_and_record(
+        if booking:
+            return await _offer_slot(
                 session,
                 clinic_id=clinic_id,
                 conversation=conversation,
+                patient=patient,
+                plan=plan,
                 item=item,
                 phone=normalized_phone,
-                message=message,
-                metadata={
-                    "kind": "booking_slot_offer",
-                    "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                    "offered_slot": slot.isoformat(),
-                },
+                context=context,
             )
-            conversation.summary = (
-                f"Patient wants an appointment; offered {_slot_label(slot, settings.timezone)}. "
-                "Waiting for patient confirmation."
-            )
-            conversation.booking_context = context
-            return {
-                "handled": True,
-                "intent": "BOOKING",
-                "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                "offered_slot": slot.isoformat(),
-                "appointment_proposed": False,
-            }
 
         if reply is None:
-            reply = await _agent_decision(
+            reply = await _agent(
                 conversation=conversation,
                 patient=patient,
                 clinic_name=clinic_name,
@@ -679,7 +659,7 @@ async def process_staged_inbound_message(
                 available_slot_strings=[],
                 instructions=settings.booking_instructions or "",
             )
-        await _send_and_record(
+        await _send(
             session,
             clinic_id=clinic_id,
             conversation=conversation,
@@ -702,11 +682,10 @@ async def process_staged_inbound_message(
                 "needs_human": reply.needs_human,
             }
         )
-        conversation.summary = (
-            f"Patient replied; intent {reply.intent}. "
-            "No appointment requested yet."
-        )
         conversation.booking_context = context
+        conversation.summary = (
+            f"Patient replied; intent {reply.intent}. No appointment requested yet."
+        )
         return {
             "handled": True,
             "intent": reply.intent,
@@ -715,370 +694,232 @@ async def process_staged_inbound_message(
             "needs_human": reply.needs_human,
         }
 
-    if stage == WAITING_PATIENT_SLOT_CONFIRMATION:
-        offered_raw = context.get("offered_slot")
-        try:
-            offered = datetime.fromisoformat(str(offered_raw))
-        except (TypeError, ValueError):
-            offered = None
+    if stage != WAITING_PATIENT_SLOT_CONFIRMATION:
+        context["stage"] = WAITING_PATIENT_REPLY
+        conversation.booking_context = context
+        conversation.summary = "Conversation state repaired; waiting for patient response."
+        return {"handled": True, "stage": WAITING_PATIENT_REPLY, "recovered": True}
 
-        if offered is None:
-            replacement, settings = await _next_slot(session, patient=patient, plan=plan)
-            if replacement is None:
-                message = no_slot_message(conversation.language)
-                await _send_and_record(
-                    session,
-                    clinic_id=clinic_id,
-                    conversation=conversation,
-                    item=item,
-                    phone=normalized_phone,
-                    message=message,
-                    metadata={
-                        "kind": "booking_no_slot",
-                        "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                        "needs_human": True,
-                    },
-                )
-                context["needs_human"] = True
-                conversation.booking_context = context
-                conversation.summary = "Booking requested; no doctor slot is available."
-                return {
-                    "handled": True,
-                    "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                    "needs_human": True,
-                }
-            offered = replacement
-            context["offered_slot"] = offered.isoformat()
-
-        offered_iso = offered.isoformat()
-        signal = _slot_signal(text)
-        reply = None
-        if signal is None:
-            instructions = (
-                (settings.booking_instructions or "")
-                + "\nCurrent workflow stage: WAITING_PATIENT_SLOT_CONFIRMATION. "
-                f"DENTAI already offered exactly this slot: {offered_iso}. "
-                "If the patient clearly accepts that slot, set intent=BOOKING and selected_slot to that exact ISO value. "
-                "If they want a different time, use intent=RESCHEDULE and wants_reschedule=true. "
-                "If they no longer want an appointment, use intent=DECLINE. Do not invent a different slot."
-            )
-            reply = await _agent_decision(
-                conversation=conversation,
-                patient=patient,
-                clinic_name=clinic_name,
-                item=item,
-                history=history,
-                text=text,
-                available_slot_strings=[offered_iso],
-                instructions=instructions,
-            )
-            if reply.selected_slot == offered_iso:
-                signal = "CONFIRM"
-            elif reply.wants_reschedule or reply.intent == "RESCHEDULE":
-                signal = "RESCHEDULE"
-            elif reply.intent == "DECLINE":
-                signal = "CANCEL"
-
-        if signal == "CANCEL":
-            context.update(
-                {
-                    "stage": WAITING_PATIENT_REPLY,
-                    "booking_requested": False,
-                    "offered_slot": None,
-                    "appointment_id": None,
-                }
-            )
-            message = booking_cancelled_message(conversation.language)
-            await _send_and_record(
-                session,
-                clinic_id=clinic_id,
-                conversation=conversation,
-                item=item,
-                phone=normalized_phone,
-                message=message,
-                metadata={
-                    "kind": "booking_cancelled",
-                    "stage": WAITING_PATIENT_REPLY,
-                },
-            )
-            conversation.summary = "Patient does not want an appointment right now."
-            conversation.booking_context = context
-            return {
-                "handled": True,
-                "intent": "DECLINE",
-                "stage": WAITING_PATIENT_REPLY,
-                "appointment_proposed": False,
-            }
-
-        if signal == "RESCHEDULE":
-            replacement, settings = await _next_slot(
-                session,
-                patient=patient,
-                plan=plan,
-                exclude=offered_iso,
-            )
-            if replacement is None:
-                message = no_slot_message(conversation.language)
-                await _send_and_record(
-                    session,
-                    clinic_id=clinic_id,
-                    conversation=conversation,
-                    item=item,
-                    phone=normalized_phone,
-                    message=message,
-                    metadata={
-                        "kind": "booking_no_alternate_slot",
-                        "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                        "needs_human": True,
-                    },
-                )
-                context["needs_human"] = True
-                conversation.booking_context = context
-                conversation.summary = "Patient requested another time; no alternate doctor slot is available."
-                return {
-                    "handled": True,
-                    "intent": "RESCHEDULE",
-                    "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                    "needs_human": True,
-                }
-            context.update(
-                {
-                    "offered_slot": replacement.isoformat(),
-                    "offered_at": datetime.now(UTC).isoformat(),
-                    "needs_human": False,
-                }
-            )
-            message = slot_offer_message(
-                conversation.language,
-                replacement,
-                settings.timezone,
-            )
-            await _send_and_record(
-                session,
-                clinic_id=clinic_id,
-                conversation=conversation,
-                item=item,
-                phone=normalized_phone,
-                message=message,
-                metadata={
-                    "kind": "booking_slot_offer",
-                    "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                    "offered_slot": replacement.isoformat(),
-                    "replaced_slot": offered_iso,
-                },
-            )
-            conversation.summary = (
-                f"Patient requested another time; offered {_slot_label(replacement, settings.timezone)}. "
-                "Waiting for patient confirmation."
-            )
-            conversation.booking_context = context
-            return {
-                "handled": True,
-                "intent": "RESCHEDULE",
-                "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                "offered_slot": replacement.isoformat(),
-                "appointment_proposed": False,
-            }
-
-        if signal == "CONFIRM":
-            fresh_slots = await available_slots(
-                session,
-                branch_id=patient.branch_id,
-                settings=settings,
-                doctor_id=plan.doctor_id if plan else None,
-                limit=64,
-            )
-            fresh_by_iso = {slot.isoformat(): slot for slot in fresh_slots}
-            if offered_iso not in fresh_by_iso:
-                replacement, settings = await _next_slot(
-                    session,
-                    patient=patient,
-                    plan=plan,
-                    exclude=offered_iso,
-                )
-                if replacement is None:
-                    message = no_slot_message(conversation.language)
-                    await _send_and_record(
-                        session,
-                        clinic_id=clinic_id,
-                        conversation=conversation,
-                        item=item,
-                        phone=normalized_phone,
-                        message=message,
-                        metadata={
-                            "kind": "booking_slot_expired_no_replacement",
-                            "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                            "needs_human": True,
-                        },
-                    )
-                    context["needs_human"] = True
-                    conversation.booking_context = context
-                    conversation.summary = "The offered slot became unavailable; manual scheduling is needed."
-                    return {
-                        "handled": True,
-                        "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                        "needs_human": True,
-                    }
-                context.update(
-                    {
-                        "offered_slot": replacement.isoformat(),
-                        "offered_at": datetime.now(UTC).isoformat(),
-                    }
-                )
-                message = slot_offer_message(
-                    conversation.language,
-                    replacement,
-                    settings.timezone,
-                )
-                await _send_and_record(
-                    session,
-                    clinic_id=clinic_id,
-                    conversation=conversation,
-                    item=item,
-                    phone=normalized_phone,
-                    message=message,
-                    metadata={
-                        "kind": "booking_slot_replaced_unavailable",
-                        "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                        "offered_slot": replacement.isoformat(),
-                        "replaced_slot": offered_iso,
-                    },
-                )
-                conversation.summary = "The first offered slot became unavailable; a new slot was offered."
-                conversation.booking_context = context
-                return {
-                    "handled": True,
-                    "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
-                    "offered_slot": replacement.isoformat(),
-                    "appointment_proposed": False,
-                }
-
-            existing = await session.scalar(
-                select(CareAppointment)
-                .where(
-                    CareAppointment.conversation_id == conversation.id,
-                    CareAppointment.status.in_(["PROPOSED", "APPROVED"]),
-                )
-                .order_by(CareAppointment.created_at.desc())
-                .limit(1)
-            )
-            if existing:
-                context.update(
-                    {
-                        "stage": (
-                            APPOINTMENT_CONFIRMED
-                            if existing.status == "APPROVED"
-                            else WAITING_DOCTOR_APPROVAL
-                        ),
-                        "appointment_id": str(existing.id),
-                    }
-                )
-                conversation.booking_context = context
-                return {
-                    "handled": True,
-                    "stage": context["stage"],
-                    "appointment_proposed": existing.status == "PROPOSED",
-                }
-
-            selected = fresh_by_iso[offered_iso]
-            duration = timedelta(minutes=settings.appointment_minutes)
-            appointment = CareAppointment(
-                patient_id=patient.id,
-                branch_id=patient.branch_id,
-                doctor_id=plan.doctor_id if plan else None,
-                conversation_id=conversation.id,
-                care_plan_item_id=item.id if item else None,
-                starts_at=selected.astimezone(UTC),
-                ends_at=(selected + duration).astimezone(UTC),
-                timezone=settings.timezone,
-                status="PROPOSED",
-                source="AI",
-                tooth_fdi=item.tooth_fdi if item else None,
-                finding_type=item.finding_type if item else None,
-                reason=(
-                    f"Teta2 Care check-up · tooth {item.tooth_fdi}"
-                    if item
-                    else "Teta2 Care check-up"
-                ),
-                patient_confirmed_at=datetime.now(UTC),
-            )
-            session.add(appointment)
-            await session.flush()
-            if item:
-                item.status = "APPOINTMENT_PENDING_APPROVAL"
-            context.update(
-                {
-                    "stage": WAITING_DOCTOR_APPROVAL,
-                    "patient_confirmed_slot": offered_iso,
-                    "patient_confirmed_at": datetime.now(UTC).isoformat(),
-                    "appointment_id": str(appointment.id),
-                    "needs_human": False,
-                }
-            )
-            message = waiting_doctor_message(
-                conversation.language,
-                selected,
-                settings.timezone,
-            )
-            await _send_and_record(
-                session,
-                clinic_id=clinic_id,
-                conversation=conversation,
-                item=item,
-                phone=normalized_phone,
-                message=message,
-                metadata={
-                    "kind": "booking_patient_confirmed",
-                    "stage": WAITING_DOCTOR_APPROVAL,
-                    "appointment_id": str(appointment.id),
-                    "selected_slot": offered_iso,
-                },
-            )
-            conversation.summary = (
-                f"Patient confirmed {_slot_label(selected, settings.timezone)}; "
-                "waiting for doctor approval."
-            )
-            conversation.booking_context = context
-            return {
-                "handled": True,
-                "intent": "BOOKING",
-                "stage": WAITING_DOCTOR_APPROVAL,
-                "appointment_proposed": True,
-                "appointment_id": str(appointment.id),
-            }
-
-        message = clarify_slot_message(
-            conversation.language,
-            offered,
-            settings.timezone,
+    offered_raw = context.get("offered_slot")
+    try:
+        offered = datetime.fromisoformat(str(offered_raw))
+    except (TypeError, ValueError):
+        offered = None
+    if offered is None:
+        return await _offer_slot(
+            session,
+            clinic_id=clinic_id,
+            conversation=conversation,
+            patient=patient,
+            plan=plan,
+            item=item,
+            phone=normalized_phone,
+            context=context,
         )
-        await _send_and_record(
+
+    offered_iso = offered.isoformat()
+    signal = _slot_signal(text)
+    ai_reply: CareAgentReply | None = None
+    if signal is None:
+        ai_reply = await _agent(
+            conversation=conversation,
+            patient=patient,
+            clinic_name=clinic_name,
+            item=item,
+            history=history,
+            text=text,
+            available_slot_strings=[offered_iso],
+            instructions=(
+                (settings.booking_instructions or "")
+                + f"\nStage: WAITING_PATIENT_SLOT_CONFIRMATION. The only offered slot is {offered_iso}. "
+                "If the patient clearly accepts it, use intent=BOOKING and selected_slot exactly equal to it. "
+                "If they want another time, use intent=RESCHEDULE. If they no longer want a visit, use intent=DECLINE."
+            ),
+        )
+        if ai_reply.selected_slot == offered_iso:
+            signal = "CONFIRM"
+        elif ai_reply.wants_reschedule or ai_reply.intent == "RESCHEDULE":
+            signal = "RESCHEDULE"
+        elif ai_reply.intent == "DECLINE":
+            signal = "CANCEL"
+
+    if signal == "CANCEL":
+        context.update(
+            {
+                "stage": WAITING_PATIENT_REPLY,
+                "booking_requested": False,
+                "offered_slot": None,
+                "appointment_id": None,
+            }
+        )
+        await _send(
             session,
             clinic_id=clinic_id,
             conversation=conversation,
             item=item,
             phone=normalized_phone,
-            message=message,
+            message=booking_cancelled_message(conversation.language),
+            metadata={"kind": "booking_cancelled", "stage": WAITING_PATIENT_REPLY},
+        )
+        conversation.booking_context = context
+        conversation.summary = "Patient does not want an appointment right now."
+        return {
+            "handled": True,
+            "intent": "DECLINE",
+            "stage": WAITING_PATIENT_REPLY,
+            "appointment_proposed": False,
+        }
+
+    if signal == "RESCHEDULE":
+        return await _offer_slot(
+            session,
+            clinic_id=clinic_id,
+            conversation=conversation,
+            patient=patient,
+            plan=plan,
+            item=item,
+            phone=normalized_phone,
+            context=context,
+            exclude=offered_iso,
+        )
+
+    if signal != "CONFIRM":
+        await _send(
+            session,
+            clinic_id=clinic_id,
+            conversation=conversation,
+            item=item,
+            phone=normalized_phone,
+            message=clarify_slot_message(
+                conversation.language,
+                offered,
+                settings.timezone,
+            ),
             metadata={
                 "kind": "booking_slot_clarification",
                 "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
                 "offered_slot": offered_iso,
-                "ai_intent": reply.intent if reply else None,
+                "ai_intent": ai_reply.intent if ai_reply else None,
             },
         )
-        conversation.summary = "Waiting for the patient to confirm or change the offered time."
         conversation.booking_context = context
+        conversation.summary = "Waiting for patient to confirm or change the offered time."
         return {
             "handled": True,
             "stage": WAITING_PATIENT_SLOT_CONFIRMATION,
             "appointment_proposed": False,
         }
 
-    context["stage"] = WAITING_PATIENT_REPLY
+    fresh_slots = await available_slots(
+        session,
+        branch_id=patient.branch_id,
+        settings=settings,
+        doctor_id=plan.doctor_id if plan else None,
+        limit=64,
+    )
+    fresh_by_iso = {slot.isoformat(): slot for slot in fresh_slots}
+    if offered_iso not in fresh_by_iso:
+        return await _offer_slot(
+            session,
+            clinic_id=clinic_id,
+            conversation=conversation,
+            patient=patient,
+            plan=plan,
+            item=item,
+            phone=normalized_phone,
+            context=context,
+            exclude=offered_iso,
+        )
+
+    existing = await session.scalar(
+        select(CareAppointment)
+        .where(
+            CareAppointment.conversation_id == conversation.id,
+            CareAppointment.status.in_(["PROPOSED", "APPROVED"]),
+        )
+        .order_by(CareAppointment.created_at.desc())
+        .limit(1)
+    )
+    if existing:
+        context.update(
+            {
+                "stage": (
+                    APPOINTMENT_CONFIRMED
+                    if existing.status == "APPROVED"
+                    else WAITING_DOCTOR_APPROVAL
+                ),
+                "appointment_id": str(existing.id),
+            }
+        )
+        conversation.booking_context = context
+        return {
+            "handled": True,
+            "stage": context["stage"],
+            "appointment_proposed": existing.status == "PROPOSED",
+        }
+
+    selected = fresh_by_iso[offered_iso]
+    duration = timedelta(minutes=settings.appointment_minutes)
+    appointment = CareAppointment(
+        patient_id=patient.id,
+        branch_id=patient.branch_id,
+        doctor_id=plan.doctor_id if plan else None,
+        conversation_id=conversation.id,
+        care_plan_item_id=item.id if item else None,
+        starts_at=selected.astimezone(UTC),
+        ends_at=(selected + duration).astimezone(UTC),
+        timezone=settings.timezone,
+        status="PROPOSED",
+        source="AI",
+        tooth_fdi=item.tooth_fdi if item else None,
+        finding_type=item.finding_type if item else None,
+        reason=(
+            f"Teta2 Care check-up · tooth {item.tooth_fdi}"
+            if item
+            else "Teta2 Care check-up"
+        ),
+        patient_confirmed_at=datetime.now(UTC),
+    )
+    session.add(appointment)
+    await session.flush()
+    if item:
+        item.status = "APPOINTMENT_PENDING_APPROVAL"
+
+    context.update(
+        {
+            "stage": WAITING_DOCTOR_APPROVAL,
+            "patient_confirmed_slot": offered_iso,
+            "patient_confirmed_at": datetime.now(UTC).isoformat(),
+            "appointment_id": str(appointment.id),
+            "needs_human": False,
+        }
+    )
+    await _send(
+        session,
+        clinic_id=clinic_id,
+        conversation=conversation,
+        item=item,
+        phone=normalized_phone,
+        message=waiting_doctor_message(
+            conversation.language,
+            selected,
+            settings.timezone,
+        ),
+        metadata={
+            "kind": "booking_patient_confirmed",
+            "stage": WAITING_DOCTOR_APPROVAL,
+            "appointment_id": str(appointment.id),
+            "selected_slot": offered_iso,
+        },
+    )
     conversation.booking_context = context
-    conversation.summary = "Conversation state was repaired; waiting for the patient's booking decision."
+    conversation.summary = (
+        f"Patient confirmed {_slot_label(selected, settings.timezone)}; waiting for doctor approval."
+    )
     return {
         "handled": True,
-        "stage": WAITING_PATIENT_REPLY,
-        "recovered": True,
+        "intent": "BOOKING",
+        "stage": WAITING_DOCTOR_APPROVAL,
+        "appointment_proposed": True,
+        "appointment_id": str(appointment.id),
     }
