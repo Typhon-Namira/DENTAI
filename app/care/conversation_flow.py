@@ -873,11 +873,7 @@ async def process_staged_inbound_message(
         source="AI",
         tooth_fdi=item.tooth_fdi if item else None,
         finding_type=item.finding_type if item else None,
-        reason=(
-            f"Teta2 Care check-up · tooth {item.tooth_fdi}"
-            if item
-            else "Teta2 Care check-up"
-        ),
+        reason=(f"Teta2 Care check-up · tooth {item.tooth_fdi}" if item else "Teta2 Care check-up"),
         patient_confirmed_at=datetime.now(UTC),
     )
     session.add(appointment)
@@ -913,9 +909,7 @@ async def process_staged_inbound_message(
         },
     )
     conversation.booking_context = context
-    conversation.summary = (
-        f"Patient confirmed {_slot_label(selected, settings.timezone)}; waiting for doctor approval."
-    )
+    conversation.summary = f"Patient confirmed {_slot_label(selected, settings.timezone)}; waiting for doctor approval."
     return {
         "handled": True,
         "intent": "BOOKING",
