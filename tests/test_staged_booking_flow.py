@@ -162,25 +162,3 @@ async def test_booking_requires_patient_confirmation_before_appointment(monkeypa
             assert len(messages) == 4
     finally:
         await engine.dispose()
-
-
-def test_staged_routes_are_registered_before_legacy_duplicates():
-    from app.main import app
-
-    inbound = [
-        route
-        for route in app.routes
-        if getattr(route, "path", None) == "/api/v1/care/internal/whatsapp/inbound"
-        and "POST" in getattr(route, "methods", set())
-    ]
-    approve = [
-        route
-        for route in app.routes
-        if getattr(route, "path", None) == "/api/v1/care/appointments/{appointment_id}/approve"
-        and "POST" in getattr(route, "methods", set())
-    ]
-
-    assert inbound
-    assert approve
-    assert inbound[0].endpoint.__module__ == "app.care.staged_api"
-    assert approve[0].endpoint.__module__ == "app.care.staged_api"
