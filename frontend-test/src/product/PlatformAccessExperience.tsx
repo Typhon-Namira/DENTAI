@@ -16,7 +16,7 @@ import {
 
 import { API_BASE_URL } from "../api/client";
 
-const ADMIN_TOKEN_KEY = "teta2-platform-admin-token";
+const ADMIN_SESSION_KEY = "teta2-platform-admin-session";
 
 type AccessRequest = {
   id: string;
@@ -197,7 +197,9 @@ function AccessRequestPage() {
 }
 
 function PlatformAdmin() {
-  const [token, setToken] = useState(() => sessionStorage.getItem(ADMIN_TOKEN_KEY) || "");
+  const [token, setToken] = useState(() => sessionStorage.getItem(ADMIN_SESSION_KEY) || "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
@@ -206,8 +208,9 @@ function PlatformAdmin() {
   const [tab, setTab] = useState<"overview"|"requests"|"clinics"|"settings">("overview");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
 
-  const load = useCallback(async (authToken = token) => {
+  const load = useCallback(async (authToken: string) => {
     const [o, r, c, s] = await Promise.all([
       adminJson<Overview>("/api/v1/platform/admin/overview", authToken),
       adminJson<AccessRequest[]>("/api/v1/platform/admin/access-requests", authToken),
@@ -215,34 +218,71 @@ function PlatformAdmin() {
       adminJson<PlatformSettings>("/api/v1/platform/admin/settings", authToken),
     ]);
     setOverview(o); setRequests(r); setClinics(c); setSettings(s); setAuthenticated(true); setError("");
-  }, [token]);
+  }, []);
+
+  useEffect(() => {
+    if (!token || authenticated) return;
+    void load(token).catch(() => {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      setToken("");
+      setAuthenticated(false);
+    });
+  }, [authenticated, load, token]);
 
   async function login(event: FormEvent) {
     event.preventDefault();
-    try { await load(token); sessionStorage.setItem(ADMIN_TOKEN_KEY, token); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Admin authentication failed"); }
+    setAuthBusy(true);
+    setError("");
+    try {
+      const session = await publicJson<{access_token: string}>("/api/v1/platform/admin/login", {
+        method: "POST",
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      sessionStorage.setItem(ADMIN_SESSION_KEY, session.access_token);
+      setToken(session.access_token);
+      setPassword("");
+      await load(session.access_token);
+    } catch (reason) {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      setToken("");
+      setAuthenticated(false);
+      setError(reason instanceof Error ? reason.message : "Admin authentication failed");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  function logoutAdmin() {
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    setToken("");
+    setAuthenticated(false);
+    setOverview(null);
+    setRequests([]);
+    setClinics([]);
+    setSettings(null);
+    setPassword("");
   }
 
   async function action(id: string, name: string, body: unknown = {}) {
     setBusy(`${name}-${id}`); setError("");
     try {
       await adminJson(`/api/v1/platform/admin/${name}`, token, { method: "POST", body: JSON.stringify(body) });
-      await load();
+      await load(token);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Action failed"); }
     finally { setBusy(""); }
   }
 
-  if (!authenticated) return <main className="pa-overlay pa-admin-login"><section><Brand/><span className="pa-eyebrow">PLATFORM ADMINISTRATION</span><h1>Admin control center</h1><p>Enter the private platform administrator token.</p><form onSubmit={login}><input type="password" value={token} onChange={(e)=>setToken(e.target.value)} autoFocus placeholder="Platform admin token"/><button className="pa-primary">Open admin panel</button></form>{error&&<div className="pa-error">{error}</div>}<button className="pa-link" onClick={()=>go("/")}>Back to website</button></section></main>;
+  if (!authenticated) return <main className="pa-overlay pa-admin-login"><section><Brand/><span className="pa-eyebrow">PLATFORM ADMINISTRATION</span><h1>Admin control center</h1><p>Sign in with the platform administrator email and password.</p><form onSubmit={login}><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} autoFocus autoComplete="username" placeholder="Admin email" required/><input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} autoComplete="current-password" placeholder="Admin password" required/><button className="pa-primary" disabled={authBusy}>{authBusy?"Signing in…":"Open admin panel"}</button></form>{error&&<div className="pa-error">{error}</div>}<button className="pa-link" onClick={()=>go("/")}>Back to website</button></section></main>;
 
   return <main className="pa-overlay pa-admin-shell">
-    <aside className="pa-admin-side"><Brand/><nav>{(["overview","requests","clinics","settings"] as const).map((item)=><button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}>{item==="overview"?<Activity/>:item==="requests"?<Mail/>:item==="clinics"?<Building2/>:<CreditCard/>}<span>{item[0].toUpperCase()+item.slice(1)}</span>{item==="requests"&&overview?.metrics.requests_pending?<i>{overview.metrics.requests_pending}</i>:null}</button>)}</nav><button className="pa-admin-exit" onClick={()=>go("/")}><X/>Exit admin</button></aside>
+    <aside className="pa-admin-side"><Brand/><nav>{(["overview","requests","clinics","settings"] as const).map((item)=><button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}>{item==="overview"?<Activity/>:item==="requests"?<Mail/>:item==="clinics"?<Building2/>:<CreditCard/>}<span>{item[0].toUpperCase()+item.slice(1)}</span>{item==="requests"&&overview?.metrics.requests_pending?<i>{overview.metrics.requests_pending}</i>:null}</button>)}</nav><button className="pa-admin-exit" onClick={logoutAdmin}><X/>Sign out</button></aside>
     <section className="pa-admin-main">
-      <header><div><small>TETA2 PLATFORM</small><h1>{tab[0].toUpperCase()+tab.slice(1)}</h1></div><button onClick={()=>void load()} className="pa-icon" title="Refresh"><RefreshCw/></button></header>
+      <header><div><small>TETA2 PLATFORM</small><h1>{tab[0].toUpperCase()+tab.slice(1)}</h1></div><button onClick={()=>void load(token)} className="pa-icon" title="Refresh"><RefreshCw/></button></header>
       {error&&<div className="pa-error">{error}</div>}
       {tab==="overview"&&<OverviewPanel overview={overview}/>} 
       {tab==="requests"&&<RequestsPanel rows={requests} busy={busy} action={action}/>} 
       {tab==="clinics"&&<ClinicsPanel rows={clinics} busy={busy} action={action}/>} 
-      {tab==="settings"&&settings&&<SettingsPanel value={settings} token={token} onSaved={load} setError={setError}/>} 
+      {tab==="settings"&&settings&&<SettingsPanel value={settings} token={token} onSaved={()=>load(token)} setError={setError}/>} 
     </section>
   </main>;
 }
