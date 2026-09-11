@@ -18,7 +18,9 @@ class ClinicRegistry(Base):
     feature_flags: Mapped[dict] = mapped_column(JSON, default=dict)
     subscription_plan: Mapped[str | None] = mapped_column(String(40), nullable=True)
     subscription_starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    subscription_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    subscription_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
@@ -42,10 +44,14 @@ class AccessRequest(Base):
     admin_note: Mapped[str | None] = mapped_column(Text)
     payment_reference: Mapped[str | None] = mapped_column(String(200))
     payment_proof_note: Mapped[str | None] = mapped_column(Text)
-    payment_instructions_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    payment_instructions_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
     payment_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     activated_clinic_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -92,7 +98,9 @@ class PlatformEmailLog(Base):
     status: Mapped[str] = mapped_column(String(30), default="QUEUED")
     provider_message_id: Mapped[str | None] = mapped_column(String(200))
     error: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
 
 
 class PlatformVisit(Base):
@@ -103,4 +111,6 @@ class PlatformVisit(Base):
     status_code: Mapped[int] = mapped_column(Integer)
     visitor_hash: Mapped[str | None] = mapped_column(String(80), index=True)
     user_agent: Mapped[str | None] = mapped_column(String(500))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
