@@ -19,8 +19,10 @@ from app.clinic_resolution.service import resolver
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.core.rate_limit import sensitive_limit
+from app.database.control_models import ClinicRegistry
 from app.database.models import AuditLog, RefreshSession, User
 from app.database.sessions import control_session
+from app.platform.service import subscription_expired
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
@@ -32,11 +34,42 @@ def pair(user, clinic_id):
     )
 
 
+async def _subscription_registry_by_slug(control: AsyncSession, slug: str) -> ClinicRegistry:
+    row = await control.scalar(
+        select(ClinicRegistry).where(
+            ClinicRegistry.slug == slug.lower(), ClinicRegistry.is_active.is_(True)
+        )
+    )
+    if not row:
+        raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 404)
+    if subscription_expired(row):
+        raise AppError(
+            "SUBSCRIPTION_EXPIRED",
+            "Teta2 Care access has expired or is suspended. Renew the 30-day subscription to continue.",
+            403,
+        )
+    return row
+
+
+async def _subscription_registry_by_id(control: AsyncSession, clinic_id: uuid.UUID) -> ClinicRegistry:
+    row = await control.get(ClinicRegistry, clinic_id)
+    if not row or not row.is_active:
+        raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 401)
+    if subscription_expired(row):
+        raise AppError(
+            "SUBSCRIPTION_EXPIRED",
+            "Teta2 Care access has expired or is suspended. Renew the 30-day subscription to continue.",
+            403,
+        )
+    return row
+
+
 @router.post(
     "/login", response_model=TokenPair, dependencies=[Depends(sensitive_limit("login", 10, 60))]
 )
 async def login(body: LoginRequest, control: Annotated[AsyncSession, Depends(control_session)]):
-    clinic = await resolver.by_slug(control, body.clinic_slug)
+    registry = await _subscription_registry_by_slug(control, body.clinic_slug)
+    clinic = resolver.from_registry(registry)
     factory = resolver.session_factory(clinic)
     async with factory() as db, db.begin():
         user = await db.scalar(
@@ -90,7 +123,8 @@ async def login(body: LoginRequest, control: Annotated[AsyncSession, Depends(con
 )
 async def refresh(body: RefreshRequest, control: Annotated[AsyncSession, Depends(control_session)]):
     payload = decode_token(body.refresh_token, "refresh")
-    clinic = await resolver.by_id(control, uuid.UUID(payload["clinic"]))
+    registry = await _subscription_registry_by_id(control, uuid.UUID(payload["clinic"]))
+    clinic = resolver.from_registry(registry)
     factory = resolver.session_factory(clinic)
     async with factory() as db, db.begin():
         session = await db.scalar(
@@ -128,7 +162,7 @@ async def refresh(body: RefreshRequest, control: Annotated[AsyncSession, Depends
 
 @router.post("/logout", status_code=204)
 async def logout(body: LogoutRequest):
-    # Resolve the clinic from the signed refresh token, never from request clinic input.
+    # Logout remains available even if the subscription expired after the token was issued.
     payload = decode_token(body.refresh_token, "refresh")
     from app.database.sessions import ControlSession
 
