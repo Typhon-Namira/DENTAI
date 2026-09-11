@@ -8,7 +8,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 
 ADMIN_SESSION_HOURS = 8
-ADMIN_TOKEN_TYPE = "platform_admin"
+ADMIN_SESSION_KIND = "platform_admin"
 
 
 def _settings(value: Settings | None = None) -> Settings:
@@ -59,7 +59,7 @@ def authenticate_platform_admin(
     now = datetime.now(UTC)
     payload = {
         "sub": expected_email,
-        "type": ADMIN_TOKEN_TYPE,
+        "type": ADMIN_SESSION_KIND,
         "iat": now,
         "exp": now + timedelta(hours=ADMIN_SESSION_HOURS),
     }
@@ -95,7 +95,7 @@ def verify_platform_admin_session(
 
     expected_email = (config.platform_admin_email or "").strip().casefold()
     token_email = str(payload.get("sub") or "").strip().casefold()
-    if payload.get("type") != ADMIN_TOKEN_TYPE or not hmac.compare_digest(
+    if payload.get("type") != ADMIN_SESSION_KIND or not hmac.compare_digest(
         token_email,
         expected_email,
     ):
