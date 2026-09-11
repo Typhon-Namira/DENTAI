@@ -12,9 +12,9 @@ from app.database.base import Base
 def metadata():
     plane = os.getenv("MIGRATION_PLANE", "clinic")
     tables = {
-        k: v
-        for k, v in Base.metadata.tables.items()
-        if (k == "clinic_registry") == (plane == "control")
+        key: table
+        for key, table in Base.metadata.tables.items()
+        if (table.info.get("plane") == "control") == (plane == "control")
     }
     from sqlalchemy import MetaData
 
