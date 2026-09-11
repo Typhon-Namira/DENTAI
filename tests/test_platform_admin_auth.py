@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -6,18 +8,26 @@ import pytest
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.platform.admin_auth import (
-    ADMIN_TOKEN_TYPE,
+    ADMIN_SESSION_KIND,
     authenticate_platform_admin,
     verify_platform_admin_session,
 )
 
 
-def admin_settings() -> Settings:
+def admin_settings(password: str = "correct horse battery staple") -> Settings:
     return Settings(
         app_secret="a" * 48,
         platform_admin_email="Admin@Teta2.com",
-        platform_admin_password="correct horse battery staple",
+        platform_admin_password=password,
     )
+
+
+def signing_key(settings: Settings) -> str:
+    return hmac.new(
+        settings.app_secret.encode(),
+        (settings.platform_admin_password or "").encode(),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def test_admin_login_accepts_case_insensitive_email_and_returns_session() -> None:
@@ -59,16 +69,30 @@ def test_admin_session_rejects_expired_token() -> None:
     expired = jwt.encode(
         {
             "sub": "admin@teta2.com",
-            "type": ADMIN_TOKEN_TYPE,
+            "type": ADMIN_SESSION_KIND,
             "iat": datetime.now(UTC) - timedelta(hours=10),
             "exp": datetime.now(UTC) - timedelta(hours=1),
         },
-        settings.app_secret,
+        signing_key(settings),
         algorithm="HS256",
     )
 
     with pytest.raises(AppError) as error:
         verify_platform_admin_session(expired, settings=settings)
+
+    assert error.value.status_code == 401
+
+
+def test_password_rotation_invalidates_existing_admin_session() -> None:
+    old_settings = admin_settings()
+    token = authenticate_platform_admin(
+        "admin@teta2.com",
+        "correct horse battery staple",
+        settings=old_settings,
+    )
+
+    with pytest.raises(AppError) as error:
+        verify_platform_admin_session(token, settings=admin_settings("new secure password value"))
 
     assert error.value.status_code == 401
 
