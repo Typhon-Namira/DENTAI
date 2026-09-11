@@ -8,11 +8,10 @@ import shutil
 import subprocess  # nosec B404
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import text
 from sqlalchemy.engine import make_url
 
 from app.clinic_resolution.service import resolver
-from app.database.control_models import ClinicRegistry
 from app.database.sessions import ControlSession
 
 
@@ -81,11 +80,26 @@ def backup_database(label: str, database_url: str, destination: Path) -> dict[st
 
 
 async def tenant_urls() -> list[tuple[str, str]]:
+    """Read only columns guaranteed to exist before control-plane migrations run.
+
+    The backup step intentionally runs before Alembic. Loading the ClinicRegistry ORM
+    model here is unsafe because the model may contain newly-added columns that are not
+    present in the currently deployed control database yet. A narrow SQL query keeps
+    pre-migration backups compatible with both legacy and current control schemas.
+    """
+
     async with ControlSession() as session:
-        rows = (
-            await session.scalars(select(ClinicRegistry).where(ClinicRegistry.is_active.is_(True)))
-        ).all()
-        return [(row.slug, resolver._decrypt(row.encrypted_database_url)) for row in rows]
+        result = await session.execute(
+            text(
+                "SELECT slug, encrypted_database_url "
+                "FROM clinic_registry "
+                "WHERE is_active IS TRUE"
+            )
+        )
+        return [
+            (row.slug, resolver._decrypt(row.encrypted_database_url))
+            for row in result.mappings()
+        ]
 
 
 def main() -> None:
