@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -30,6 +30,8 @@ from app.core.errors import AppError, app_error_handler, unexpected_error_handle
 from app.core.logging import configure_logging, request_logging, security_headers
 from app.database.sessions import ControlSession, dispose_control_engine
 from app.outreach import api as outreach
+from app.platform import api as platform
+from app.platform.api import record_platform_visit
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -49,6 +51,15 @@ app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, unexpected_error_handler)
 app.middleware("http")(request_logging)
 app.middleware("http")(security_headers)
+
+
+@app.middleware("http")
+async def platform_visit_telemetry(request: Request, call_next):
+    response = await call_next(request)
+    await record_platform_visit(request, response.status_code)
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins,
@@ -57,6 +68,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
 for router in (
+    platform.router,
     auth.router,
     branches.router,
     patients.router,

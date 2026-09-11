@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import select
@@ -39,14 +40,27 @@ class ClinicResolver:
         except (InvalidToken, ValueError, UnicodeDecodeError) as exc:
             raise AppError("CLINIC_CONFIGURATION_INVALID", "Clinic is unavailable.", 503) from exc
 
-    async def by_slug(self, db: AsyncSession, slug: str) -> ResolvedClinic:
-        row = await db.scalar(
-            select(ClinicRegistry).where(
-                ClinicRegistry.slug == slug.lower(), ClinicRegistry.is_active.is_(True)
+    @staticmethod
+    def _ensure_subscription(row: ClinicRegistry) -> None:
+        if not row.is_active:
+            raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 404)
+        expires_at = row.subscription_expires_at
+        if expires_at is None:
+            return
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at <= datetime.now(UTC):
+            raise AppError(
+                "SUBSCRIPTION_EXPIRED",
+                "This Teta2 Care subscription has expired. Renew the clinic subscription to restore access; existing clinic data is preserved.",
+                403,
             )
-        )
+
+    async def by_slug(self, db: AsyncSession, slug: str) -> ResolvedClinic:
+        row = await db.scalar(select(ClinicRegistry).where(ClinicRegistry.slug == slug.lower()))
         if not row:
             raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 404)
+        self._ensure_subscription(row)
         return ResolvedClinic(
             row.id,
             row.slug,
@@ -57,8 +71,9 @@ class ClinicResolver:
 
     async def by_id(self, db: AsyncSession, clinic_id: uuid.UUID) -> ResolvedClinic:
         row = await db.get(ClinicRegistry, clinic_id)
-        if not row or not row.is_active:
+        if not row:
             raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 401)
+        self._ensure_subscription(row)
         return ResolvedClinic(
             row.id,
             row.slug,
