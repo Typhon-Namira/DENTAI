@@ -78,21 +78,11 @@ def upgrade() -> None:
         op.create_table(
             "platform_settings",
             sa.Column("id", sa.Integer(), primary_key=True),
-            sa.Column(
-                "plan_name", sa.String(80), nullable=False, server_default="Teta2 Care"
-            ),
-            sa.Column(
-                "subscription_days", sa.Integer(), nullable=False, server_default="30"
-            ),
-            sa.Column(
-                "price_amount", sa.Integer(), nullable=False, server_default="99000"
-            ),
-            sa.Column(
-                "price_currency", sa.String(12), nullable=False, server_default="AMD"
-            ),
-            sa.Column(
-                "payment_recipient", sa.String(200), nullable=False, server_default="Teta2"
-            ),
+            sa.Column("plan_name", sa.String(80), nullable=False, server_default="Teta2 Care"),
+            sa.Column("subscription_days", sa.Integer(), nullable=False, server_default="30"),
+            sa.Column("price_amount", sa.Integer(), nullable=False, server_default="99000"),
+            sa.Column("price_currency", sa.String(12), nullable=False, server_default="AMD"),
+            sa.Column("payment_recipient", sa.String(200), nullable=False, server_default="Teta2"),
             sa.Column("payment_card", sa.String(100), nullable=False, server_default=""),
             sa.Column("payment_bank_details", sa.Text(), nullable=False, server_default=""),
             sa.Column(
