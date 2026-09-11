@@ -30,6 +30,7 @@ from app.core.errors import AppError, app_error_handler, unexpected_error_handle
 from app.core.logging import configure_logging, request_logging, security_headers
 from app.database.sessions import ControlSession, dispose_control_engine
 from app.outreach import api as outreach
+from app.platform import api as platform
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -57,6 +58,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
 for router in (
+    platform.router,
     auth.router,
     branches.router,
     patients.router,
