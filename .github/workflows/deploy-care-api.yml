@@ -86,7 +86,36 @@ jobs:
             Dockerfile .dockerignore pyproject.toml uv.lock alembic.ini README.md \
             app ai_engine configs config artifacts/production migrations docs/ai scripts \
             whatsapp_service frontend-test
-          ssh "$EC2_USER@$EC2_HOST" "mkdir -p '$RELEASE_ROOT/${{ github.sha }}'"
+
+          # Disk cleanup has to happen before SCP. Previous versions cleaned inside the next
+          # step, but a full /tmp filesystem prevented the release archive from arriving at all.
+          ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'PRECLEAN'
+          set -euo pipefail
+          mkdir -p "$RELEASE_ROOT"
+          target="$RELEASE_ROOT/$RELEASE_SHA"
+          rm -rf "$target"
+
+          # Abandoned failed releases are disposable. Successful historical releases only need
+          # their tiny previous-container marker for operator visibility; their extracted source,
+          # archives, backups and inspection snapshots are not used by future automated rollbacks.
+          for old_release in "$RELEASE_ROOT"/*; do
+            [ -d "$old_release" ] || continue
+            if [ -f "$old_release/previous-container" ]; then
+              find "$old_release" -mindepth 1 -maxdepth 1 ! -name previous-container -exec rm -rf -- {} +
+            else
+              rm -rf "$old_release"
+            fi
+          done
+
+          # Remove only Docker data not referenced by any running or stopped container.
+          docker builder prune -af >/dev/null 2>&1 || true
+          docker image prune -af >/dev/null 2>&1 || true
+
+          mkdir -p "$target"
+          test -w "$target"
+          df -h "$RELEASE_ROOT" || true
+          PRECLEAN
+
           scp /tmp/release.tgz "$EC2_USER@$EC2_HOST:$RELEASE_ROOT/${{ github.sha }}/release.tgz"
       - name: Build, migrate, switch, and verify
         id: deploy
@@ -107,18 +136,6 @@ jobs:
           ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'REMOTE'
           set -euo pipefail
           release="$RELEASE_ROOT/$RELEASE_SHA"
-
-          # Failed deployments can leave partially extracted releases and Docker build cache behind.
-          # Remove only abandoned release directories; successful releases with rollback metadata stay intact.
-          for old_release in "$RELEASE_ROOT"/*; do
-            [ -d "$old_release" ] || continue
-            [ "$old_release" = "$release" ] && continue
-            if [ ! -f "$old_release/previous-container" ]; then
-              rm -rf "$old_release"
-            fi
-          done
-          docker builder prune -af >/dev/null 2>&1 || true
-          docker image prune -f >/dev/null 2>&1 || true
 
           tar -xzf "$release/release.tgz" -C "$release"
           docker inspect teta2-web >/dev/null
