@@ -14,6 +14,15 @@ from app.platform.service import PLAN_NAME, audit, send_payment_request
 router = APIRouter(prefix="/platform/admin", tags=["platform-renewal"])
 
 
+@router.post("/clinics/{clinic_id}/renew", dependencies=[Depends(require_admin)])
+async def reject_unsafe_direct_renewal(clinic_id: uuid.UUID):
+    raise AppError(
+        "RENEWAL_PAYMENT_REQUIRED",
+        "Start a renewal payment request first; direct subscription extension is disabled.",
+        409,
+    )
+
+
 @router.post("/clinics/{clinic_id}/start-renewal", dependencies=[Depends(require_admin)])
 async def start_renewal(
     clinic_id: uuid.UUID,
