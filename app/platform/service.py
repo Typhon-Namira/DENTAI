@@ -175,7 +175,9 @@ async def _ensure_database(database_url: str) -> None:
         )
     database = url.database
     if not database or not re.fullmatch(r"[A-Za-z0-9_\-]+", database):
-        raise AppError("TENANT_DATABASE_NAME_INVALID", "Tenant database name is invalid.", 409)
+        raise AppError(
+            "TENANT_DATABASE_NAME_INVALID", "Tenant database name is invalid.", 409
+        )
     engine = create_async_engine(admin_url, isolation_level="AUTOCOMMIT")
     try:
         async with engine.connect() as connection:
@@ -220,20 +222,29 @@ async def provision_clinic(
     if request.activated_clinic_id:
         existing = await control_session.get(ClinicRegistry, request.activated_clinic_id)
         if existing:
-            raise AppError("CLINIC_ALREADY_ACTIVATED", "This request is already activated.", 409)
+            raise AppError(
+                "CLINIC_ALREADY_ACTIVATED", "This request is already activated.", 409
+            )
 
     slug = await _unique_slug(control_session, request.clinic_name)
     database_url = _tenant_url_for_slug(slug)
     await _ensure_database(database_url)
     await asyncio.to_thread(_migrate_tenant_sync, database_url)
 
-    username_base = re.sub(r"[^a-z0-9]", "", request.contact_name.casefold().replace(" ", "."))
+    username_base = re.sub(
+        r"[^a-z0-9]", "", request.contact_name.casefold().replace(" ", ".")
+    )
     username = (username_base or "director")[:50]
     password = random_password()
     tenant_engine = create_async_engine(database_url)
     try:
-        async with async_sessionmaker(tenant_engine, expire_on_commit=False)() as tenant, tenant.begin():
-            existing_username = await tenant.scalar(select(User.id).where(User.username == username))
+        async with (
+            async_sessionmaker(tenant_engine, expire_on_commit=False)() as tenant,
+            tenant.begin(),
+        ):
+            existing_username = await tenant.scalar(
+                select(User.id).where(User.username == username)
+            )
             if existing_username:
                 username = f"{username}.{secrets.token_hex(2)}"
             branch = Branch(
@@ -263,7 +274,9 @@ async def provision_clinic(
         if get_settings().app_env in {"development", "test"}:
             encrypted = f"plain:{database_url}"
         else:
-            raise AppError("TENANT_ENCRYPTION_KEY_REQUIRED", "Tenant encryption is unavailable.", 503)
+            raise AppError(
+                "TENANT_ENCRYPTION_KEY_REQUIRED", "Tenant encryption is unavailable.", 503
+            )
     else:
         encrypted = Fernet(key.encode()).encrypt(database_url.encode()).decode()
 
@@ -294,7 +307,11 @@ async def renew_clinic(
 ) -> datetime:
     now = datetime.now(UTC)
     duration = timedelta(days=days or settings.subscription_days)
-    base = clinic.subscription_expires_at if clinic.subscription_expires_at and clinic.subscription_expires_at > now else now
+    base = (
+        clinic.subscription_expires_at
+        if clinic.subscription_expires_at and clinic.subscription_expires_at > now
+        else now
+    )
     clinic.subscription_plan = "TETA2_CARE"
     clinic.subscription_starts_at = clinic.subscription_starts_at or now
     clinic.subscription_expires_at = base + duration
