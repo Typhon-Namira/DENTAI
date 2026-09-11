@@ -8,13 +8,20 @@ import app.database.control_models  # noqa: F401
 import app.database.models  # noqa: F401
 from app.database.base import Base
 
+CONTROL_TABLES = {
+    "clinic_registry",
+    "platform_access_requests",
+    "platform_billing_settings",
+    "platform_admin_events",
+}
+
 
 def metadata():
     plane = os.getenv("MIGRATION_PLANE", "clinic")
     tables = {
-        k: v
-        for k, v in Base.metadata.tables.items()
-        if (k == "clinic_registry") == (plane == "control")
+        key: value
+        for key, value in Base.metadata.tables.items()
+        if (key in CONTROL_TABLES) == (plane == "control")
     }
     from sqlalchemy import MetaData
 
