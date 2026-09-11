@@ -90,15 +90,10 @@ async def tenant_urls() -> list[tuple[str, str]]:
 
     async with ControlSession() as session:
         result = await session.execute(
-            text(
-                "SELECT slug, encrypted_database_url "
-                "FROM clinic_registry "
-                "WHERE is_active IS TRUE"
-            )
+            text("SELECT slug, encrypted_database_url FROM clinic_registry WHERE is_active IS TRUE")
         )
         return [
-            (row.slug, resolver._decrypt(row.encrypted_database_url))
-            for row in result.mappings()
+            (row.slug, resolver._decrypt(row.encrypted_database_url)) for row in result.mappings()
         ]
 
 
