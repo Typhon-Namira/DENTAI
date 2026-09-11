@@ -56,6 +56,20 @@ class Settings(BaseSettings):
     whatsapp_claim_timeout_seconds: int = 300
     whatsapp_max_attempts: int = 5
 
+    # Platform administration and subscription onboarding.
+    platform_admin_token: str | None = None
+    platform_public_url: str = "https://www.teta2.com"
+    platform_support_email: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_from_name: str = "Teta2 Care"
+    smtp_use_tls: bool = True
+    tenant_database_url_template: str | None = None
+    tenant_database_admin_url: str | None = None
+
     # Armenia Patient Radar operational runtime.
     radar_enabled: bool = True
     radar_worker_poll_seconds: float = 5.0
