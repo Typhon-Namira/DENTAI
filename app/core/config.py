@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     radar_enabled: bool = True
     radar_worker_poll_seconds: float = 5.0
     radar_worker_concurrency: int = 8
-    radar_worker_heartbeat_seconds: float = 30.0
+    radar_worker_heartbeat_seconds: int = 30
     radar_claim_seconds: int = 180
     radar_http_timeout_seconds: int = 20
     radar_http_max_bytes: int = 2 * 1024 * 1024
