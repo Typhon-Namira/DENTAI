@@ -93,9 +93,7 @@ def _serialize_access(row: AccessRequest) -> dict:
         "payment_proof_note": row.payment_proof_note,
         "payment_instructions_sent_at": row.payment_instructions_sent_at,
         "payment_verified_at": row.payment_verified_at,
-        "activated_clinic_id": (
-            str(row.activated_clinic_id) if row.activated_clinic_id else None
-        ),
+        "activated_clinic_id": (str(row.activated_clinic_id) if row.activated_clinic_id else None),
         "created_at": row.created_at,
         "updated_at": row.updated_at,
     }
@@ -224,16 +222,12 @@ async def admin_overview(session: Annotated[AsyncSession, Depends(control_sessio
     month = now - timedelta(days=30)
     clinics = list(
         (
-            await session.scalars(
-                select(ClinicRegistry).order_by(ClinicRegistry.created_at.desc())
-            )
+            await session.scalars(select(ClinicRegistry).order_by(ClinicRegistry.created_at.desc()))
         ).all()
     )
     requests = list(
         (
-            await session.scalars(
-                select(AccessRequest).order_by(AccessRequest.created_at.desc())
-            )
+            await session.scalars(select(AccessRequest).order_by(AccessRequest.created_at.desc()))
         ).all()
     )
     emails = list(
@@ -245,17 +239,13 @@ async def admin_overview(session: Annotated[AsyncSession, Depends(control_sessio
     )
     visits_24h = int(
         await session.scalar(
-            select(func.count())
-            .select_from(PlatformVisit)
-            .where(PlatformVisit.created_at >= day)
+            select(func.count()).select_from(PlatformVisit).where(PlatformVisit.created_at >= day)
         )
         or 0
     )
     visits_30d = int(
         await session.scalar(
-            select(func.count())
-            .select_from(PlatformVisit)
-            .where(PlatformVisit.created_at >= month)
+            select(func.count()).select_from(PlatformVisit).where(PlatformVisit.created_at >= month)
         )
         or 0
     )
@@ -299,9 +289,7 @@ async def admin_overview(session: Annotated[AsyncSession, Depends(control_sessio
             "api": "HEALTHY",
             "control_database": "HEALTHY",
             "smtp_configured": bool(app_settings.smtp_host and app_settings.smtp_from_email),
-            "tenant_auto_provisioning_configured": bool(
-                app_settings.tenant_database_url_template
-            ),
+            "tenant_auto_provisioning_configured": bool(app_settings.tenant_database_url_template),
             "ai_provider": app_settings.ai_provider,
             "groq_configured": bool(app_settings.groq_api_key),
             "whatsapp_configured": bool(app_settings.whatsapp_service_url),
