@@ -56,6 +56,21 @@ class Settings(BaseSettings):
     whatsapp_claim_timeout_seconds: int = 300
     whatsapp_max_attempts: int = 5
 
+    # Platform administration and commercial onboarding.
+    platform_admin_username: str | None = None
+    platform_admin_password: str | None = None
+    platform_admin_token_minutes: int = 60
+    platform_public_origin: str = "https://www.teta2.com"
+    platform_tenant_database_url_template: str | None = None
+    platform_tenant_database_admin_url: str | None = None
+    platform_tenant_database_prefix: str = "teta2_"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_use_tls: bool = True
+
     # Armenia Patient Radar operational runtime.
     radar_enabled: bool = True
     radar_worker_poll_seconds: float = 5.0
@@ -164,6 +179,18 @@ class Settings(BaseSettings):
             ):
                 raise RuntimeError(
                     "RADAR_COLLECTOR_TOKEN is required for a non-loopback Radar collector"
+                )
+            if bool(self.platform_admin_username) != bool(self.platform_admin_password):
+                raise RuntimeError(
+                    "PLATFORM_ADMIN_USERNAME and PLATFORM_ADMIN_PASSWORD must be configured together"
+                )
+            if self.platform_admin_password and len(self.platform_admin_password) < 14:
+                raise RuntimeError("PLATFORM_ADMIN_PASSWORD must be at least 14 characters")
+            if self.smtp_host and not self.smtp_from_email:
+                raise RuntimeError("SMTP_FROM_EMAIL is required when SMTP_HOST is configured")
+            if self.platform_tenant_database_url_template and "{database}" not in self.platform_tenant_database_url_template:
+                raise RuntimeError(
+                    "PLATFORM_TENANT_DATABASE_URL_TEMPLATE must contain {database}"
                 )
 
 
