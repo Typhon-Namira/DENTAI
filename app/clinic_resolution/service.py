@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import select
@@ -39,14 +40,39 @@ class ClinicResolver:
         except (InvalidToken, ValueError, UnicodeDecodeError) as exc:
             raise AppError("CLINIC_CONFIGURATION_INVALID", "Clinic is unavailable.", 503) from exc
 
-    async def by_slug(self, db: AsyncSession, slug: str) -> ResolvedClinic:
-        row = await db.scalar(
-            select(ClinicRegistry).where(
-                ClinicRegistry.slug == slug.lower(), ClinicRegistry.is_active.is_(True)
+    @staticmethod
+    def _validate_access(row: ClinicRegistry, *, enforce_subscription: bool) -> None:
+        if not row.is_active:
+            raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 401)
+        if not enforce_subscription or not row.subscription_enforced:
+            return
+        expiry = row.access_expires_at
+        if expiry is None:
+            raise AppError(
+                "SUBSCRIPTION_INACTIVE",
+                "Teta2 Care access is inactive. Please renew the clinic subscription.",
+                402,
             )
-        )
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=UTC)
+        if expiry <= datetime.now(UTC):
+            raise AppError(
+                "SUBSCRIPTION_EXPIRED",
+                "Teta2 Care access has expired. Renew the subscription to continue without losing clinic data.",
+                402,
+            )
+
+    async def by_slug(
+        self,
+        db: AsyncSession,
+        slug: str,
+        *,
+        enforce_subscription: bool = True,
+    ) -> ResolvedClinic:
+        row = await db.scalar(select(ClinicRegistry).where(ClinicRegistry.slug == slug.lower()))
         if not row:
             raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 404)
+        self._validate_access(row, enforce_subscription=enforce_subscription)
         return ResolvedClinic(
             row.id,
             row.slug,
@@ -55,10 +81,17 @@ class ClinicResolver:
             row.allowed_origins,
         )
 
-    async def by_id(self, db: AsyncSession, clinic_id: uuid.UUID) -> ResolvedClinic:
+    async def by_id(
+        self,
+        db: AsyncSession,
+        clinic_id: uuid.UUID,
+        *,
+        enforce_subscription: bool = True,
+    ) -> ResolvedClinic:
         row = await db.get(ClinicRegistry, clinic_id)
-        if not row or not row.is_active:
+        if not row:
             raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 401)
+        self._validate_access(row, enforce_subscription=enforce_subscription)
         return ResolvedClinic(
             row.id,
             row.slug,
