@@ -93,7 +93,9 @@ def _serialize_access(row: AccessRequest) -> dict:
         "payment_proof_note": row.payment_proof_note,
         "payment_instructions_sent_at": row.payment_instructions_sent_at,
         "payment_verified_at": row.payment_verified_at,
-        "activated_clinic_id": str(row.activated_clinic_id) if row.activated_clinic_id else None,
+        "activated_clinic_id": (
+            str(row.activated_clinic_id) if row.activated_clinic_id else None
+        ),
         "created_at": row.created_at,
         "updated_at": row.updated_at,
     }
@@ -102,6 +104,8 @@ def _serialize_access(row: AccessRequest) -> dict:
 def _serialize_clinic(row: ClinicRegistry) -> dict:
     now = datetime.now(UTC)
     expires = row.subscription_expires_at
+    if expires is not None and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=UTC)
     active = row.is_active and (expires is None or expires > now)
     return {
         "id": str(row.id),
@@ -141,10 +145,18 @@ async def require_platform_admin(
 ) -> None:
     expected = get_settings().platform_admin_token
     if not expected:
-        raise AppError("PLATFORM_ADMIN_NOT_CONFIGURED", "Platform administration is unavailable.", 503)
+        raise AppError(
+            "PLATFORM_ADMIN_NOT_CONFIGURED",
+            "Platform administration is unavailable.",
+            503,
+        )
     supplied = authorization.removeprefix("Bearer ") if authorization else ""
     if not hmac.compare_digest(supplied, expected):
-        raise AppError("PLATFORM_ADMIN_AUTH_REQUIRED", "Platform administrator authentication is required.", 401)
+        raise AppError(
+            "PLATFORM_ADMIN_AUTH_REQUIRED",
+            "Platform administrator authentication is required.",
+            401,
+        )
 
 
 @router.post("/access-requests", status_code=201)
@@ -210,61 +222,138 @@ async def admin_overview(session: Annotated[AsyncSession, Depends(control_sessio
     now = datetime.now(UTC)
     day = now - timedelta(hours=24)
     month = now - timedelta(days=30)
-    clinics = list((await session.scalars(select(ClinicRegistry).order_by(ClinicRegistry.created_at.desc()))).all())
-    requests = list((await session.scalars(select(AccessRequest).order_by(AccessRequest.created_at.desc()))).all())
-    emails = list((await session.scalars(select(PlatformEmailLog).order_by(PlatformEmailLog.created_at.desc()).limit(100))).all())
-    visits_24h = int(await session.scalar(select(func.count()).select_from(PlatformVisit).where(PlatformVisit.created_at >= day)) or 0)
-    visits_30d = int(await session.scalar(select(func.count()).select_from(PlatformVisit).where(PlatformVisit.created_at >= month)) or 0)
-    unique_30d = int(await session.scalar(select(func.count(func.distinct(PlatformVisit.visitor_hash))).where(PlatformVisit.created_at >= month)) or 0)
-    recent_visits = list((await session.scalars(select(PlatformVisit).order_by(PlatformVisit.created_at.desc()).limit(500))).all())
-    route_counts = Counter(v.path for v in recent_visits)
-    request_counts = Counter(r.status for r in requests)
-    active_clinics = sum(1 for c in clinics if c.is_active and (c.subscription_expires_at is None or c.subscription_expires_at > now))
-    expiring = sum(1 for c in clinics if c.subscription_expires_at and now < c.subscription_expires_at <= now + timedelta(days=7))
+    clinics = list(
+        (
+            await session.scalars(
+                select(ClinicRegistry).order_by(ClinicRegistry.created_at.desc())
+            )
+        ).all()
+    )
+    requests = list(
+        (
+            await session.scalars(
+                select(AccessRequest).order_by(AccessRequest.created_at.desc())
+            )
+        ).all()
+    )
+    emails = list(
+        (
+            await session.scalars(
+                select(PlatformEmailLog).order_by(PlatformEmailLog.created_at.desc()).limit(100)
+            )
+        ).all()
+    )
+    visits_24h = int(
+        await session.scalar(
+            select(func.count())
+            .select_from(PlatformVisit)
+            .where(PlatformVisit.created_at >= day)
+        )
+        or 0
+    )
+    visits_30d = int(
+        await session.scalar(
+            select(func.count())
+            .select_from(PlatformVisit)
+            .where(PlatformVisit.created_at >= month)
+        )
+        or 0
+    )
+    unique_30d = int(
+        await session.scalar(
+            select(func.count(func.distinct(PlatformVisit.visitor_hash))).where(
+                PlatformVisit.created_at >= month
+            )
+        )
+        or 0
+    )
+    recent_visits = list(
+        (
+            await session.scalars(
+                select(PlatformVisit).order_by(PlatformVisit.created_at.desc()).limit(500)
+            )
+        ).all()
+    )
+    route_counts = Counter(visit.path for visit in recent_visits)
+    request_counts = Counter(access.status for access in requests)
+
+    def subscription_active(clinic: ClinicRegistry) -> bool:
+        expires = clinic.subscription_expires_at
+        if expires is not None and expires.tzinfo is None:
+            expires = expires.replace(tzinfo=UTC)
+        return clinic.is_active and (expires is None or expires > now)
+
+    def expiring_soon(clinic: ClinicRegistry) -> bool:
+        expires = clinic.subscription_expires_at
+        if expires is None:
+            return False
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=UTC)
+        return now < expires <= now + timedelta(days=7)
+
+    active_clinics = sum(1 for clinic in clinics if subscription_active(clinic))
+    expiring = sum(1 for clinic in clinics if expiring_soon(clinic))
+    app_settings = get_settings()
     return {
         "health": {
             "api": "HEALTHY",
             "control_database": "HEALTHY",
-            "smtp_configured": bool(get_settings().smtp_host and get_settings().smtp_from_email),
-            "tenant_auto_provisioning_configured": bool(get_settings().tenant_database_url_template),
+            "smtp_configured": bool(app_settings.smtp_host and app_settings.smtp_from_email),
+            "tenant_auto_provisioning_configured": bool(
+                app_settings.tenant_database_url_template
+            ),
+            "ai_provider": app_settings.ai_provider,
+            "groq_configured": bool(app_settings.groq_api_key),
+            "whatsapp_configured": bool(app_settings.whatsapp_service_url),
+            "radar_enabled": app_settings.radar_enabled,
+            "storage_provider": app_settings.object_storage_provider,
         },
         "metrics": {
             "clinics_total": len(clinics),
             "clinics_active": active_clinics,
             "clinics_expiring_7d": expiring,
             "requests_total": len(requests),
-            "requests_pending": sum(request_counts[s] for s in ("SUBMITTED", "PAYMENT_REQUESTED", "PAYMENT_REVIEW")),
+            "requests_pending": sum(
+                request_counts[state]
+                for state in ("SUBMITTED", "PAYMENT_REQUESTED", "PAYMENT_REVIEW")
+            ),
             "visits_24h": visits_24h,
             "visits_30d": visits_30d,
             "unique_visitors_30d": unique_30d,
-            "emails_failed_100": sum(1 for e in emails if e.status == "FAILED"),
+            "emails_failed_100": sum(1 for email in emails if email.status == "FAILED"),
         },
-        "request_statuses": request_counts,
+        "request_statuses": dict(request_counts),
         "top_routes": route_counts.most_common(15),
         "recent_emails": [
             {
-                "id": str(e.id),
-                "kind": e.kind,
-                "recipient": e.recipient,
-                "subject": e.subject,
-                "status": e.status,
-                "error": e.error,
-                "created_at": e.created_at,
+                "id": str(email.id),
+                "kind": email.kind,
+                "recipient": email.recipient,
+                "subject": email.subject,
+                "status": email.status,
+                "error": email.error,
+                "created_at": email.created_at,
             }
-            for e in emails[:30]
+            for email in emails[:30]
         ],
     }
 
 
 @router.get("/admin/access-requests", dependencies=[Depends(require_platform_admin)])
-async def admin_access_requests(session: Annotated[AsyncSession, Depends(control_session)]):
-    rows = (await session.scalars(select(AccessRequest).order_by(AccessRequest.created_at.desc()))).all()
+async def admin_access_requests(
+    session: Annotated[AsyncSession, Depends(control_session)],
+):
+    rows = (
+        await session.scalars(select(AccessRequest).order_by(AccessRequest.created_at.desc()))
+    ).all()
     return [_serialize_access(row) for row in rows]
 
 
 @router.get("/admin/clinics", dependencies=[Depends(require_platform_admin)])
 async def admin_clinics(session: Annotated[AsyncSession, Depends(control_session)]):
-    rows = (await session.scalars(select(ClinicRegistry).order_by(ClinicRegistry.created_at.desc()))).all()
+    rows = (
+        await session.scalars(select(ClinicRegistry).order_by(ClinicRegistry.created_at.desc()))
+    ).all()
     return [_serialize_clinic(row) for row in rows]
 
 
@@ -290,7 +379,10 @@ async def update_admin_settings(
     return _serialize_settings(row)
 
 
-@router.post("/admin/access-requests/{request_id}/reject", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/access-requests/{request_id}/reject",
+    dependencies=[Depends(require_platform_admin)],
+)
 async def reject_access_request(
     request_id: uuid.UUID,
     body: AdminDecision,
@@ -300,7 +392,11 @@ async def reject_access_request(
     if not row:
         raise AppError("ACCESS_REQUEST_NOT_FOUND", "Access request was not found.", 404)
     if row.status == "ACTIVE":
-        raise AppError("ACCESS_REQUEST_ALREADY_ACTIVE", "An active clinic request cannot be rejected.", 409)
+        raise AppError(
+            "ACCESS_REQUEST_ALREADY_ACTIVE",
+            "An active clinic request cannot be rejected.",
+            409,
+        )
     row.status = "REJECTED"
     row.admin_note = body.note
     row.updated_at = datetime.now(UTC)
@@ -308,7 +404,10 @@ async def reject_access_request(
     return _serialize_access(row)
 
 
-@router.post("/admin/access-requests/{request_id}/send-payment", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/access-requests/{request_id}/send-payment",
+    dependencies=[Depends(require_platform_admin)],
+)
 async def send_payment_instructions(
     request_id: uuid.UUID,
     body: AdminDecision,
@@ -318,10 +417,18 @@ async def send_payment_instructions(
     if not row:
         raise AppError("ACCESS_REQUEST_NOT_FOUND", "Access request was not found.", 404)
     if row.status not in {"SUBMITTED", "PAYMENT_REQUESTED", "PAYMENT_REVIEW"}:
-        raise AppError("ACCESS_REQUEST_STATE_INVALID", "Payment instructions cannot be sent in this state.", 409)
+        raise AppError(
+            "ACCESS_REQUEST_STATE_INVALID",
+            "Payment instructions cannot be sent in this state.",
+            409,
+        )
     settings = await platform_settings(session)
     if not settings.payment_card.strip() and not settings.payment_bank_details.strip():
-        raise AppError("PAYMENT_DETAILS_REQUIRED", "Configure payment details before sending payment instructions.", 409)
+        raise AppError(
+            "PAYMENT_DETAILS_REQUIRED",
+            "Configure payment details before sending payment instructions.",
+            409,
+        )
     await send_logged_email(
         session,
         recipient=row.email,
@@ -338,7 +445,10 @@ async def send_payment_instructions(
     return _serialize_access(row)
 
 
-@router.post("/admin/access-requests/{request_id}/payment-received", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/access-requests/{request_id}/payment-received",
+    dependencies=[Depends(require_platform_admin)],
+)
 async def payment_received(
     request_id: uuid.UUID,
     body: PaymentVerification,
@@ -348,7 +458,9 @@ async def payment_received(
     if not row:
         raise AppError("ACCESS_REQUEST_NOT_FOUND", "Access request was not found.", 404)
     if row.status not in {"PAYMENT_REQUESTED", "PAYMENT_REVIEW"}:
-        raise AppError("ACCESS_REQUEST_STATE_INVALID", "Payment cannot be verified in this state.", 409)
+        raise AppError(
+            "ACCESS_REQUEST_STATE_INVALID", "Payment cannot be verified in this state.", 409
+        )
     row.status = "PAYMENT_REVIEW"
     row.payment_reference = body.reference
     row.payment_proof_note = body.proof_note
@@ -357,7 +469,10 @@ async def payment_received(
     return _serialize_access(row)
 
 
-@router.post("/admin/access-requests/{request_id}/activate", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/access-requests/{request_id}/activate",
+    dependencies=[Depends(require_platform_admin)],
+)
 async def activate_access_request(
     request_id: uuid.UUID,
     body: PaymentVerification,
@@ -367,7 +482,11 @@ async def activate_access_request(
     if not row:
         raise AppError("ACCESS_REQUEST_NOT_FOUND", "Access request was not found.", 404)
     if row.status not in {"PAYMENT_REQUESTED", "PAYMENT_REVIEW"}:
-        raise AppError("ACCESS_REQUEST_STATE_INVALID", "The request must reach payment review before activation.", 409)
+        raise AppError(
+            "ACCESS_REQUEST_STATE_INVALID",
+            "The request must reach payment review before activation.",
+            409,
+        )
     settings = await platform_settings(session)
     row.payment_reference = body.reference or row.payment_reference
     row.payment_proof_note = body.proof_note or row.payment_proof_note
@@ -401,7 +520,10 @@ async def activate_access_request(
     }
 
 
-@router.post("/admin/clinics/{clinic_id}/renew", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/clinics/{clinic_id}/renew",
+    dependencies=[Depends(require_platform_admin)],
+)
 async def renew_subscription(
     clinic_id: uuid.UUID,
     body: RenewRequest,
@@ -413,7 +535,10 @@ async def renew_subscription(
     settings = await platform_settings(session)
     expires_at = await renew_clinic(clinic, settings, days=body.days)
     await session.commit()
-    return {"clinic": _serialize_clinic(clinic), "subscription_expires_at": expires_at}
+    return {
+        "clinic": _serialize_clinic(clinic),
+        "subscription_expires_at": expires_at,
+    }
 
 
 async def record_platform_visit(request: Request, response_status: int) -> None:
@@ -424,7 +549,11 @@ async def record_platform_visit(request: Request, response_status: int) -> None:
             secret = get_settings().app_secret.encode()
             forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
             raw_identity = forwarded or (request.client.host if request.client else "")
-            visitor_hash = hashlib.sha256(secret + raw_identity.encode()).hexdigest()[:40] if raw_identity else None
+            visitor_hash = (
+                hashlib.sha256(secret + raw_identity.encode()).hexdigest()[:40]
+                if raw_identity
+                else None
+            )
             session.add(
                 PlatformVisit(
                     path=request.url.path[:300],
