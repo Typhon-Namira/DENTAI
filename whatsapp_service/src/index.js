@@ -15,6 +15,8 @@ const CARE_STATUS_CALLBACK_URL = process.env.TETA2_CARE_STATUS_CALLBACK_URL ||
   CARE_CALLBACK_URL.replace(/\/inbound$/, "/status");
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const QR_WAIT_MS = Number(process.env.WHATSAPP_QR_WAIT_MS || 12000);
+const DELIVERY_CONFIRM_TIMEOUT_MS = Number(process.env.WHATSAPP_DELIVERY_CONFIRM_TIMEOUT_MS || 20000);
+const INBOUND_BUFFER_WATCHDOG_MS = Number(process.env.WHATSAPP_INBOUND_BUFFER_WATCHDOG_MS || 30000);
 
 export const cleanPhone = (value) => String(value || "").replace(/\D/g, "");
 export function jidForPhone(value) {
@@ -81,6 +83,28 @@ export async function resolveInboundPhone(message, socket = null) {
   return null;
 }
 
+export async function resolveOutboundJid(socket, phone) {
+  const pnJid = jidForPhone(phone);
+  const [registration] = await socket.onWhatsApp(pnJid);
+  if (!registration?.exists) return { exists: false, jid: pnJid, pnJid };
+
+  const registeredJid = registration.jid || pnJid;
+  const mapper = socket?.signalRepository?.lidMapping?.getLIDForPN;
+  if (typeof mapper === "function") {
+    for (const candidate of [registeredJid, pnJid]) {
+      try {
+        const mapped = await mapper.call(socket.signalRepository.lidMapping, candidate);
+        if (mapped && String(mapped).endsWith("@lid")) {
+          return { exists: true, jid: mapped, pnJid: registeredJid };
+        }
+      } catch (error) {
+        logger.debug({ event: "care_outbound_lid_mapping_failed", error: error?.name || "Error" });
+      }
+    }
+  }
+  return { exists: true, jid: registeredJid, pnJid: registeredJid };
+}
+
 function messageText(message) {
   const content = message?.message || {};
   return String(
@@ -98,6 +122,14 @@ function jidDomain(value) {
   return at >= 0 ? jid.slice(at + 1) : "unknown";
 }
 
+function messageStatus(value) {
+  return ({ 1: "QUEUED", 2: "SENT", 3: "DELIVERED", 4: "READ", 5: "READ" })[Number(value)] || null;
+}
+
+function statusRank(value) {
+  return ({ QUEUED: 1, SENT: 2, DELIVERED: 3, READ: 4, FAILED: -1 })[value] ?? 0;
+}
+
 export function createService(deps = {}) {
   const makeSocket = deps.makeSocket || makeWASocket;
   const authState = deps.authState || useMultiFileAuthState;
@@ -106,8 +138,12 @@ export function createService(deps = {}) {
   const sessionRoot = path.resolve(deps.sessionRoot || SESSION_ROOT);
   const delayMs = deps.delayMs ?? 1400;
   const reconnect = deps.reconnect !== false;
+  const deliveryConfirmTimeoutMs = deps.deliveryConfirmTimeoutMs ?? DELIVERY_CONFIRM_TIMEOUT_MS;
+  const inboundBufferWatchdogMs = deps.inboundBufferWatchdogMs ?? INBOUND_BUFFER_WATCHDOG_MS;
   const states = new Map();
   const diagnostics = new Map();
+  const deliveryStates = new Map();
+  const deliveryWaiters = new Map();
   const app = express();
   app.use(express.json({ limit: "5mb" }));
 
@@ -125,14 +161,70 @@ export function createService(deps = {}) {
       forwarded_count: 0,
       unresolved_count: 0,
       callback_rejected_count: 0,
+      forced_buffer_flush_count: 0,
+      delivery_update_count: 0,
       last_upsert_at: null,
       last_upsert_type: null,
       last_remote_jid_domain: null,
       last_forwarded_at: null,
-      last_callback_status: null
+      last_callback_status: null,
+      last_delivery_status: null,
+      last_delivery_at: null,
+      last_send_target_domain: null
     };
     diagnostics.set(accountId, { ...current, ...patch });
     return diagnostics.get(accountId);
+  }
+
+  async function postStatus(accountId, providerMessageId, status) {
+    if (!CARE_STATUS_CALLBACK_URL || !providerMessageId || !status) return;
+    try {
+      const response = await fetch(CARE_STATUS_CALLBACK_URL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(INTERNAL_TOKEN ? { authorization: `Bearer ${INTERNAL_TOKEN}` } : {})
+        },
+        body: JSON.stringify({ account_id: accountId, provider_message_id: providerMessageId, status })
+      });
+      if (!response.ok) logger.warn({ event: "care_status_callback_rejected", account: accountId, status: response.status });
+    } catch (error) {
+      logger.warn({ event: "care_status_callback_unavailable", account: accountId, error: error?.name || "Error" });
+    }
+  }
+
+  function noteDelivery(accountId, providerMessageId, status) {
+    if (!providerMessageId || !status) return;
+    const previous = deliveryStates.get(providerMessageId);
+    if (!previous || statusRank(status) >= statusRank(previous.status)) {
+      deliveryStates.set(providerMessageId, { status, at: Date.now() });
+    }
+    const current = diagnostics.get(accountId) || {};
+    noteDiagnostic(accountId, {
+      delivery_update_count: (current.delivery_update_count || 0) + 1,
+      last_delivery_status: status,
+      last_delivery_at: new Date().toISOString()
+    });
+    const waiter = deliveryWaiters.get(providerMessageId);
+    if (waiter && statusRank(status) >= statusRank("SENT")) {
+      deliveryWaiters.delete(providerMessageId);
+      clearTimeout(waiter.timer);
+      waiter.resolve(status);
+    }
+    void postStatus(accountId, providerMessageId, status);
+  }
+
+  function waitForConfirmedDelivery(providerMessageId) {
+    const known = deliveryStates.get(providerMessageId);
+    if (known && statusRank(known.status) >= statusRank("SENT")) return Promise.resolve(known.status);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        deliveryWaiters.delete(providerMessageId);
+        resolve(null);
+      }, deliveryConfirmTimeoutMs);
+      timer.unref?.();
+      deliveryWaiters.set(providerMessageId, { resolve, timer });
+    });
   }
 
   async function forwardInbound(accountId, message, socket) {
@@ -208,7 +300,7 @@ export function createService(deps = {}) {
     await mkdir(sessionDir, { recursive: true });
     const { state, saveCreds } = await authState(sessionDir);
     const { version } = await latestVersion();
-    const entry = { connection: "connecting", qrDataUrl: null, phone: null, socket: null };
+    const entry = { connection: "connecting", qrDataUrl: null, phone: null, socket: null, bufferWatchdog: null };
     states.set(safeId, entry);
     const socket = makeSocket({ auth: state, version, printQRInTerminal: false, logger: logger.child({ account: safeId }) });
     entry.socket = socket;
@@ -232,20 +324,20 @@ export function createService(deps = {}) {
       for (const message of messages || []) void forwardInbound(safeId, message, socket);
     });
     socket.ev.on("messages.update", (updates) => {
-      for (const update of updates || []) {
-        const providerMessageId = update?.key?.id;
-        const status = ({ 1: "QUEUED", 2: "SENT", 3: "DELIVERED", 4: "READ" })[update?.status];
-        if (!CARE_STATUS_CALLBACK_URL || !providerMessageId || !update?.key?.fromMe || !status) continue;
-        void fetch(CARE_STATUS_CALLBACK_URL, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            ...(INTERNAL_TOKEN ? { authorization: `Bearer ${INTERNAL_TOKEN}` } : {})
-          },
-          body: JSON.stringify({ account_id: safeId, provider_message_id: providerMessageId, status })
-        }).then((response) => {
-          if (!response.ok) logger.warn({ event: "care_status_callback_rejected", account: safeId, status: response.status });
-        }).catch((error) => logger.warn({ event: "care_status_callback_unavailable", account: safeId, error: error?.name || "Error" }));
+      for (const item of updates || []) {
+        const providerMessageId = item?.key?.id;
+        const status = messageStatus(item?.update?.status ?? item?.status);
+        if (!providerMessageId || !item?.key?.fromMe || !status) continue;
+        noteDelivery(safeId, providerMessageId, status);
+      }
+    });
+    socket.ev.on("message-receipt.update", (updates) => {
+      for (const item of updates || []) {
+        const providerMessageId = item?.key?.id;
+        if (!providerMessageId || !item?.key?.fromMe) continue;
+        const receipt = item?.receipt || {};
+        const status = receipt.readTimestamp || receipt.playedTimestamp ? "READ" : receipt.receiptTimestamp ? "DELIVERED" : null;
+        if (status) noteDelivery(safeId, providerMessageId, status);
       }
     });
     socket.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
@@ -259,8 +351,24 @@ export function createService(deps = {}) {
         entry.qrDataUrl = null;
         entry.phone = socket.user?.id?.split(":")[0]?.split("@")[0] || null;
         logger.info({ event: "whatsapp_connected", account: safeId });
+        if (entry.bufferWatchdog) clearTimeout(entry.bufferWatchdog);
+        entry.bufferWatchdog = setTimeout(() => {
+          try {
+            if (typeof socket.ev?.isBuffering === "function" && socket.ev.isBuffering()) {
+              const flushed = typeof socket.ev.flush === "function" ? socket.ev.flush() : false;
+              const current = diagnostics.get(safeId) || {};
+              noteDiagnostic(safeId, { forced_buffer_flush_count: (current.forced_buffer_flush_count || 0) + (flushed ? 1 : 0) });
+              logger.warn({ event: "whatsapp_inbound_buffer_forced_flush", account: safeId, flushed });
+            }
+          } catch (error) {
+            logger.warn({ event: "whatsapp_inbound_buffer_watchdog_failed", account: safeId, error: error?.name || "Error" });
+          }
+        }, inboundBufferWatchdogMs);
+        entry.bufferWatchdog.unref?.();
       }
       if (connection === "close") {
+        if (entry.bufferWatchdog) clearTimeout(entry.bufferWatchdog);
+        entry.bufferWatchdog = null;
         const statusCode = new Boom(lastDisconnect?.error).output.statusCode;
         entry.socket = null;
         if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
@@ -304,8 +412,13 @@ export function createService(deps = {}) {
   app.get("/whatsapp/diagnostics", async (req, res) => {
     try {
       const accountId = normalizeAccountId(req.query.account_id);
-      await startClient(accountId);
-      res.json({ account_id: accountId, ...(diagnostics.get(accountId) || {}) });
+      const entry = await startClient(accountId);
+      res.json({
+        account_id: accountId,
+        connection: entry.connection,
+        event_buffering: typeof entry.socket?.ev?.isBuffering === "function" ? entry.socket.ev.isBuffering() : null,
+        ...(diagnostics.get(accountId) || {})
+      });
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
@@ -336,33 +449,46 @@ export function createService(deps = {}) {
     try {
       const { entry } = await entryFor(req);
       if (entry.connection !== "open" || !entry.socket) return res.status(409).json({ error: "not_connected" });
-      const jid = jidForPhone(req.query.phone);
-      const [result] = await entry.socket.onWhatsApp(jid);
-      res.json({ registered: Boolean(result?.exists), jid: result?.exists ? jid : null });
+      const target = await resolveOutboundJid(entry.socket, req.query.phone);
+      res.json({ registered: target.exists, jid: target.exists ? target.jid : null });
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
   });
   app.post("/whatsapp/send", async (req, res) => {
     try {
-      const { entry } = await entryFor(req);
+      const { accountId, entry } = await entryFor(req);
       if (entry.connection !== "open" || !entry.socket) return res.status(409).json({ error: "not_connected" });
-      const jid = jidForPhone(req.body.phone);
-      const [registration] = await entry.socket.onWhatsApp(jid);
-      if (!registration?.exists) return res.status(422).json({ error: "phone_not_on_whatsapp" });
+      const target = await resolveOutboundJid(entry.socket, req.body.phone);
+      if (!target.exists) return res.status(422).json({ error: "phone_not_on_whatsapp" });
       const message = String(req.body.message || "").trim();
       if (!message) return res.status(400).json({ error: "message_required" });
-      await entry.socket.sendPresenceUpdate("composing", jid);
+      if (String(target.jid).endsWith("@lid") && typeof entry.socket.assertSessions === "function") {
+        try {
+          await entry.socket.assertSessions([target.jid], true);
+        } catch (error) {
+          logger.warn({ event: "whatsapp_lid_session_refresh_failed", account: accountId, error: error?.name || "Error" });
+        }
+      }
+      noteDiagnostic(accountId, { last_send_target_domain: jidDomain(target.jid) });
+      await entry.socket.sendPresenceUpdate("composing", target.jid);
       if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
-      await entry.socket.sendPresenceUpdate("paused", jid);
+      await entry.socket.sendPresenceUpdate("paused", target.jid);
       let payload = { text: message };
       if (req.body.image_base64) {
         const image = Buffer.from(req.body.image_base64, "base64");
         if (!image.length || image.length > MAX_IMAGE_BYTES) return res.status(413).json({ error: "image_size_invalid" });
         payload = { image, caption: message, mimetype: req.body.image_mime_type || "image/jpeg" };
       }
-      const result = await entry.socket.sendMessage(jid, payload);
-      res.json({ status: "sent", message_id: result?.key?.id || null, sent_at: new Date().toISOString() });
+      const result = await entry.socket.sendMessage(target.jid, payload);
+      const providerMessageId = result?.key?.id || null;
+      if (!providerMessageId) return res.status(502).json({ error: "provider_message_id_missing" });
+      const confirmedStatus = await waitForConfirmedDelivery(providerMessageId);
+      if (!confirmedStatus) {
+        logger.warn({ event: "whatsapp_delivery_unconfirmed", account: accountId, message_id: providerMessageId, target_domain: jidDomain(target.jid) });
+        return res.status(504).json({ error: "delivery_unconfirmed", message_id: providerMessageId });
+      }
+      res.json({ status: confirmedStatus.toLowerCase(), message_id: providerMessageId, sent_at: new Date().toISOString() });
     } catch (error) {
       logger.warn({ event: "whatsapp_send_failed", error: error.name });
       res.status(502).json({ error: "send_failed" });

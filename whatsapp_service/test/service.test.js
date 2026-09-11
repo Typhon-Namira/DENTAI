@@ -10,6 +10,7 @@ import {
   jidForPhone,
   normalizeAccountId,
   resolveInboundPhone,
+  resolveOutboundJid,
   sessionDirFor
 } from "../src/index.js";
 
@@ -91,4 +92,44 @@ test("inbound phone resolves LID through the socket mapping when PN fields are a
   };
   const phone = await resolveInboundPhone({ key: { remoteJid: "123456789012345@lid" } }, socket);
   assert.equal(phone, "+37493156663");
+});
+test("outbound phone resolves to mapped LID before sending", async () => {
+  const pn = "37493156663@s.whatsapp.net";
+  const lid = "123456789012345@lid";
+  const socket = {
+    onWhatsApp: async (jid) => [{ exists: true, jid }],
+    signalRepository: {
+      lidMapping: {
+        getLIDForPN: async (jid) => jid === pn ? lid : null
+      }
+    }
+  };
+  const target = await resolveOutboundJid(socket, "+37493156663");
+  assert.equal(target.exists, true);
+  assert.equal(target.pnJid, pn);
+  assert.equal(target.jid, lid);
+});
+test("connection watchdog flushes a stuck Baileys event buffer", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dentai-wa-"));
+  const deps = { ...fakes(), sessionRoot: root, inboundBufferWatchdogMs: 5 };
+  let buffering = true;
+  let flushes = 0;
+  const originalMakeSocket = deps.makeSocket;
+  deps.makeSocket = () => {
+    const socket = originalMakeSocket();
+    socket.ev.isBuffering = () => buffering;
+    socket.ev.flush = () => {
+      buffering = false;
+      flushes += 1;
+      return true;
+    };
+    return socket;
+  };
+  const service = createService(deps);
+  await service.startClient(A);
+  deps.sockets[0].user = { id: "37499111222:1@s.whatsapp.net" };
+  deps.sockets[0].ev.emit("connection.update", { connection: "open" });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(flushes, 1);
+  assert.equal(buffering, false);
 });
