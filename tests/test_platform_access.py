@@ -1,4 +1,3 @@
-import os
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -13,7 +12,9 @@ from app.platform import service
 
 async def control_factory():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    control_tables = [table for table in Base.metadata.sorted_tables if table.info.get("plane") == "control"]
+    control_tables = [
+        table for table in Base.metadata.sorted_tables if table.info.get("plane") == "control"
+    ]
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all, tables=control_tables)
     return engine, async_sessionmaker(engine, expire_on_commit=False)
@@ -28,7 +29,9 @@ def test_control_models_are_marked_for_control_plane():
         "platform_email_logs",
         "platform_admin_audit",
     }
-    actual = {table.name for table in Base.metadata.sorted_tables if table.info.get("plane") == "control"}
+    actual = {
+        table.name for table in Base.metadata.sorted_tables if table.info.get("plane") == "control"
+    }
     assert expected <= actual
     assert "patients" not in actual
 
@@ -38,6 +41,7 @@ def test_subscription_expiry_is_enforced_only_for_paid_tenants():
     legacy = ClinicRegistry(
         slug="legacy",
         name="Legacy",
+        is_active=True,
         encrypted_database_url="plain:sqlite+aiosqlite:///legacy.db",
         subscription_enforced=False,
     )
@@ -46,6 +50,7 @@ def test_subscription_expiry_is_enforced_only_for_paid_tenants():
     expired = ClinicRegistry(
         slug="expired",
         name="Expired",
+        is_active=True,
         encrypted_database_url="plain:sqlite+aiosqlite:///expired.db",
         subscription_enforced=True,
         access_expires_at=datetime.now(UTC) - timedelta(seconds=1),
