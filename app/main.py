@@ -23,6 +23,7 @@ from app.care import api as care
 from app.care import generation_api as care_generation
 from app.care import sequential_api as care_sequential
 from app.care import sequential_manage_api as care_sequential_manage
+from app.care import staged_api as care_staged
 from app.clinic_resolution.service import resolver
 from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler, unexpected_error_handler
@@ -65,6 +66,7 @@ for router in (
     users.router,
     clinical.router,
     administration.router,
+    care_staged.router,
     care_sequential_manage.router,
     care_sequential.router,
     care.router,
