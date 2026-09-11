@@ -44,9 +44,7 @@ class AccessRequest(Base):
     admin_note: Mapped[str | None] = mapped_column(Text)
     payment_reference: Mapped[str | None] = mapped_column(String(200))
     payment_proof_note: Mapped[str | None] = mapped_column(Text)
-    payment_instructions_sent_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True)
-    )
+    payment_instructions_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     payment_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     activated_clinic_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
     created_at: Mapped[datetime] = mapped_column(
