@@ -19,12 +19,24 @@ def upgrade() -> None:
     if os.getenv("MIGRATION_PLANE", "clinic") != "control":
         return
 
-    with op.batch_alter_table("clinic_registry") as batch:
-        batch.add_column(
-            sa.Column("subscription_enforced", sa.Boolean(), nullable=False, server_default=sa.false())
-        )
-        batch.add_column(sa.Column("access_expires_at", sa.DateTime(timezone=True)))
-        batch.create_index("ix_clinic_registry_access_expires_at", ["access_expires_at"])
+    op.add_column(
+        "clinic_registry",
+        sa.Column(
+            "subscription_enforced",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.false(),
+        ),
+    )
+    op.add_column(
+        "clinic_registry",
+        sa.Column("access_expires_at", sa.DateTime(timezone=True)),
+    )
+    op.create_index(
+        "ix_clinic_registry_access_expires_at",
+        "clinic_registry",
+        ["access_expires_at"],
+    )
 
     op.create_table(
         "platform_commercial_config",
@@ -70,22 +82,55 @@ def upgrade() -> None:
         sa.Column("payment_confirmed_at", sa.DateTime(timezone=True)),
         sa.Column("rejected_at", sa.DateTime(timezone=True)),
         sa.Column("activated_at", sa.DateTime(timezone=True)),
-        sa.Column("clinic_registry_id", sa.Uuid(), sa.ForeignKey("clinic_registry.id", ondelete="SET NULL")),
+        sa.Column(
+            "clinic_registry_id",
+            sa.Uuid(),
+            sa.ForeignKey("clinic_registry.id", ondelete="SET NULL"),
+        ),
         sa.Column("issued_username", sa.String(80)),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_platform_access_requests_status", "platform_access_requests", ["status"])
-    op.create_index("ix_platform_access_requests_contact_email", "platform_access_requests", ["contact_email"])
-    op.create_index("ix_platform_access_requests_payment_reference", "platform_access_requests", ["payment_reference"])
-    op.create_index("ix_platform_access_requests_clinic_registry_id", "platform_access_requests", ["clinic_registry_id"])
-    op.create_index("ix_platform_access_requests_created_at", "platform_access_requests", ["created_at"])
+    op.create_index(
+        "ix_platform_access_requests_status",
+        "platform_access_requests",
+        ["status"],
+    )
+    op.create_index(
+        "ix_platform_access_requests_contact_email",
+        "platform_access_requests",
+        ["contact_email"],
+    )
+    op.create_index(
+        "ix_platform_access_requests_payment_reference",
+        "platform_access_requests",
+        ["payment_reference"],
+    )
+    op.create_index(
+        "ix_platform_access_requests_clinic_registry_id",
+        "platform_access_requests",
+        ["clinic_registry_id"],
+    )
+    op.create_index(
+        "ix_platform_access_requests_created_at",
+        "platform_access_requests",
+        ["created_at"],
+    )
 
     op.create_table(
         "platform_subscription_terms",
         sa.Column("id", sa.Uuid(), primary_key=True),
-        sa.Column("clinic_id", sa.Uuid(), sa.ForeignKey("clinic_registry.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("access_request_id", sa.Uuid(), sa.ForeignKey("platform_access_requests.id", ondelete="SET NULL")),
+        sa.Column(
+            "clinic_id",
+            sa.Uuid(),
+            sa.ForeignKey("clinic_registry.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "access_request_id",
+            sa.Uuid(),
+            sa.ForeignKey("platform_access_requests.id", ondelete="SET NULL"),
+        ),
         sa.Column("plan_name", sa.String(80), nullable=False, server_default="Teta2 Care"),
         sa.Column("price_amount", sa.Numeric(12, 2)),
         sa.Column("currency", sa.String(12)),
@@ -96,17 +141,45 @@ def upgrade() -> None:
         sa.Column("payment_reference", sa.String(120)),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_platform_subscription_terms_clinic_id", "platform_subscription_terms", ["clinic_id"])
-    op.create_index("ix_platform_subscription_terms_access_request_id", "platform_subscription_terms", ["access_request_id"])
-    op.create_index("ix_platform_subscription_terms_starts_at", "platform_subscription_terms", ["starts_at"])
-    op.create_index("ix_platform_subscription_terms_ends_at", "platform_subscription_terms", ["ends_at"])
-    op.create_index("ix_platform_subscription_terms_status", "platform_subscription_terms", ["status"])
+    op.create_index(
+        "ix_platform_subscription_terms_clinic_id",
+        "platform_subscription_terms",
+        ["clinic_id"],
+    )
+    op.create_index(
+        "ix_platform_subscription_terms_access_request_id",
+        "platform_subscription_terms",
+        ["access_request_id"],
+    )
+    op.create_index(
+        "ix_platform_subscription_terms_starts_at",
+        "platform_subscription_terms",
+        ["starts_at"],
+    )
+    op.create_index(
+        "ix_platform_subscription_terms_ends_at",
+        "platform_subscription_terms",
+        ["ends_at"],
+    )
+    op.create_index(
+        "ix_platform_subscription_terms_status",
+        "platform_subscription_terms",
+        ["status"],
+    )
 
     op.create_table(
         "platform_email_logs",
         sa.Column("id", sa.Uuid(), primary_key=True),
-        sa.Column("access_request_id", sa.Uuid(), sa.ForeignKey("platform_access_requests.id", ondelete="SET NULL")),
-        sa.Column("clinic_id", sa.Uuid(), sa.ForeignKey("clinic_registry.id", ondelete="SET NULL")),
+        sa.Column(
+            "access_request_id",
+            sa.Uuid(),
+            sa.ForeignKey("platform_access_requests.id", ondelete="SET NULL"),
+        ),
+        sa.Column(
+            "clinic_id",
+            sa.Uuid(),
+            sa.ForeignKey("clinic_registry.id", ondelete="SET NULL"),
+        ),
         sa.Column("kind", sa.String(60), nullable=False),
         sa.Column("recipient", sa.String(320), nullable=False),
         sa.Column("subject", sa.String(240), nullable=False),
@@ -115,10 +188,26 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("sent_at", sa.DateTime(timezone=True)),
     )
-    op.create_index("ix_platform_email_logs_access_request_id", "platform_email_logs", ["access_request_id"])
-    op.create_index("ix_platform_email_logs_clinic_id", "platform_email_logs", ["clinic_id"])
-    op.create_index("ix_platform_email_logs_kind", "platform_email_logs", ["kind"])
-    op.create_index("ix_platform_email_logs_status", "platform_email_logs", ["status"])
+    op.create_index(
+        "ix_platform_email_logs_access_request_id",
+        "platform_email_logs",
+        ["access_request_id"],
+    )
+    op.create_index(
+        "ix_platform_email_logs_clinic_id",
+        "platform_email_logs",
+        ["clinic_id"],
+    )
+    op.create_index(
+        "ix_platform_email_logs_kind",
+        "platform_email_logs",
+        ["kind"],
+    )
+    op.create_index(
+        "ix_platform_email_logs_status",
+        "platform_email_logs",
+        ["status"],
+    )
 
     op.create_table(
         "platform_admin_audit",
@@ -129,10 +218,26 @@ def upgrade() -> None:
         sa.Column("metadata_json", sa.JSON(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_platform_admin_audit_action", "platform_admin_audit", ["action"])
-    op.create_index("ix_platform_admin_audit_access_request_id", "platform_admin_audit", ["access_request_id"])
-    op.create_index("ix_platform_admin_audit_clinic_id", "platform_admin_audit", ["clinic_id"])
-    op.create_index("ix_platform_admin_audit_created_at", "platform_admin_audit", ["created_at"])
+    op.create_index(
+        "ix_platform_admin_audit_action",
+        "platform_admin_audit",
+        ["action"],
+    )
+    op.create_index(
+        "ix_platform_admin_audit_access_request_id",
+        "platform_admin_audit",
+        ["access_request_id"],
+    )
+    op.create_index(
+        "ix_platform_admin_audit_clinic_id",
+        "platform_admin_audit",
+        ["clinic_id"],
+    )
+    op.create_index(
+        "ix_platform_admin_audit_created_at",
+        "platform_admin_audit",
+        ["created_at"],
+    )
 
 
 def downgrade() -> None:
@@ -143,7 +248,6 @@ def downgrade() -> None:
     op.drop_table("platform_subscription_terms")
     op.drop_table("platform_access_requests")
     op.drop_table("platform_commercial_config")
-    with op.batch_alter_table("clinic_registry") as batch:
-        batch.drop_index("ix_clinic_registry_access_expires_at")
-        batch.drop_column("access_expires_at")
-        batch.drop_column("subscription_enforced")
+    op.drop_index("ix_clinic_registry_access_expires_at", table_name="clinic_registry")
+    op.drop_column("clinic_registry", "access_expires_at")
+    op.drop_column("clinic_registry", "subscription_enforced")
