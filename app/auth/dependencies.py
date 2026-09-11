@@ -10,8 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.security import decode_token
 from app.clinic_resolution.service import ResolvedClinic, resolver
 from app.core.errors import AppError
+from app.database.control_models import ClinicRegistry
 from app.database.models import Patient, PatientDoctorAssignment, Role, User, UserBranchScope
 from app.database.sessions import control_session
+from app.platform.service import subscription_expired
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -31,7 +33,17 @@ async def current_context(
     if not credentials:
         raise AppError("AUTH_REQUIRED", "Authentication is required.", 401)
     payload = decode_token(credentials.credentials, "access")
-    clinic = await resolver.by_id(control, uuid.UUID(payload["clinic"]))
+    clinic_id = uuid.UUID(payload["clinic"])
+    registry = await control.get(ClinicRegistry, clinic_id)
+    if not registry or not registry.is_active:
+        raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 401)
+    if subscription_expired(registry):
+        raise AppError(
+            "SUBSCRIPTION_EXPIRED",
+            "Teta2 Care access has expired or is suspended. Renew the 30-day subscription to continue.",
+            403,
+        )
+    clinic = resolver.from_registry(registry)
     factory = resolver.session_factory(clinic)
     async with factory() as db:
         user = await db.get(User, uuid.UUID(payload["sub"]))
