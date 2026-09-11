@@ -81,11 +81,21 @@ def backup_database(label: str, database_url: str, destination: Path) -> dict[st
 
 
 async def tenant_urls() -> list[tuple[str, str]]:
+    """Read only columns guaranteed to exist before the pending control migration.
+
+    The backup step intentionally runs before migrations. Loading full ClinicRegistry ORM
+    entities would make SQLAlchemy select newly-added subscription columns that do not exist
+    yet on an older production control database, causing the safety backup itself to fail.
+    """
     async with ControlSession() as session:
         rows = (
-            await session.scalars(select(ClinicRegistry).where(ClinicRegistry.is_active.is_(True)))
+            await session.execute(
+                select(ClinicRegistry.slug, ClinicRegistry.encrypted_database_url).where(
+                    ClinicRegistry.is_active.is_(True)
+                )
+            )
         ).all()
-        return [(row.slug, resolver._decrypt(row.encrypted_database_url)) for row in rows]
+        return [(slug, resolver._decrypt(encrypted_url)) for slug, encrypted_url in rows]
 
 
 def main() -> None:
