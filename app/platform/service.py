@@ -275,7 +275,7 @@ async def tenant_operational_snapshot(clinic: ClinicRegistry) -> dict:
         "appointments": 0,
     }
     try:
-        resolved = await resolver.by_id_from_registry(clinic)
+        resolved = resolver.from_registry(clinic)
         factory = resolver.session_factory(resolved)
         async with factory() as db:
             counts = []
