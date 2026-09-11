@@ -159,7 +159,6 @@ async def platform_admin_login(body: AdminLogin):
     token = authenticate_platform_admin(str(body.email), body.password)
     return {
         "access_token": token,
-        "token_type": "bearer",
         "expires_in": ADMIN_SESSION_HOURS * 60 * 60,
     }
 
