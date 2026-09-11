@@ -58,9 +58,11 @@ jobs:
           CARE_SMOKE_CLINIC_SLUG: ${{ secrets.CARE_SMOKE_CLINIC_SLUG }}
           CARE_SMOKE_IDENTIFIER: ${{ secrets.CARE_SMOKE_IDENTIFIER }}
           CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
+          PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}
+          PLATFORM_ADMIN_PASSWORD: ${{ secrets.PLATFORM_ADMIN_PASSWORD }}
         run: |
           missing=0
-          for name in EC2_USER EC2_SSH_PRIVATE_KEY EC2_KNOWN_HOSTS CARE_SMOKE_PASSWORD; do
+          for name in EC2_USER EC2_SSH_PRIVATE_KEY EC2_KNOWN_HOSTS CARE_SMOKE_PASSWORD PLATFORM_ADMIN_EMAIL PLATFORM_ADMIN_PASSWORD; do
             if [ -z "${!name:-}" ]; then
               echo "::error title=Missing production secret::$name is not configured in the selected GitHub environment."
               missing=1
@@ -87,17 +89,11 @@ jobs:
             app ai_engine configs config artifacts/production migrations docs/ai scripts \
             whatsapp_service frontend-test
 
-          # Disk cleanup has to happen before SCP. Previous versions cleaned inside the next
-          # step, but a full /tmp filesystem prevented the release archive from arriving at all.
           ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'PRECLEAN'
           set -euo pipefail
           mkdir -p "$RELEASE_ROOT"
           target="$RELEASE_ROOT/$RELEASE_SHA"
           rm -rf "$target"
-
-          # Abandoned failed releases are disposable. Successful historical releases only need
-          # their tiny previous-container marker for operator visibility; their extracted source,
-          # archives, backups and inspection snapshots are not used by future automated rollbacks.
           for old_release in "$RELEASE_ROOT"/*; do
             [ -d "$old_release" ] || continue
             if [ -f "$old_release/previous-container" ]; then
@@ -106,16 +102,12 @@ jobs:
               rm -rf "$old_release"
             fi
           done
-
-          # Remove only Docker data not referenced by any running or stopped container.
           docker builder prune -af >/dev/null 2>&1 || true
           docker image prune -af >/dev/null 2>&1 || true
-
           mkdir -p "$target"
           test -w "$target"
           df -h "$RELEASE_ROOT" || true
           PRECLEAN
-
           scp /tmp/release.tgz "$EC2_USER@$EC2_HOST:$RELEASE_ROOT/${{ github.sha }}/release.tgz"
       - name: Build, migrate, switch, and verify
         id: deploy
@@ -129,10 +121,13 @@ jobs:
           CARE_SMOKE_IDENTIFIER: ${{ secrets.CARE_SMOKE_IDENTIFIER || 'testdentist' }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
+          PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}
+          PLATFORM_ADMIN_PASSWORD: ${{ secrets.PLATFORM_ADMIN_PASSWORD }}
         run: |
-          printf 'GROQ_API_KEY=%s\n' "$GROQ_API_KEY" | \
-           ssh "$EC2_USER@$EC2_HOST" \
-           "umask 077; cat > '$RELEASE_ROOT/${{ github.sha }}/groq.env'"
+          printf 'GROQ_API_KEY=%s\nPLATFORM_ADMIN_EMAIL=%s\nPLATFORM_ADMIN_PASSWORD=%s\n' \
+            "$GROQ_API_KEY" "$PLATFORM_ADMIN_EMAIL" "$PLATFORM_ADMIN_PASSWORD" | \
+            ssh "$EC2_USER@$EC2_HOST" \
+            "umask 077; cat > '$RELEASE_ROOT/${{ github.sha }}/protected.env'"
           ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'REMOTE'
           set -euo pipefail
           release="$RELEASE_ROOT/$RELEASE_SHA"
@@ -153,9 +148,9 @@ jobs:
           docker inspect -f '{{json .NetworkSettings.Networks}}' teta2-web > "$release/predeploy/networks.json"
           docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' teta2-web > "$release/runtime.env"
           chmod 600 "$release/runtime.env"
-          sed -i '/^GROQ_API_KEY=/d' "$release/runtime.env"
-          cat "$release/groq.env" >> "$release/runtime.env"
-          rm -f "$release/groq.env"
+          sed -i '/^GROQ_API_KEY=/d;/^PLATFORM_ADMIN_EMAIL=/d;/^PLATFORM_ADMIN_PASSWORD=/d;/^PLATFORM_ADMIN_TOKEN=/d' "$release/runtime.env"
+          cat "$release/protected.env" >> "$release/runtime.env"
+          rm -f "$release/protected.env"
           chmod 600 "$release/runtime.env"
           docker build -t "dentai-care:$RELEASE_SHA" "$release"
           docker run --rm --network teta2-internal --env-file "$release/runtime.env" \
@@ -199,7 +194,7 @@ jobs:
             return 1
           }
           wait_for_production
-          docker exec teta2-web sh -c 'test "$WHATSAPP_EMBEDDED_SERVICE" = true && test "$WHATSAPP_OUTREACH_WORKER_ENABLED" = true'
+          docker exec teta2-web sh -c 'test "$WHATSAPP_EMBEDDED_SERVICE" = true && test "$WHATSAPP_OUTREACH_WORKER_ENABLED" = true && test -n "$PLATFORM_ADMIN_EMAIL" && test -n "$PLATFORM_ADMIN_PASSWORD"'
           docker exec teta2-web python - <<'PY'
           from pathlib import Path
           import urllib.request

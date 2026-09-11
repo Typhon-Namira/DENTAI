@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     whatsapp_max_attempts: int = 5
 
     # Platform administration and subscription onboarding.
+    platform_admin_email: str | None = None
+    platform_admin_password: str | None = None
     platform_admin_token: str | None = None
     platform_public_url: str = "https://www.teta2.com"
     platform_support_email: str | None = None
