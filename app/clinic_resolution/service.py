@@ -39,14 +39,7 @@ class ClinicResolver:
         except (InvalidToken, ValueError, UnicodeDecodeError) as exc:
             raise AppError("CLINIC_CONFIGURATION_INVALID", "Clinic is unavailable.", 503) from exc
 
-    async def by_slug(self, db: AsyncSession, slug: str) -> ResolvedClinic:
-        row = await db.scalar(
-            select(ClinicRegistry).where(
-                ClinicRegistry.slug == slug.lower(), ClinicRegistry.is_active.is_(True)
-            )
-        )
-        if not row:
-            raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 404)
+    def from_registry(self, row: ClinicRegistry) -> ResolvedClinic:
         return ResolvedClinic(
             row.id,
             row.slug,
@@ -55,17 +48,21 @@ class ClinicResolver:
             row.allowed_origins,
         )
 
+    async def by_slug(self, db: AsyncSession, slug: str) -> ResolvedClinic:
+        row = await db.scalar(
+            select(ClinicRegistry).where(
+                ClinicRegistry.slug == slug.lower(), ClinicRegistry.is_active.is_(True)
+            )
+        )
+        if not row:
+            raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 404)
+        return self.from_registry(row)
+
     async def by_id(self, db: AsyncSession, clinic_id: uuid.UUID) -> ResolvedClinic:
         row = await db.get(ClinicRegistry, clinic_id)
         if not row or not row.is_active:
             raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 401)
-        return ResolvedClinic(
-            row.id,
-            row.slug,
-            row.name,
-            self._decrypt(row.encrypted_database_url),
-            row.allowed_origins,
-        )
+        return self.from_registry(row)
 
     def session_factory(self, clinic: ResolvedClinic) -> async_sessionmaker[AsyncSession]:
         engine = self._engines.get(clinic.id)
