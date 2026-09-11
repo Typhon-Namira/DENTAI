@@ -60,9 +60,13 @@ jobs:
           CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
           PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}
           PLATFORM_ADMIN_PASSWORD: ${{ secrets.PLATFORM_ADMIN_PASSWORD }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
         run: |
           missing=0
-          for name in EC2_USER EC2_SSH_PRIVATE_KEY EC2_KNOWN_HOSTS CARE_SMOKE_PASSWORD PLATFORM_ADMIN_EMAIL PLATFORM_ADMIN_PASSWORD; do
+          for name in EC2_USER EC2_SSH_PRIVATE_KEY EC2_KNOWN_HOSTS CARE_SMOKE_PASSWORD PLATFORM_ADMIN_EMAIL PLATFORM_ADMIN_PASSWORD SMTP_HOST SMTP_USERNAME SMTP_PASSWORD SMTP_FROM_EMAIL; do
             if [ -z "${!name:-}" ]; then
               echo "::error title=Missing production secret::$name is not configured in the selected GitHub environment."
               missing=1
@@ -123,9 +127,18 @@ jobs:
           CARE_SMOKE_PASSWORD: ${{ secrets.CARE_SMOKE_PASSWORD }}
           PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}
           PLATFORM_ADMIN_PASSWORD: ${{ secrets.PLATFORM_ADMIN_PASSWORD }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
+          SMTP_FROM_NAME: ${{ secrets.SMTP_FROM_NAME || 'Teta2 Care' }}
+          SMTP_USE_TLS: ${{ secrets.SMTP_USE_TLS || 'true' }}
         run: |
-          printf 'GROQ_API_KEY=%s\nPLATFORM_ADMIN_EMAIL=%s\nPLATFORM_ADMIN_PASSWORD=%s\n' \
-            "$GROQ_API_KEY" "$PLATFORM_ADMIN_EMAIL" "$PLATFORM_ADMIN_PASSWORD" | \
+          printf 'GROQ_API_KEY=%s\nPLATFORM_ADMIN_EMAIL=%s\nPLATFORM_ADMIN_PASSWORD=%s\nSMTP_HOST=%s\nSMTP_PORT=%s\nSMTP_USERNAME=%s\nSMTP_PASSWORD=%s\nSMTP_FROM_EMAIL=%s\nSMTP_FROM_NAME=%s\nSMTP_USE_TLS=%s\n' \
+            "$GROQ_API_KEY" "$PLATFORM_ADMIN_EMAIL" "$PLATFORM_ADMIN_PASSWORD" \
+            "$SMTP_HOST" "$SMTP_PORT" "$SMTP_USERNAME" "$SMTP_PASSWORD" \
+            "$SMTP_FROM_EMAIL" "$SMTP_FROM_NAME" "$SMTP_USE_TLS" | \
             ssh "$EC2_USER@$EC2_HOST" \
             "umask 077; cat > '$RELEASE_ROOT/${{ github.sha }}/protected.env'"
           ssh "$EC2_USER@$EC2_HOST" "RELEASE_ROOT='$RELEASE_ROOT' RELEASE_SHA='${{ github.sha }}' bash -s" <<'REMOTE'
@@ -148,11 +161,13 @@ jobs:
           docker inspect -f '{{json .NetworkSettings.Networks}}' teta2-web > "$release/predeploy/networks.json"
           docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' teta2-web > "$release/runtime.env"
           chmod 600 "$release/runtime.env"
-          sed -i '/^GROQ_API_KEY=/d;/^PLATFORM_ADMIN_EMAIL=/d;/^PLATFORM_ADMIN_PASSWORD=/d;/^PLATFORM_ADMIN_TOKEN=/d' "$release/runtime.env"
+          sed -i '/^GROQ_API_KEY=/d;/^PLATFORM_ADMIN_EMAIL=/d;/^PLATFORM_ADMIN_PASSWORD=/d;/^PLATFORM_ADMIN_TOKEN=/d;/^SMTP_HOST=/d;/^SMTP_PORT=/d;/^SMTP_USERNAME=/d;/^SMTP_PASSWORD=/d;/^SMTP_FROM_EMAIL=/d;/^SMTP_FROM_NAME=/d;/^SMTP_USE_TLS=/d' "$release/runtime.env"
           cat "$release/protected.env" >> "$release/runtime.env"
           rm -f "$release/protected.env"
           chmod 600 "$release/runtime.env"
           docker build -t "dentai-care:$RELEASE_SHA" "$release"
+          docker run --rm --network teta2-internal --env-file "$release/runtime.env" \
+            "dentai-care:$RELEASE_SHA" python -m scripts.check_smtp
           docker run --rm --network teta2-internal --env-file "$release/runtime.env" \
             -e BACKUP_DESTINATION="/backups/pre-migration" \
             -v "$release:/backups" \
@@ -194,7 +209,7 @@ jobs:
             return 1
           }
           wait_for_production
-          docker exec teta2-web sh -c 'test "$WHATSAPP_EMBEDDED_SERVICE" = true && test "$WHATSAPP_OUTREACH_WORKER_ENABLED" = true && test -n "$PLATFORM_ADMIN_EMAIL" && test -n "$PLATFORM_ADMIN_PASSWORD"'
+          docker exec teta2-web sh -c 'test "$WHATSAPP_EMBEDDED_SERVICE" = true && test "$WHATSAPP_OUTREACH_WORKER_ENABLED" = true && test -n "$PLATFORM_ADMIN_EMAIL" && test -n "$PLATFORM_ADMIN_PASSWORD" && test -n "$SMTP_HOST" && test -n "$SMTP_USERNAME" && test -n "$SMTP_PASSWORD" && test -n "$SMTP_FROM_EMAIL"'
           docker exec teta2-web python - <<'PY'
           from pathlib import Path
           import urllib.request
