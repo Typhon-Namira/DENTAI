@@ -1,3 +1,4 @@
+import hashlib
 import hmac
 from datetime import UTC, datetime, timedelta
 
@@ -16,6 +17,15 @@ def _settings(value: Settings | None = None) -> Settings:
 
 def _configured(settings: Settings) -> bool:
     return bool(settings.platform_admin_email and settings.platform_admin_password)
+
+
+def _signing_key(settings: Settings) -> str:
+    password = settings.platform_admin_password or ""
+    return hmac.new(
+        settings.app_secret.encode(),
+        password.encode(),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def authenticate_platform_admin(
@@ -53,7 +63,7 @@ def authenticate_platform_admin(
         "iat": now,
         "exp": now + timedelta(hours=ADMIN_SESSION_HOURS),
     }
-    return jwt.encode(payload, config.app_secret, algorithm="HS256")
+    return jwt.encode(payload, _signing_key(config), algorithm="HS256")
 
 
 def verify_platform_admin_session(
@@ -75,7 +85,7 @@ def verify_platform_admin_session(
             401,
         )
     try:
-        payload = jwt.decode(token, config.app_secret, algorithms=["HS256"])
+        payload = jwt.decode(token, _signing_key(config), algorithms=["HS256"])
     except jwt.PyJWTError as exc:
         raise AppError(
             "PLATFORM_ADMIN_AUTH_REQUIRED",
