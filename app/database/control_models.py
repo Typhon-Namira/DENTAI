@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import JSON, Boolean, DateTime, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -59,7 +60,7 @@ class PlatformBillingSettings(Base):
     __tablename__ = "platform_billing_settings"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
     plan_name: Mapped[str] = mapped_column(String(40), default="Teta2 Care")
-    price: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    price: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
     currency: Mapped[str] = mapped_column(String(12), default="AMD")
     bank_name: Mapped[str] = mapped_column(String(200), default="")
     cardholder_name: Mapped[str] = mapped_column(String(200), default="")
