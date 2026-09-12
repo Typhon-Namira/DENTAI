@@ -48,8 +48,6 @@ async def create(
     response: Response,
     ctx: Annotated[AuthContext, Depends(current_context)],
 ):
-    if ctx.user.role != Role.DOCTOR:
-        raise AppError("FORBIDDEN", "Only Doctors may request dental AI analysis.", 403)
     xray = await ctx.session.get(XRay, body.xray_id)
     if not xray:
         raise AppError("XRAY_NOT_FOUND", "X-ray was not found.", 404)
@@ -163,8 +161,6 @@ async def retry_analysis(
     analysis_id: uuid.UUID,
     ctx: Annotated[AuthContext, Depends(current_context)],
 ):
-    if ctx.user.role != Role.DOCTOR:
-        raise AppError("FORBIDDEN", "Only Doctors may retry dental AI analysis.", 403)
     analysis = await ctx.session.get(AIAnalysis, analysis_id)
     if not analysis:
         raise AppError("ANALYSIS_NOT_FOUND", "Analysis was not found.", 404)
