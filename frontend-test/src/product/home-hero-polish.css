@@ -1,0 +1,93 @@
+/* Homepage hero polish only: sharpen step 02, refine the desktop hand-off,
+   and create more separation between the two cards on mobile. */
+
+/* Older experimental hero layers applied blur to ::before. Step 02 now owns
+   that pseudo-element, so explicitly remove every inherited visual filter. */
+.product-home-hero::before{
+  filter:none!important;
+  -webkit-filter:none!important;
+  opacity:1!important;
+  background-size:cover!important;
+  background-position:center center!important;
+  image-rendering:auto!important;
+}
+
+/* Desktop/tablet: keep the connector completely inside the negative-space gap
+   between the two cards instead of drawing across the patient follow-up image. */
+@media (min-width:681px){
+  .product-home-hero .product-home-hero-shade::before{
+    left:41.9%!important;
+    top:41.5%!important;
+    width:9.3%!important;
+    height:11.5%!important;
+    border:0!important;
+    border-right:2px solid rgba(20,145,161,.64)!important;
+    border-bottom:2px solid rgba(20,145,161,.64)!important;
+    border-radius:0 0 42px 0!important;
+    transform:rotate(5deg)!important;
+    filter:drop-shadow(0 4px 7px rgba(28,119,143,.14))!important;
+  }
+
+  .product-home-hero .product-home-hero-shade::after{
+    left:50.25%!important;
+    top:51.1%!important;
+    width:10px!important;
+    height:10px!important;
+    border:0!important;
+    border-right:2px solid #138fa2!important;
+    border-bottom:2px solid #138fa2!important;
+    transform:rotate(-8deg)!important;
+  }
+}
+
+/* Phones: preserve the same editorial diagonal story, but lower step 02 so
+   it reads as the next moment rather than sitting directly under step 01. */
+@media (max-width:680px){
+  .product-home-hero::before{
+    top:41.5%!important;
+    right:4.5%!important;
+    width:76%!important;
+    filter:none!important;
+    -webkit-filter:none!important;
+  }
+
+  .product-home-hero>.product-hero-copy::after{
+    top:61%!important;
+    right:3.2%!important;
+    bottom:auto!important;
+  }
+
+  /* Connector stays in the open gap between cards. */
+  .product-home-hero .product-home-hero-shade::before{
+    left:67.5%!important;
+    top:33.4%!important;
+    width:11.5%!important;
+    height:7.5%!important;
+    border:0!important;
+    border-right:2px solid rgba(20,145,161,.62)!important;
+    border-bottom:2px solid rgba(20,145,161,.62)!important;
+    border-radius:0 0 30px 0!important;
+    transform:rotate(24deg)!important;
+  }
+
+  .product-home-hero .product-home-hero-shade::after{
+    left:76.2%!important;
+    top:39.2%!important;
+    width:8px!important;
+    height:8px!important;
+    border:0!important;
+    border-right:2px solid #138fa2!important;
+    border-bottom:2px solid #138fa2!important;
+    transform:rotate(19deg)!important;
+  }
+}
+
+@media (max-width:390px){
+  .product-home-hero::before{
+    top:42%!important;
+    width:74%!important;
+  }
+  .product-home-hero>.product-hero-copy::after{
+    top:61.5%!important;
+  }
+}
