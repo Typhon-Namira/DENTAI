@@ -12,10 +12,6 @@ for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await page.goto(process.env.CARE_E2E_URL ?? "http://127.0.0.1:5173/");
 
-    // Production intentionally shows a first-visit language picker before the
-    // rest of the public UI becomes interactive. The deploy verification must
-    // complete that real first-visit step instead of trying to click through
-    // the modal backdrop.
     const languageModal = page.getByRole("dialog", { name: "Choose language" });
     if (await languageModal.isVisible()) {
       await languageModal.getByRole("button", { name: "English", exact: true }).click();
@@ -33,17 +29,27 @@ for (const viewport of viewports) {
     await expect(page.getByText("Your clinical day, in one place.")).toBeVisible();
 
     const clinicalNavigation = page.getByRole("navigation", { name: "Clinical workspace" });
+    const mobileMenu = page.getByRole("button", { name: "Open navigation" });
     const labels = ["Dashboard", "Patients & records", "OPG + AI", "Follow-up plans", "Appointments", "Working hours"];
 
     for (const label of labels) {
+      const target = clinicalNavigation.getByRole("button", { name: label });
+
       if (viewport.width <= 760) {
-        if (!(await clinicalNavigation.isVisible())) {
-          await page.getByRole("button", { name: "Open navigation" }).click();
-          await expect(clinicalNavigation).toBeVisible();
-        }
+        // The mobile sidebar remains in the DOM while translated off-canvas, so
+        // locator.isVisible() is not a reliable signal that it is actually open.
+        // Open it explicitly for each navigation step and assert viewport reachability.
+        await mobileMenu.click();
+        await expect(mobileMenu).toHaveAttribute("aria-expanded", "true");
+        await expect(page.getByRole("button", { name: "Close navigation" })).toBeVisible();
+        await expect(target).toBeInViewport();
       }
 
-      await clinicalNavigation.getByRole("button", { name: label }).click();
+      await target.click();
+
+      if (viewport.width <= 760) {
+        await expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
+      }
 
       const overflowReport = await page.evaluate(() => {
         const viewportWidth = document.documentElement.clientWidth;
