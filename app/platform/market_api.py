@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, TypedDict
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -16,7 +16,17 @@ from app.platform.service import platform_settings, send_logged_email
 router = APIRouter(prefix="/platform/market", tags=["platform-market"])
 
 FUNDING_LIMIT = 50
-MARKETS = {
+
+
+class MarketConfig(TypedDict):
+    name: str
+    currency: str
+    standard_price: int
+    funding_price: int
+    payment_subject: str
+
+
+MARKETS: dict[str, MarketConfig] = {
     "AM": {
         "name": "Armenia",
         "currency": "AMD",
@@ -212,9 +222,9 @@ async def send_market_payment_instructions(
     position = await _funding_position(session, row, market)
     tier = "FUNDING" if position <= FUNDING_LIMIT else "STANDARD"
     config = MARKETS[market]
-    amount = int(config["funding_price"] if tier == "FUNDING" else config["standard_price"])
-    currency = str(config["currency"])
-    subject = str(config["payment_subject"])
+    amount = config["funding_price"] if tier == "FUNDING" else config["standard_price"]
+    currency = config["currency"]
+    subject = config["payment_subject"]
 
     await send_logged_email(
         session,
