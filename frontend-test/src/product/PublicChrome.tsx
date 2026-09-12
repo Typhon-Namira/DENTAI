@@ -1,8 +1,8 @@
-import { Check, ChevronDown, Menu, Sparkles, X } from "lucide-react";
+import { Activity, Check, ChevronDown, Menu, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export type PublicLanguage = "en" | "hy" | "ru";
-export type PublicPath = "/" | "/product" | "/how-it-works" | "/pricing" | "/clinical-safety" | "/about" | "/login" | "/register";
+export type PublicPath = "/" | "/product" | "/how-it-works" | "/pricing" | "/clinical-safety" | "/about" | "/login" | "/register" | "/privacy" | "/terms" | "/cookies" | "/payments" | "/clinical-disclaimer";
 
 const LANGUAGE_NAMES: Record<PublicLanguage, string> = {
   en: "English",
@@ -46,15 +46,30 @@ export function PublicNavbar({ language, onLanguage, copy, route, go }: { langua
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = (path: PublicPath) => { setMobileOpen(false); go(path); };
   return <header className="t2-navbar">
-    <button className="t2-wordmark" onClick={() => navigate("/")} aria-label="Teta2 home">Teta2</button>
+    <button className="t2-wordmark" onClick={() => navigate("/")} aria-label="Teta2 home"><span>Teta2</span><small><Activity/>Clinical AI</small></button>
     <button className="t2-menu-trigger" aria-label="Open navigation" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>{mobileOpen ? <X/> : <Menu/>}</button>
     <nav className={mobileOpen ? "open" : ""} aria-label="Primary navigation">{LINKS.map(([path,key]) => <button key={path} className={route === path ? "active" : ""} onClick={() => navigate(path)}>{copy[key]}</button>)}<button className="t2-mobile-only" onClick={() => navigate("/login")}>{copy.login}</button><button className="t2-mobile-only" onClick={() => navigate("/register")}>{copy.access}</button></nav>
     <div className="t2-nav-actions"><button className="t2-login-link" onClick={() => navigate("/login")}>{copy.login}</button><button className="t2-access-button" onClick={() => navigate("/register")}>{copy.access}</button><LanguageDropdown language={language} onChange={onLanguage}/></div>
   </header>;
 }
 
-export function PublicFooter({ copy, description, go }: { copy: ChromeCopy; description: string; go: (path: PublicPath) => void }) {
-  return <footer className="t2-footer"><div><button className="t2-wordmark" onClick={() => go("/")}>Teta2</button><p>{description}</p></div><nav aria-label="Footer navigation">{LINKS.map(([path,key]) => <button key={path} onClick={() => go(path)}>{copy[key]}</button>)}<button onClick={() => go("/login")}>{copy.login}</button><button onClick={() => go("/register")}>{copy.access}</button></nav><small>© {new Date().getFullYear()} Teta2</small></footer>;
+const FOOTER_COPY = {
+  en: { platform: "Platform", legal: "Legal & trust", contact: "Contact", privacy: "Privacy policy", terms: "Terms of service", cookies: "Cookies & browser storage", payments: "Payments & refunds", clinical: "Clinical AI disclaimer", status: "Pre-incorporation software project", jurisdiction: "Governed by the laws of Armenia" },
+  hy: { platform: "Հարթակ", legal: "Իրավական և վստահություն", contact: "Կապ", privacy: "Գաղտնիության քաղաքականություն", terms: "Ծառայության պայմաններ", cookies: "Cookie-ներ և browser storage", payments: "Վճարումներ և վերադարձներ", clinical: "Կլինիկական AI-ի սահմանափակումներ", status: "Մինչև ընկերության գրանցումը գործող ծրագրային նախագիծ", jurisdiction: "Կարգավորվում է Հայաստանի Հանրապետության օրենքներով" },
+  ru: { platform: "Платформа", legal: "Правовая информация", contact: "Контакты", privacy: "Политика конфиденциальности", terms: "Условия использования", cookies: "Cookie и хранилище браузера", payments: "Оплата и возвраты", clinical: "Отказ от медицинских гарантий ИИ", status: "Программный проект до регистрации компании", jurisdiction: "Регулируется законодательством Армении" },
+} as const;
+
+export function PublicFooter({ copy, description, language, go }: { copy: ChromeCopy; description: string; language: PublicLanguage; go: (path: PublicPath) => void }) {
+  const f = FOOTER_COPY[language];
+  return <footer className="t2-footer"><div className="t2-footer-main"><section className="t2-footer-brand"><button className="t2-wordmark" onClick={() => go("/")}><span>Teta2</span></button><p>{description}</p><span className="t2-footer-status"><ShieldCheck/>{f.status}</span></section><nav aria-label={f.platform}><strong>{f.platform}</strong>{LINKS.map(([path,key]) => <button key={path} onClick={() => go(path)}>{copy[key]}</button>)}<button onClick={() => go("/login")}>{copy.login}</button><button onClick={() => go("/register")}>{copy.access}</button></nav><nav aria-label={f.legal}><strong>{f.legal}</strong><button onClick={() => go("/privacy")}>{f.privacy}</button><button onClick={() => go("/terms")}>{f.terms}</button><button onClick={() => go("/cookies")}>{f.cookies}</button><button onClick={() => go("/payments")}>{f.payments}</button><button onClick={() => go("/clinical-disclaimer")}>{f.clinical}</button></nav><section className="t2-footer-contact"><strong>{f.contact}</strong><a href="mailto:teta2support@gmail.com">teta2support@gmail.com</a><p>{f.jurisdiction}</p></section></div><div className="t2-footer-bottom"><small>© {new Date().getFullYear()} Teta2</small><small>{f.status}</small></div></footer>;
+}
+
+export function StorageNotice({ language, onPolicy }: { language: PublicLanguage; onPolicy: () => void }) {
+  const key = "teta2-storage-notice-v1";
+  const [visible, setVisible] = useState(() => localStorage.getItem(key) !== "seen");
+  if (!visible) return null;
+  const copy = language === "hy" ? { title: "Միայն անհրաժեշտ browser storage", body: "Teta2-ը չի օգտագործում գովազդային կամ analytics cookie-ներ։ Լեզուն պահվում է այս սարքում, իսկ մուտքի տվյալները՝ միայն browser session-ի ընթացքում։", accept: "Հասկացա", policy: "Մանրամասներ" } : language === "ru" ? { title: "Только необходимое хранилище браузера", body: "Teta2 не использует рекламные или аналитические cookie. Язык сохраняется на этом устройстве, а данные входа — только на время сессии браузера.", accept: "Понятно", policy: "Подробнее" } : { title: "Essential browser storage only", body: "Teta2 does not use advertising or analytics cookies. Your language is saved on this device; sign-in tokens stay only for the browser session.", accept: "Understood", policy: "Read policy" };
+  return <aside className="t2-storage-notice" aria-label={copy.title}><ShieldCheck/><div><strong>{copy.title}</strong><p>{copy.body}</p></div><div><button className="secondary" onClick={onPolicy}>{copy.policy}</button><button onClick={() => { localStorage.setItem(key, "seen"); setVisible(false); }}>{copy.accept}</button></div></aside>;
 }
 
 export function FirstVisitLanguageModal({ onSelect }: { onSelect: (language: PublicLanguage) => void }) {

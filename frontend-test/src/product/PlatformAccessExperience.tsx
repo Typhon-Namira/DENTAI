@@ -209,7 +209,7 @@ function AccessRequestPage() {
         </>}
       </section>
     </section>
-    <PublicFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} go={go} />
+    <PublicFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} language={lang} go={go} />
   </div>;
 }
 

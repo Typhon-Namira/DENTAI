@@ -34,7 +34,8 @@ import { AnalysisResults } from "../components/AnalysisResults";
 import { WhatsAppOutreachCard } from "../components/WhatsAppOutreachCard";
 import { productCopy, type ProductLang } from "./content";
 import ClinicalCareApp from "./ClinicalCareApp";
-import { FirstVisitLanguageModal, LanguageDropdown, PublicFooter as SharedFooter, PublicNavbar, type PublicLanguage } from "./PublicChrome";
+import { LegalPage, type LegalRoute } from "./LegalPages";
+import { FirstVisitLanguageModal, LanguageDropdown, PublicFooter as SharedFooter, PublicNavbar, StorageNotice, type PublicLanguage } from "./PublicChrome";
 
 const LANG_KEY = "teta2-product-language";
 const OPG_HERO_URL = "https://images.squarespace-cdn.com/content/v1/57e01f4c2e69cf3a18c52ac1/09f04224-c53b-4362-aff2-52ae4d2cc114/OPG.jpg";
@@ -47,7 +48,12 @@ const PUBLIC_ROUTES = [
   "/clinical-safety",
   "/about",
   "/login",
-  "/register"
+  "/register",
+  "/privacy",
+  "/terms",
+  "/cookies",
+  "/payments",
+  "/clinical-disclaimer"
 ] as const;
 
 type PublicRoute = typeof PUBLIC_ROUTES[number];
@@ -191,6 +197,11 @@ export default function ProductApp() {
   }, [lang]);
 
   useEffect(() => {
+    const legalTitles: Partial<Record<PublicRoute, string>> = { "/privacy": "Privacy Policy", "/terms": "Terms of Service", "/cookies": "Cookies & Browser Storage", "/payments": "Payments & Refunds", "/clinical-disclaimer": "Clinical AI Disclaimer" };
+    document.title = legalTitles[route] ? `${legalTitles[route]} | Teta2` : "Teta2 | OPG Intelligence & Patient Follow-up";
+  }, [route]);
+
+  useEffect(() => {
     if (!hasSession()) {
       setRestoring(false);
       return;
@@ -206,7 +217,8 @@ export default function ProductApp() {
     : route === "/login" ? <LoginPage lang={lang} setLang={setLang} onAuthenticated={setUser} go={go} />
     : route === "/register" ? null
     : <PublicProduct lang={lang} setLang={setLang} route={route} go={go} />;
-  return <>{experience}{showLanguageModal && <FirstVisitLanguageModal onSelect={(next: PublicLanguage) => setLang(next)} />}</>;
+  const showPublicPreferences = !restoring && !user && window.location.pathname !== "/platform-admin";
+  return <>{experience}{showPublicPreferences && (showLanguageModal ? <FirstVisitLanguageModal onSelect={(next: PublicLanguage) => setLang(next)} /> : <StorageNotice language={lang} onPolicy={() => go("/cookies")} />)}</>;
 }
 
 function PublicProduct({ lang, setLang, route, go }: { lang: ProductLang; setLang: (lang: ProductLang) => void; route: PublicRoute; go: (route: PublicRoute) => void }) {
@@ -219,7 +231,8 @@ function PublicProduct({ lang, setLang, route, go }: { lang: ProductLang; setLan
       {route === "/pricing" && <PricingPage lang={lang} go={go} />}
       {route === "/clinical-safety" && <SafetyPage lang={lang} go={go} />}
       {route === "/about" && <AboutPage lang={lang} go={go} />}
-      <SharedFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} go={go} />
+      {(["/privacy", "/terms", "/cookies", "/payments", "/clinical-disclaimer"] as const).includes(route as LegalRoute) && <LegalPage route={route as LegalRoute} lang={lang} onNavigate={go} />}
+      <SharedFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} language={lang} go={go} />
     </div>
   );
 }
@@ -396,7 +409,7 @@ function LoginPage({ lang, setLang, onAuthenticated, go }: { lang: ProductLang; 
       <section className="product-login-story"><span className="product-kicker">OPG → AI → RECORD → FOLLOW → RETURN</span><h1>{lang === "hy" ? "Մուտք գործեք ձեր կլինիկական workspace։" : lang === "ru" ? "Войдите в клиническое рабочее пространство." : "Sign in to your clinical workspace."}</h1><p>{lang === "hy" ? "Մեկ կենտրոնացված workflow՝ OPG վերլուծության, պացիենտի քարտի և հետագա վերահսկման համար։" : lang === "ru" ? "Единый процесс для OPG-анализа, карты пациента и последующего наблюдения." : "One focused workflow for OPG analysis, the smart patient file and follow-up."}</p><HeroOpgVisual lang={lang} /></section>
       <section className="product-login-card"><h2>{lang === "hy" ? "Կլինիկայի մուտք" : lang === "ru" ? "Вход для клиники" : "Clinic sign in"}</h2><p>{lang === "hy" ? "Օգտագործեք ձեր provision արված clinic slug-ը և հաշիվը։" : lang === "ru" ? "Используйте идентификатор клиники и учетную запись, полученные при активации." : "Use the clinic slug and account provisioned for your clinic."}</p><form onSubmit={submit}><label>{lang === "ru" ? "Идентификатор клиники" : "Clinic slug"}<input required autoComplete="organization" value={clinic} onChange={(event) => setClinic(event.target.value)} placeholder="your-clinic" /></label><label>{lang === "hy" ? "Էլ․ փոստ կամ օգտանուն" : lang === "ru" ? "Email или имя пользователя" : "Email or username"}<input required autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} /></label><label>{lang === "hy" ? "Գաղտնաբառ" : lang === "ru" ? "Пароль" : "Password"}<input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>{error && <div className="product-error" role="alert">{error}</div>}<button className="product-primary" disabled={busy}>{busy ? (lang === "hy" ? "Մուտք…" : lang === "ru" ? "Вход…" : "Signing in…") : (lang === "hy" ? "Անվտանգ մուտք" : lang === "ru" ? "Безопасный вход" : "Sign in securely")}</button></form><button className="product-link-button" onClick={() => go("/register")}>{productCopy(lang).nav.access}</button></section>
       </main>
-      <SharedFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} go={go} />
+      <SharedFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} language={lang} go={go} />
     </div>
   );
 }
