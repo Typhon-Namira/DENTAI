@@ -1,0 +1,143 @@
+/* Public homepage hero: show the complete source image without cropping.
+   Any leftover hero area is filled by a blurred copy of the same image so mobile and
+   desktop never show blank/flat bands. The hero itself always stays inside first viewport. */
+
+.product-home-hero{
+  position:relative;
+  isolation:isolate;
+  height:calc(100svh - 98px);
+  min-height:0;
+  max-height:calc(100svh - 98px);
+  overflow:hidden;
+  background:#dfe9ee;
+}
+
+/* Blurred image extension fills the hero behind the complete foreground photo. */
+.product-home-hero::before{
+  content:"";
+  position:absolute;
+  inset:-28px;
+  z-index:0;
+  background-image:url('/images/teta2-clinical-opg-hero.webp');
+  background-repeat:no-repeat;
+  background-position:center center;
+  background-size:cover;
+  filter:blur(24px) saturate(1.04) brightness(.76);
+  transform:scale(1.06);
+  pointer-events:none;
+}
+
+/* The real image is never cropped: contain always keeps every edge visible. */
+.product-home-hero .product-home-hero-image{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  width:100%;
+  height:100%;
+  padding:0;
+  object-fit:contain !important;
+  object-position:center center !important;
+  transform:none !important;
+  transform-origin:center center !important;
+  filter:none;
+}
+
+.product-home-hero .product-home-hero-shade{
+  z-index:2;
+  background:
+    linear-gradient(180deg,rgba(4,18,35,.01) 0%,rgba(4,18,35,.04) 38%,rgba(4,18,35,.30) 72%,rgba(4,18,35,.67) 100%),
+    linear-gradient(90deg,rgba(4,18,35,.02) 0%,rgba(4,18,35,0) 34%,rgba(4,18,35,.33) 100%);
+}
+
+.product-home-hero>.product-hero-copy{
+  z-index:3;
+}
+
+/* Desktop/laptop: full image remains centered inside the fixed first-viewport hero. */
+@media (min-width:1121px){
+  .product-home-hero{
+    height:calc(100svh - 98px);
+    min-height:0;
+    max-height:calc(100svh - 98px);
+  }
+
+  .product-home-hero .product-home-hero-image{
+    object-fit:contain !important;
+    object-position:center center !important;
+  }
+}
+
+/* Tablet: same no-crop behavior. */
+@media (min-width:681px) and (max-width:1120px){
+  .product-home-hero{
+    height:calc(100svh - 98px);
+    min-height:0;
+    max-height:calc(100svh - 98px);
+  }
+
+  .product-home-hero .product-home-hero-image{
+    object-fit:contain !important;
+    object-position:center center !important;
+    transform:none !important;
+  }
+}
+
+/* Mobile: keep the complete landscape photograph visible near the top half, while the
+   blurred duplicate continues underneath the copy. This removes the empty grey band
+   without cropping or stretching the original image. */
+@media (max-width:680px){
+  .product-home-hero{
+    height:calc(100svh - 84px);
+    min-height:0;
+    max-height:calc(100svh - 84px);
+    background:#c9d8de;
+  }
+
+  .product-home-hero::before{
+    inset:-24px;
+    background-position:center 30%;
+    filter:blur(22px) saturate(1.05) brightness(.72);
+    transform:scale(1.08);
+  }
+
+  .product-home-hero .product-home-hero-image{
+    object-fit:contain !important;
+    object-position:center 8% !important;
+    transform:none !important;
+  }
+
+  .product-home-hero .product-home-hero-shade{
+    background:
+      linear-gradient(180deg,
+        rgba(4,18,35,.01) 0%,
+        rgba(4,18,35,.03) 31%,
+        rgba(4,18,35,.16) 52%,
+        rgba(4,18,35,.50) 72%,
+        rgba(4,18,35,.86) 100%);
+  }
+
+  .product-home-hero>.product-hero-copy{
+    padding:18px 18px 20px;
+  }
+
+  .product-home-hero .product-hero-actions{
+    margin-bottom:0 !important;
+  }
+}
+
+@media (max-width:390px){
+  .product-home-hero{
+    height:calc(100svh - 82px);
+    min-height:0;
+    max-height:calc(100svh - 82px);
+  }
+
+  .product-home-hero .product-home-hero-image{
+    object-position:center 7% !important;
+    transform:none !important;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .product-home-hero::before{transform:none}
+}

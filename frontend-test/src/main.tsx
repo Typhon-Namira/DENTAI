@@ -19,6 +19,7 @@ import "./product/platform-access.css";
 import "./product/public-chrome.css";
 import "./product/home-hero-overrides.css";
 import "./product/home-hero-composition.css";
+import "./product/home-hero-fit.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
