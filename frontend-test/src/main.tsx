@@ -18,6 +18,7 @@ import "./product/care-experience.css";
 import "./product/followup-case.css";
 import "./product/platform-access.css";
 import "./product/public-chrome.css";
+import "./product/brand-logo.css";
 import "./product/home-hero-overrides.css";
 import "./product/home-hero-composition.css";
 import "./product/home-hero-fit.css";
