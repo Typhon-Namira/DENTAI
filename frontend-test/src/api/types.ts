@@ -28,6 +28,10 @@ export interface CurrentUser {
   email: string;
   role: Role;
   branch_scope: string[];
+  subscription_plan: string | null;
+  subscription_starts_at: string | null;
+  subscription_expires_at: string | null;
+  subscription_days_remaining: number | null;
 }
 
 export interface Patient {
