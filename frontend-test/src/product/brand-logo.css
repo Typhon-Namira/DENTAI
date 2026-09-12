@@ -8,7 +8,7 @@
   height:34px;
   flex:0 0 34px;
   background:url('/images/teta2_logo_transparent.png') center/contain no-repeat;
-  transform:scale(1.24);
+  transform:scale(1.55);
   transform-origin:center;
 }
 
@@ -85,12 +85,31 @@
   opacity:.98;
 }
 
+/* Mobile/tablet public navbar: keep the brand isolated on the left and all controls
+   on the right. The menu is the right-most control, followed by language. */
+@media(max-width:1120px){
+  .t2-navbar{
+    grid-template-columns:auto minmax(0,1fr) auto;
+  }
+  .t2-navbar>.t2-wordmark{
+    grid-column:1;
+    justify-self:start;
+  }
+  .t2-navbar>.t2-nav-actions{
+    grid-column:3;
+    justify-self:end;
+    order:initial;
+  }
+  .t2-nav-actions>.t2-language{order:1}
+  .t2-nav-actions>.t2-menu-trigger{order:2}
+}
+
 @media(max-width:680px){
   .t2-navbar>.t2-wordmark::before{
     width:30px;
     height:30px;
     flex-basis:30px;
-    transform:scale(1.24);
+    transform:scale(1.48);
   }
 }
 
@@ -102,6 +121,6 @@
     width:27px;
     height:27px;
     flex-basis:27px;
-    transform:scale(1.22);
+    transform:scale(1.45);
   }
 }
