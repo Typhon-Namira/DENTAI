@@ -39,6 +39,7 @@ import { FirstVisitLanguageModal, LanguageDropdown, PublicFooter as SharedFooter
 
 const LANG_KEY = "teta2-product-language";
 const OPG_HERO_URL = "https://images.squarespace-cdn.com/content/v1/57e01f4c2e69cf3a18c52ac1/09f04224-c53b-4362-aff2-52ae4d2cc114/OPG.jpg";
+const CLINICAL_HERO_URL = "/images/teta2-clinical-opg-hero.webp";
 
 const PUBLIC_ROUTES = [
   "/",
@@ -239,20 +240,29 @@ function PublicProduct({ lang, setLang, route, go }: { lang: ProductLang; setLan
 
 function HomePage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) => void }) {
   const c = productCopy(lang);
+  const titleLines: Record<ProductLang, string[]> = {
+    en: ["Turn Every OPG", "Into Actionable", "Patient Follow-up."],
+    hy: ["Յուրաքանչյուր OPG-ն", "վերածեք գործնական", "հետագա վերահսկման։"],
+    ru: ["От панорамного снимка —", "к своевременному", "клиническому действию."]
+  };
+  const imageAlt = lang === "hy"
+    ? "Ատամնաբույժը պացիենտին ցույց է տալիս նշումներով պանորամիկ ռենտգենը"
+    : lang === "ru"
+      ? "Стоматолог показывает пациентке панорамный снимок с отмеченными областями"
+      : "Dentist showing a patient an annotated panoramic dental X-ray";
   return (
     <>
-      <section className="product-hero">
+      <section className="product-hero product-home-hero">
+        <img className="product-home-hero-image" src={CLINICAL_HERO_URL} alt={imageAlt} fetchPriority="high" />
+        <div className="product-home-hero-shade" aria-hidden="true" />
         <div className="product-hero-copy">
-          <span className="product-pill"><Sparkles size={15} />{c.hero.eyebrow}</span>
-          <h1>{c.hero.title}</h1>
-          <p>{c.hero.lead}</p>
+          <span className="product-pill product-hero-reveal product-hero-reveal-1"><Sparkles size={15} />{c.hero.eyebrow}</span>
+          <h1 aria-label={c.hero.title}>{titleLines[lang].map((line, index) => <span className={`product-hero-line product-hero-reveal product-hero-reveal-${index + 2}`} key={line}>{line}</span>)}</h1>
+          <p className="product-hero-reveal product-hero-reveal-5">{c.hero.lead}</p>
           <div className="product-hero-actions">
-            <button className="product-primary" onClick={() => go("/login")}>{c.hero.primary}<ArrowRight size={18} /></button>
-            <button className="product-secondary" onClick={() => go("/how-it-works")}>{c.hero.secondary}</button>
+            <button className="product-primary product-hero-reveal product-hero-reveal-6" onClick={() => go("/login")}>{c.hero.primary}<ArrowRight size={18} /></button>
           </div>
-          <div className="product-proof-row">{c.hero.proof.map((item) => <span key={item}><Check size={14} />{item}</span>)}</div>
         </div>
-        <HeroOpgVisual lang={lang} />
       </section>
       <SafetyStrip lang={lang} go={go} />
       <section className="product-final-cta"><div><span>{c.workflow.kicker}</span><h2>{c.plans.care.tagline}</h2><p>{c.plans.care.outcome}</p></div><button className="product-primary" onClick={() => go("/register")}>{c.nav.access}<ArrowRight size={18} /></button></section>
