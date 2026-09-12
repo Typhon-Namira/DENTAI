@@ -20,6 +20,8 @@ from app.api.v1 import (
     xrays,
 )
 from app.care import api as care
+from app.care import booking_api as care_booking
+from app.care import booking_bootstrap as _care_booking_bootstrap  # noqa: F401
 from app.care import generation_api as care_generation
 from app.care import sequential_api as care_sequential
 from app.care import sequential_manage_api as care_sequential_manage
@@ -84,6 +86,7 @@ for router in (
     care_sequential_manage.router,
     care_sequential.router,
     care.router,
+    care_booking.router,
     care_generation.router,
     radar.router,
     radar_connections.router,
