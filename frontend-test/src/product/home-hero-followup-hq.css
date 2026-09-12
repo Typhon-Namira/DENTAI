@@ -1,15 +1,10 @@
-/* Homepage hero only: reconstruct the supplied 1024x576 follow-up artwork from four
-   high-quality WebP tiles. This replaces the older heavily compressed embedded preview
-   without changing any other frontend or backend area. */
+/* Homepage hero only: use the exact source image supplied by the product owner.
+   No slicing, recompression, reconstruction, blur, or image processing. */
 .product-home-hero::before{
-  background-image:
-    url('/images/teta2-followup-hq-1.webp'),
-    url('/images/teta2-followup-hq-2.webp'),
-    url('/images/teta2-followup-hq-3.webp'),
-    url('/images/teta2-followup-hq-4.webp') !important;
-  background-repeat:no-repeat,no-repeat,no-repeat,no-repeat !important;
-  background-size:25.08% 100%,25.08% 100%,25.08% 100%,25.08% 100% !important;
-  background-position:0% 0%,33.333% 0%,66.667% 0%,100% 0% !important;
+  background-image:url('/images/teta2-followup-exact.png') !important;
+  background-repeat:no-repeat !important;
+  background-size:cover !important;
+  background-position:center center !important;
   filter:none !important;
   opacity:1 !important;
   transform:none !important;
@@ -37,10 +32,6 @@ html[lang='en'] .product-home-hero .product-hero-copy h1::before{
 }
 
 @media (max-width:680px){
-  .product-home-hero::before{
-    background-size:25.08% 100%,25.08% 100%,25.08% 100%,25.08% 100% !important;
-    background-position:0% 0%,33.333% 0%,66.667% 0%,100% 0% !important;
-  }
   html[lang='en'] .product-home-hero .product-hero-copy h1{
     width:90% !important;
     max-width:none !important;
