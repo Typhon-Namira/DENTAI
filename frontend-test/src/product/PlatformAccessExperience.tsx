@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 
 import { API_BASE_URL } from "../api/client";
+import { productCopy } from "./content";
+import { PublicFooter, PublicNavbar } from "./PublicChrome";
 
 const ADMIN_SESSION_KEY = "teta2-platform-admin-session";
 type AccessLang = "en" | "hy" | "ru";
@@ -145,6 +147,11 @@ function AccessRequestPage() {
   const initial = localStorage.getItem("teta2-product-language");
   const [lang, setLang] = useState<AccessLang>(initial === "hy" || initial === "ru" ? initial : "en");
   const copy = ACCESS_COPY[lang];
+  useEffect(() => {
+    const syncLanguage = (event: Event) => setLang((event as CustomEvent<AccessLang>).detail);
+    window.addEventListener("teta2-language-change", syncLanguage);
+    return () => window.removeEventListener("teta2-language-change", syncLanguage);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -174,8 +181,8 @@ function AccessRequestPage() {
     finally { setBusy(false); }
   }
 
-  return <main className="pa-overlay pa-access-page">
-    <header className="pa-public-head"><button onClick={() => go("/")} className="pa-plain"><Brand /></button><nav aria-label="Primary"><button onClick={() => go("/product")} className="pa-link">Platform</button><button onClick={() => go("/how-it-works")} className="pa-link">How it works</button><button onClick={() => go("/pricing")} className="pa-link">Pricing</button></nav><div className="pa-public-actions"><div className="pa-flag-switch" role="group" aria-label="Language">{([['en','🇬🇧','English'],['hy','🇦🇲','Հայերեն'],['ru','🇷🇺','Русский']] as const).map(([key,flag,label])=><button key={key} className={lang===key?"active":""} title={label} aria-label={label} aria-pressed={lang===key} onClick={()=>{localStorage.setItem("teta2-product-language",key);setLang(key);}}><span aria-hidden="true">{flag}</span></button>)}</div><button onClick={() => go("/login")} className="pa-link">{copy.login}</button></div></header>
+  return <div className="pa-overlay pa-access-page">
+    <PublicNavbar language={lang} onLanguage={(next) => { localStorage.setItem("teta2-product-language", next); localStorage.setItem("teta2-v4-language", next); document.documentElement.lang = next; setLang(next); }} copy={productCopy(lang).nav} route="/register" go={go} />
     <section className="pa-access-layout">
       <aside className="pa-access-story">
         <span className="pa-eyebrow">{copy.eyebrow}</span>
@@ -202,7 +209,8 @@ function AccessRequestPage() {
         </>}
       </section>
     </section>
-  </main>;
+    <PublicFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} go={go} />
+  </div>;
 }
 
 function PlatformAdmin() {

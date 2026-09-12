@@ -34,6 +34,7 @@ import { AnalysisResults } from "../components/AnalysisResults";
 import { WhatsAppOutreachCard } from "../components/WhatsAppOutreachCard";
 import { productCopy, type ProductLang } from "./content";
 import ClinicalCareApp from "./ClinicalCareApp";
+import { FirstVisitLanguageModal, LanguageDropdown, PublicFooter as SharedFooter, PublicNavbar, type PublicLanguage } from "./PublicChrome";
 
 const LANG_KEY = "teta2-product-language";
 const OPG_HERO_URL = "https://images.squarespace-cdn.com/content/v1/57e01f4c2e69cf3a18c52ac1/09f04224-c53b-4362-aff2-52ae4d2cc114/OPG.jpg";
@@ -71,14 +72,13 @@ function storedLanguage(): ProductLang | null {
   return value === "en" || value === "hy" || value === "ru" ? value : null;
 }
 
-const LANGUAGE_META: Record<ProductLang, { flag: string; label: string; locale: string }> = {
-  en: { flag: "🇬🇧", label: "English", locale: "en-US" },
-  hy: { flag: "🇦🇲", label: "Հայերեն", locale: "hy-AM" },
-  ru: { flag: "🇷🇺", label: "Русский", locale: "ru-RU" }
-};
+const LANGUAGE_LOCALE: Record<ProductLang, string> = { en: "en-US", hy: "hy-AM", ru: "ru-RU" };
 
-function LanguageSwitch({ lang, setLang, className = "product-lang-switch" }: { lang: ProductLang; setLang: (lang: ProductLang) => void; className?: string }) {
-  return <div className={className} role="group" aria-label="Language">{(Object.keys(LANGUAGE_META) as ProductLang[]).map((key) => <button key={key} className={lang === key ? "active" : ""} onClick={() => setLang(key)} title={LANGUAGE_META[key].label} aria-label={LANGUAGE_META[key].label} aria-pressed={lang === key}><span aria-hidden="true">{LANGUAGE_META[key].flag}</span></button>)}</div>;
+function initialLanguage(): ProductLang {
+  const stored = storedLanguage();
+  if (stored) return stored;
+  const browser = navigator.language.toLowerCase();
+  return browser.startsWith("hy") ? "hy" : browser.startsWith("ru") ? "ru" : "en";
 }
 
 function patientName(patient: Patient): string {
@@ -93,7 +93,7 @@ function dateTime(value: string | null | undefined, lang: ProductLang): string {
   if (!value) return "—";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "—";
-  return new Intl.DateTimeFormat(LANGUAGE_META[lang].locale, {
+  return new Intl.DateTimeFormat(LANGUAGE_LOCALE[lang], {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -106,7 +106,7 @@ function dateOnly(value: string | null | undefined, lang: ProductLang): string {
   if (!value) return "—";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "—";
-  return new Intl.DateTimeFormat(LANGUAGE_META[lang].locale, {
+  return new Intl.DateTimeFormat(LANGUAGE_LOCALE[lang], {
     year: "numeric",
     month: "short",
     day: "numeric"
@@ -154,7 +154,8 @@ function findingLabel(value: string, lang: ProductLang): string {
 }
 
 export default function ProductApp() {
-  const [lang, setLangState] = useState<ProductLang | null>(() => storedLanguage());
+  const [lang, setLangState] = useState<ProductLang>(() => initialLanguage());
+  const [showLanguageModal, setShowLanguageModal] = useState(() => storedLanguage() === null);
   const [route, setRoute] = useState<PublicRoute>(() => browserRoute());
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [restoring, setRestoring] = useState(hasSession());
@@ -164,6 +165,8 @@ export default function ProductApp() {
     localStorage.setItem("teta2-v4-language", next);
     document.documentElement.lang = next;
     setLangState(next);
+    setShowLanguageModal(false);
+    window.dispatchEvent(new CustomEvent("teta2-language-change", { detail: next }));
   }, []);
 
   const go = useCallback((path: PublicRoute) => {
@@ -198,61 +201,26 @@ export default function ProductApp() {
       .finally(() => setRestoring(false));
   }, []);
 
-  if (!lang) return <LanguageGate onSelect={setLang} />;
-  if (restoring) return <div className="product-restore"><strong>Teta2</strong><span className="product-spinner" /></div>;
-  if (user) return <ClinicalCareApp onSignedOut={() => setUser(null)} />;
-  if (route === "/login") return <LoginPage lang={lang} setLang={setLang} onAuthenticated={setUser} go={go} />;
-  if (route === "/register") return <AccessPage lang={lang} setLang={setLang} go={go} />;
-  return <PublicProduct lang={lang} setLang={setLang} route={route} go={go} />;
-}
-
-function LanguageGate({ onSelect }: { onSelect: (lang: ProductLang) => void }) {
-  return (
-    <main className="product-language-gate">
-      <section>
-        <div className="language-tech-orbit" aria-hidden="true"><span>AI</span><i /><i /><i /></div>
-        <div className="product-language-grid" aria-label="Choose language">
-          {(Object.keys(LANGUAGE_META) as ProductLang[]).map((key) => <button key={key} onClick={() => onSelect(key)} title={LANGUAGE_META[key].label} aria-label={LANGUAGE_META[key].label}><b aria-hidden="true">{LANGUAGE_META[key].flag}</b></button>)}
-        </div>
-      </section>
-    </main>
-  );
+  const experience = restoring ? <div className="product-restore"><strong>Teta2</strong><span className="product-spinner" /></div>
+    : user ? <ClinicalCareApp onSignedOut={() => setUser(null)} />
+    : route === "/login" ? <LoginPage lang={lang} setLang={setLang} onAuthenticated={setUser} go={go} />
+    : route === "/register" ? <AccessPage lang={lang} setLang={setLang} go={go} />
+    : <PublicProduct lang={lang} setLang={setLang} route={route} go={go} />;
+  return <>{experience}{showLanguageModal && <FirstVisitLanguageModal onSelect={(next: PublicLanguage) => setLang(next)} />}</>;
 }
 
 function PublicProduct({ lang, setLang, route, go }: { lang: ProductLang; setLang: (lang: ProductLang) => void; route: PublicRoute; go: (route: PublicRoute) => void }) {
   return (
     <div className="product-public">
-      <PublicNav lang={lang} setLang={setLang} route={route} go={go} />
+      <PublicNavbar language={lang} onLanguage={setLang} copy={productCopy(lang).nav} route={route} go={go} />
       {route === "/" && <HomePage lang={lang} go={go} />}
       {route === "/product" && <ProductPage lang={lang} go={go} />}
       {route === "/how-it-works" && <HowPage lang={lang} go={go} />}
       {route === "/pricing" && <PricingPage lang={lang} go={go} />}
       {route === "/clinical-safety" && <SafetyPage lang={lang} go={go} />}
       {route === "/about" && <AboutPage lang={lang} go={go} />}
-      <PublicFooter lang={lang} go={go} />
+      <SharedFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} go={go} />
     </div>
-  );
-}
-
-function PublicNav({ lang, setLang, route, go }: { lang: ProductLang; setLang: (lang: ProductLang) => void; route: PublicRoute; go: (route: PublicRoute) => void }) {
-  const c = productCopy(lang);
-  const items: Array<[PublicRoute, string]> = [
-    ["/product", c.nav.product],
-    ["/how-it-works", c.nav.how],
-    ["/pricing", c.nav.pricing],
-    ["/clinical-safety", c.nav.safety],
-    ["/about", c.nav.about]
-  ];
-  return (
-    <header className="product-public-nav">
-      <button className="product-wordmark" onClick={() => go("/")} aria-label="Teta2 home">Teta2</button>
-      <nav>{items.map(([path, label]) => <button key={path} className={route === path ? "active" : ""} onClick={() => go(path)}>{label}</button>)}</nav>
-      <div className="product-nav-actions">
-        <button className="product-link-button" onClick={() => go("/login")}>{c.nav.login}</button>
-        <button className="product-primary small" onClick={() => go("/register")}>{c.nav.access}</button>
-        <LanguageSwitch lang={lang} setLang={setLang} />
-      </div>
-    </header>
   );
 }
 
@@ -398,24 +366,18 @@ function AboutPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) =
 function AccessPage({ lang, setLang, go }: { lang: ProductLang; setLang: (lang: ProductLang) => void; go: (route: PublicRoute) => void }) {
   const c = productCopy(lang);
   return (
-    <main className="product-access-page">
-      <PublicNav lang={lang} setLang={setLang} route="/register" go={go} />
-      <section>
+    <div className="product-access-shell">
+      <PublicNavbar language={lang} onLanguage={setLang} copy={productCopy(lang).nav} route="/register" go={go} />
+      <main className="product-access-page"><section>
         <span className="product-kicker">TETA2 · CLINICAL PLATFORM</span>
         <h1>{c.access.title}</h1>
         <p>{c.access.lead}</p>
         <div className="product-access-plans"><div><FileImage /><strong>OPG intelligence</strong><small>{c.plans.scan.outcome}</small></div><div><HeartPulse /><strong>Teta2</strong><small>{c.plans.care.outcome}</small></div></div>
         <div className="product-access-note"><ShieldCheck /><p>{c.access.note}</p></div>
         <button className="product-primary" onClick={() => go("/login")}>{c.access.login}<ArrowRight size={17} /></button>
-      </section>
-    </main>
-  );
-}
-
-function PublicFooter({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) => void }) {
-  const c = productCopy(lang);
-  return (
-    <footer className="product-public-footer"><button className="product-wordmark" onClick={() => go("/")}>Teta2</button><p>{lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."}</p><nav><button onClick={() => go("/pricing")}>{c.nav.pricing}</button><button onClick={() => go("/clinical-safety")}>{c.nav.safety}</button><button onClick={() => go("/login")}>{c.nav.login}</button></nav></footer>
+      </section></main>
+      <SharedFooter copy={c.nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} go={go} />
+    </div>
   );
 }
 
@@ -446,11 +408,14 @@ function LoginPage({ lang, setLang, onAuthenticated, go }: { lang: ProductLang; 
   }
 
   return (
-    <main className="product-login-page">
-      <div className="product-auth-nav"><button className="product-wordmark" onClick={() => go("/")}>Teta2</button><LanguageSwitch lang={lang} setLang={setLang} /></div>
+    <div className="product-auth-shell">
+      <PublicNavbar language={lang} onLanguage={setLang} copy={productCopy(lang).nav} route="/login" go={go} />
+      <main className="product-login-page">
       <section className="product-login-story"><span className="product-kicker">OPG → AI → RECORD → FOLLOW → RETURN</span><h1>{lang === "hy" ? "Մուտք գործեք ձեր կլինիկական workspace։" : lang === "ru" ? "Войдите в клиническое рабочее пространство." : "Sign in to your clinical workspace."}</h1><p>{lang === "hy" ? "Մեկ կենտրոնացված workflow՝ OPG վերլուծության, պացիենտի քարտի և հետագա վերահսկման համար։" : lang === "ru" ? "Единый процесс для OPG-анализа, карты пациента и последующего наблюдения." : "One focused workflow for OPG analysis, the smart patient file and follow-up."}</p><HeroOpgVisual lang={lang} /></section>
       <section className="product-login-card"><h2>{lang === "hy" ? "Կլինիկայի մուտք" : lang === "ru" ? "Вход для клиники" : "Clinic sign in"}</h2><p>{lang === "hy" ? "Օգտագործեք ձեր provision արված clinic slug-ը և հաշիվը։" : lang === "ru" ? "Используйте идентификатор клиники и учетную запись, полученные при активации." : "Use the clinic slug and account provisioned for your clinic."}</p><form onSubmit={submit}><label>{lang === "ru" ? "Идентификатор клиники" : "Clinic slug"}<input required autoComplete="organization" value={clinic} onChange={(event) => setClinic(event.target.value)} placeholder="your-clinic" /></label><label>{lang === "hy" ? "Էլ․ փոստ կամ օգտանուն" : lang === "ru" ? "Email или имя пользователя" : "Email or username"}<input required autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} /></label><label>{lang === "hy" ? "Գաղտնաբառ" : lang === "ru" ? "Пароль" : "Password"}<input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>{error && <div className="product-error" role="alert">{error}</div>}<button className="product-primary" disabled={busy}>{busy ? (lang === "hy" ? "Մուտք…" : lang === "ru" ? "Вход…" : "Signing in…") : (lang === "hy" ? "Անվտանգ մուտք" : lang === "ru" ? "Безопасный вход" : "Sign in securely")}</button></form><button className="product-link-button" onClick={() => go("/register")}>{productCopy(lang).nav.access}</button></section>
-    </main>
+      </main>
+      <SharedFooter copy={productCopy(lang).nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} go={go} />
+    </div>
   );
 }
 
@@ -531,7 +496,7 @@ function ClinicProduct({ lang, setLang, user, onLogout }: { lang: ProductLang; s
         <div><strong>{section === "dashboard" ? c.dashboardTitle : nav.find(([key]) => key === section)?.[1]}</strong><span>{section === "dashboard" ? c.dashboardLead : selectedPatient ? `${patientName(selectedPatient)} · ${selectedPatient.patient_number}` : c.selectPatient}</span></div>
         <div className="clinic-header-actions">
           <PatientQuickSelect lang={lang} patients={patients} selectedPatientId={selectedPatientId} onSelect={setSelectedPatientId} />
-          <LanguageSwitch lang={lang} setLang={setLang} />
+          <LanguageDropdown language={lang} onChange={setLang} />
           <button className="clinic-icon-button" aria-label="Notifications"><Bell /></button>
         </div>
       </header>

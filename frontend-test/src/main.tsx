@@ -16,6 +16,7 @@ import "./product/product.css";
 import "./product/care-experience.css";
 import "./product/followup-case.css";
 import "./product/platform-access.css";
+import "./product/public-chrome.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
