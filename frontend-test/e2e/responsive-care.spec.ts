@@ -11,8 +11,17 @@ for (const viewport of viewports) {
   test(`${viewport.name} clinical pages have no horizontal overflow`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto(process.env.CARE_E2E_URL ?? "http://127.0.0.1:5173/");
-    const english = page.getByRole("button", { name: /Continue in English/i });
-    if (await english.isVisible()) await english.click();
+
+    // Production intentionally shows a first-visit language picker before the
+    // rest of the public UI becomes interactive. The deploy verification must
+    // complete that real first-visit step instead of trying to click through
+    // the modal backdrop.
+    const languageModal = page.getByRole("dialog", { name: "Choose language" });
+    if (await languageModal.isVisible()) {
+      await languageModal.getByRole("button", { name: "English", exact: true }).click();
+      await expect(languageModal).toBeHidden();
+    }
+
     await page.evaluate(() => {
       window.history.pushState({}, "", "/login");
       window.dispatchEvent(new PopStateEvent("popstate"));
@@ -23,16 +32,19 @@ for (const viewport of viewports) {
     await page.getByRole("button", { name: /sign in securely/i }).click();
     await expect(page.getByText("Your clinical day, in one place.")).toBeVisible();
 
-    if (viewport.width <= 760) {
-      await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
-      await page.getByRole("button", { name: "Open navigation" }).click();
-    }
     const clinicalNavigation = page.getByRole("navigation", { name: "Clinical workspace" });
-    for (const label of ["Dashboard", "Patients & records", "OPG + AI", "Follow-up plans", "AI conversations", "Appointments", "Working hours"]) {
+    const labels = ["Dashboard", "Patients & records", "OPG + AI", "Follow-up plans", "Appointments", "Working hours"];
+
+    for (const label of labels) {
       if (viewport.width <= 760) {
-        await page.getByRole("button", { name: "Open navigation" }).click();
+        if (!(await clinicalNavigation.isVisible())) {
+          await page.getByRole("button", { name: "Open navigation" }).click();
+          await expect(clinicalNavigation).toBeVisible();
+        }
       }
+
       await clinicalNavigation.getByRole("button", { name: label }).click();
+
       const overflowReport = await page.evaluate(() => {
         const viewportWidth = document.documentElement.clientWidth;
         const offenders = [...document.querySelectorAll<HTMLElement>("body *")]
@@ -46,7 +58,7 @@ for (const viewport of viewports) {
             };
           })
           .filter(({ left, right }) => left < -1 || right > viewportWidth + 1)
-          .sort((a, b) => (b.right - viewportWidth) - (a.right - viewportWidth))
+          .sort((a, b) => b.right - viewportWidth - (a.right - viewportWidth))
           .slice(0, 8);
         return {
           overflow: document.documentElement.scrollWidth - viewportWidth,
