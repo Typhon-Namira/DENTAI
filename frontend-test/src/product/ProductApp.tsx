@@ -204,7 +204,7 @@ export default function ProductApp() {
   const experience = restoring ? <div className="product-restore"><strong>Teta2</strong><span className="product-spinner" /></div>
     : user ? <ClinicalCareApp onSignedOut={() => setUser(null)} />
     : route === "/login" ? <LoginPage lang={lang} setLang={setLang} onAuthenticated={setUser} go={go} />
-    : route === "/register" ? <AccessPage lang={lang} setLang={setLang} go={go} />
+    : route === "/register" ? null
     : <PublicProduct lang={lang} setLang={setLang} route={route} go={go} />;
   return <>{experience}{showLanguageModal && <FirstVisitLanguageModal onSelect={(next: PublicLanguage) => setLang(next)} />}</>;
 }
@@ -360,24 +360,6 @@ function AboutPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) =
       <div className="product-roadmap">{c.roadmap.map((item, index) => <article key={item}><b>0{index + 1}</b><p>{item}</p></article>)}</div>
       <section className="product-final-cta"><div><span>Teta2</span><h2>{productCopy(lang).plans.care.tagline}</h2></div><button className="product-primary" onClick={() => go("/register")}>{productCopy(lang).nav.access}</button></section>
     </main>
-  );
-}
-
-function AccessPage({ lang, setLang, go }: { lang: ProductLang; setLang: (lang: ProductLang) => void; go: (route: PublicRoute) => void }) {
-  const c = productCopy(lang);
-  return (
-    <div className="product-access-shell">
-      <PublicNavbar language={lang} onLanguage={setLang} copy={productCopy(lang).nav} route="/register" go={go} />
-      <main className="product-access-page"><section>
-        <span className="product-kicker">TETA2 · CLINICAL PLATFORM</span>
-        <h1>{c.access.title}</h1>
-        <p>{c.access.lead}</p>
-        <div className="product-access-plans"><div><FileImage /><strong>OPG intelligence</strong><small>{c.plans.scan.outcome}</small></div><div><HeartPulse /><strong>Teta2</strong><small>{c.plans.care.outcome}</small></div></div>
-        <div className="product-access-note"><ShieldCheck /><p>{c.access.note}</p></div>
-        <button className="product-primary" onClick={() => go("/login")}>{c.access.login}<ArrowRight size={17} /></button>
-      </section></main>
-      <SharedFooter copy={c.nav} description={lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."} go={go} />
-    </div>
   );
 }
 
