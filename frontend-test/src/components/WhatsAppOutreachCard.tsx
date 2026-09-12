@@ -127,7 +127,7 @@ export function WhatsAppOutreachCard({ patient, onPatientUpdated }: Props) {
   return (
     <section className="card whatsapp-card">
       <div className="section-heading">
-        <div><p className="eyebrow">{armenian ? "Teta2 Care · Հետագա վերահսկում" : "Teta2 Care · Follow-up"}</p><h3>{armenian ? "Պացիենտի հետագա հաղորդագրություններ" : "Patient follow-up messages"}</h3></div>
+        <div><p className="eyebrow">{armenian ? "Teta2 · Հետագա վերահսկում" : "Teta2 · Follow-up"}</p><h3>{armenian ? "Պացիենտի հետագա հաղորդագրություններ" : "Patient follow-up messages"}</h3></div>
         <span className={"connection-dot " + (connection.connected ? "connected" : "")}>
           {connection.connected ? (armenian ? "Միացված" : "Connected") : (armenian ? "Անջատված" : "Disconnected")}
         </span>
