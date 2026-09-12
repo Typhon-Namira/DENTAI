@@ -1,7 +1,7 @@
 import {
   Activity, Bell, CalendarCheck, CalendarClock, Check, ChevronRight, CircleUserRound, Clock3,
   FileImage, FolderHeart, HeartPulse, LayoutDashboard, LogOut, Menu, MessageCircle, Plus, Search,
-  Settings2, ShieldCheck, Sparkles, Stethoscope, UploadCloud, UserRound, UsersRound, WandSparkles, X
+  Settings, Settings2, ShieldCheck, Sparkles, Stethoscope, UploadCloud, UserRound, UsersRound, WandSparkles, X
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { api, clearSession, errorMessage } from "../api/client";
@@ -14,14 +14,14 @@ import { AnalysisResults } from "../components/AnalysisResults";
 import "./clinical-care.css";
 
 type Lang = "en" | "hy";
-type Section = "dashboard" | "patients" | "analysis" | "plans" | "messages" | "appointments" | "schedule";
+type Section = "dashboard" | "patients" | "analysis" | "plans" | "messages" | "appointments" | "schedule" | "settings";
 
 type LoadState = "idle" | "loading" | "ready" | "unavailable";
 
 const copy = {
   en: {
     dashboard: "Dashboard", patients: "Patients & records", analysis: "OPG + AI", plans: "Follow-up plans",
-    messages: "AI conversations", appointments: "Appointments", schedule: "Working hours", signOut: "Sign out",
+    messages: "AI conversations", appointments: "Appointments", schedule: "Working hours", settings: "Settings", signOut: "Sign out",
     subtitle: "Teta2 Care · clinical follow-up workspace", selectPatient: "Select patient", newPatient: "New patient",
     today: "Today", pendingApproval: "Awaiting your approval", activePlans: "Active care plans", liveChats: "Active AI conversations",
     dueFollowups: "Follow-ups due", careUnavailable: "Care API is not deployed on the connected backend yet.",
@@ -33,7 +33,7 @@ const copy = {
   },
   hy: {
     dashboard: "Վահանակ", patients: "Պացիենտներ և քարտեր", analysis: "OPG + AI", plans: "Հետագա պլաններ",
-    messages: "AI զրույցներ", appointments: "Այցեր", schedule: "Աշխատանքային ժամեր", signOut: "Դուրս գալ",
+    messages: "AI զրույցներ", appointments: "Այցեր", schedule: "Աշխատանքային ժամեր", settings: "Կարգավորումներ", signOut: "Դուրս գալ",
     subtitle: "Teta2 Care · կլինիկական follow-up workspace", selectPatient: "Ընտրեք պացիենտ", newPatient: "Նոր պացիենտ",
     today: "Այսօր", pendingApproval: "Սպասում է ձեր հաստատմանը", activePlans: "Ակտիվ care պլաններ", liveChats: "Ակտիվ AI զրույցներ",
     dueFollowups: "Ժամկետը հասած follow-up", careUnavailable: "Care API-ն դեռ տեղադրված չէ միացված backend-ում։",
@@ -109,7 +109,7 @@ export default function ClinicalCareApp({ onSignedOut }: { onSignedOut: () => vo
     ["dashboard", <LayoutDashboard key="d" />, c.dashboard], ["patients", <UsersRound key="p" />, c.patients],
     ["analysis", <WandSparkles key="a" />, c.analysis], ["plans", <HeartPulse key="f" />, c.plans],
     ["messages", <MessageCircle key="m" />, c.messages], ["appointments", <CalendarCheck key="ap" />, c.appointments],
-    ["schedule", <Settings2 key="s" />, c.schedule]
+    ["schedule", <Settings2 key="s" />, c.schedule], ["settings", <Settings key="st" />, c.settings]
   ];
   const pendingCount = appointments.filter((a) => a.status === "PROPOSED").length;
 
@@ -122,7 +122,7 @@ export default function ClinicalCareApp({ onSignedOut }: { onSignedOut: () => vo
       <nav aria-label="Clinical workspace">{nav.map(([key, icon, label]) => <button key={key} aria-label={label} className={section === key ? "active" : ""} onClick={() => {setSection(key);setNavOpen(false);}}>{icon}<span>{label}</span>{key === "appointments" && pendingCount > 0 && <i>{pendingCount}</i>}</button>)}</nav>
       <div className="care-doctor"><div className="care-avatar">{user.username.slice(0,2).toUpperCase()}</div><div><strong>{user.username}</strong><small>{user.role}</small></div><button title={c.signOut} onClick={() => void logout()}><LogOut /></button></div>
     </aside>
-    <header className="care-topbar"><div><strong>{nav.find(([key]) => key === section)?.[2]}</strong><span>{section === "dashboard" ? c.subtitle : selectedPatient ? `${name(selectedPatient)} · ${selectedPatient.patient_number}` : c.subtitle}</span></div><div className="care-top-actions"><label className="care-quick-patient"><Search /><select aria-label={c.selectPatient} value={selectedPatientId} onChange={(e) => setSelectedPatientId(e.target.value)}><option value="">{c.selectPatient}</option>{patients.map((p) => <option key={p.id} value={p.id}>{name(p)} · {p.patient_number}</option>)}</select></label><div className="care-lang"><button className={lang === "en" ? "active" : ""} onClick={() => changeLang("en")}>EN</button><button className={lang === "hy" ? "active" : ""} onClick={() => changeLang("hy")}>HY</button></div><button className="care-icon" aria-label="Alerts" onClick={()=>setSection("dashboard")}><Bell />{Number(dashboard?.notification_count??0)>0&&<i>{dashboard?.notification_count}</i>}</button></div></header>
+    <header className="care-topbar"><div><strong>{nav.find(([key]) => key === section)?.[2]}</strong><span>{section === "dashboard" ? c.subtitle : selectedPatient ? `${name(selectedPatient)} · ${selectedPatient.patient_number}` : c.subtitle}</span></div><div className="care-top-actions"><button className="care-subscription" onClick={()=>setSection("settings")}><CalendarClock/><span><small>{lang==="hy"?"Բաժանորդագրություն":"Subscription"}</small><strong>{user.subscription_days_remaining===null?(lang==="hy"?"Անժամկետ":"No expiry"):(lang==="hy"?`${user.subscription_days_remaining} օր մնացել է`:`${user.subscription_days_remaining} days left`)}</strong></span></button><label className="care-quick-patient"><Search /><select aria-label={c.selectPatient} value={selectedPatientId} onChange={(e) => setSelectedPatientId(e.target.value)}><option value="">{c.selectPatient}</option>{patients.map((p) => <option key={p.id} value={p.id}>{name(p)} · {p.patient_number}</option>)}</select></label><div className="care-lang"><button className={lang === "en" ? "active" : ""} onClick={() => changeLang("en")}>EN</button><button className={lang === "hy" ? "active" : ""} onClick={() => changeLang("hy")}>HY</button></div><button className="care-icon" aria-label="Alerts" onClick={()=>setSection("dashboard")}><Bell />{Number(dashboard?.notification_count??0)>0&&<i>{dashboard?.notification_count}</i>}</button></div></header>
     <main className="care-main">
       {error && <div className="care-error">{error}<button onClick={() => setError("")}><X /></button></div>}
       {careState === "unavailable" && section !== "patients" && section !== "analysis" && <div className="care-api-warning"><ShieldCheck /><span>{c.careUnavailable}</span><button onClick={() => void loadCare()}>{c.retry}</button></div>}
@@ -133,8 +133,16 @@ export default function ClinicalCareApp({ onSignedOut }: { onSignedOut: () => vo
       {section === "messages" && <MessagesPage lang={lang} conversations={conversations} onReload={loadCare} />}
       {section === "appointments" && <AppointmentsPage lang={lang} appointments={appointments} onReload={loadCare} />}
       {section === "schedule" && <SchedulePage lang={lang} branches={branches} user={user} />}
+      {section === "settings" && <AccountSettingsPage lang={lang} user={user} onPasswordChanged={()=>{clearSession();onSignedOut();}} />}
     </main>
   </div>;
+}
+
+function AccountSettingsPage({lang,user,onPasswordChanged}:{lang:Lang;user:CurrentUser;onPasswordChanged:()=>void}) {
+  const [currentPassword,setCurrentPassword]=useState(""); const [newPassword,setNewPassword]=useState(""); const [confirmPassword,setConfirmPassword]=useState(""); const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const [saved,setSaved]=useState(false);
+  const text=lang==="hy"?{title:"Կարգավորումներ",lead:"Կառավարեք բաժանորդագրությունը և հաշվի անվտանգությունը։",subscription:"Բաժանորդագրություն",plan:"Փաթեթ",started:"Սկսվել է",expires:"Ավարտվում է",remaining:"Մնացած ժամանակ",unlimited:"Անժամկետ",days:"օր",password:"Փոխել գաղտնաբառը",passwordLead:"Փոփոխությունից հետո բոլոր սարքերից դուրս կգաք։",current:"Ընթացիկ գաղտնաբառ",next:"Նոր գաղտնաբառ",confirm:"Կրկնել նոր գաղտնաբառը",change:"Փոխել գաղտնաբառը",mismatch:"Նոր գաղտնաբառերը չեն համընկնում։",success:"Գաղտնաբառը փոխվեց։ Կրկին մուտք գործեք։"}:{title:"Settings",lead:"Manage your subscription and account security.",subscription:"Subscription",plan:"Plan",started:"Started",expires:"Expires",remaining:"Time remaining",unlimited:"No expiry",days:"days",password:"Change password",passwordLead:"You will be signed out on every device after changing it.",current:"Current password",next:"New password",confirm:"Confirm new password",change:"Change password",mismatch:"The new passwords do not match.",success:"Password changed. Please sign in again."};
+  async function submit(event:FormEvent){event.preventDefault();setError("");setSaved(false);if(newPassword!==confirmPassword){setError(text.mismatch);return}setBusy(true);try{await api.changePassword(currentPassword,newPassword);setSaved(true);window.setTimeout(onPasswordChanged,1200);}catch(reason){setError(errorMessage(reason));}finally{setBusy(false)}}
+  return <div className="care-page account-settings"><div className="care-page-head"><div><span className="care-kicker"><Settings/>{text.title}</span><h1>{text.title}</h1><p>{text.lead}</p></div></div><div className="account-settings-grid"><section className="care-card subscription-card"><div className="settings-card-icon"><CalendarClock/></div><div><h2>{text.subscription}</h2><p>{user.subscription_days_remaining===null?text.unlimited:`${user.subscription_days_remaining} ${text.days}`}</p></div><dl><div><dt>{text.plan}</dt><dd>{user.subscription_plan??"Teta2 Care"}</dd></div><div><dt>{text.started}</dt><dd>{fmt(user.subscription_starts_at,lang,false)}</dd></div><div><dt>{text.expires}</dt><dd>{fmt(user.subscription_expires_at,lang,false)}</dd></div><div><dt>{text.remaining}</dt><dd>{user.subscription_days_remaining===null?text.unlimited:`${user.subscription_days_remaining} ${text.days}`}</dd></div></dl></section><section className="care-card password-card"><div className="settings-card-icon secure"><ShieldCheck/></div><h2>{text.password}</h2><p>{text.passwordLead}</p><form onSubmit={submit}><label>{text.current}<input required minLength={8} maxLength={256} type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></label><label>{text.next}<input required minLength={12} maxLength={256} type="password" autoComplete="new-password" value={newPassword} onChange={e=>setNewPassword(e.target.value)}/></label><label>{text.confirm}<input required minLength={12} maxLength={256} type="password" autoComplete="new-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></label>{error&&<div className="care-inline-error">{error}</div>}{saved&&<div className="account-success"><Check/>{text.success}</div>}<button className="care-primary" disabled={busy}>{busy?"…":text.change}</button></form></section></div></div>;
 }
 
 function DashboardPage({ lang, dashboard, patients, plans, appointments, conversations, onGo }: { lang: Lang; dashboard: DashboardSummary | null; patients: Patient[]; plans: CarePlan[]; appointments: CareAppointment[]; conversations: CareConversation[]; onGo: (s: Section) => void }) {
