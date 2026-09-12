@@ -168,6 +168,14 @@ async def _ensure_database(database_url: str) -> None:
         return
     admin_url = settings.tenant_database_admin_url
     if not admin_url:
+        control_url = make_url(settings.control_database_url)
+        if control_url.get_backend_name() == "postgresql":
+            # A PostgreSQL control database is an existing, safe connection target
+            # from which CREATE DATABASE can be issued. This is the normal setup
+            # when both the control plane and tenant databases share one RDS
+            # instance. A dedicated admin URL can still override it.
+            admin_url = settings.control_database_url
+    if not admin_url:
         raise AppError(
             "TENANT_DATABASE_ADMIN_URL_REQUIRED",
             "Automatic clinic provisioning requires TENANT_DATABASE_ADMIN_URL.",
@@ -190,15 +198,32 @@ async def _ensure_database(database_url: str) -> None:
 
 
 def _tenant_url_for_slug(slug: str) -> str:
-    template = get_settings().tenant_database_url_template
-    if not template:
-        raise AppError(
-            "TENANT_DATABASE_TEMPLATE_REQUIRED",
-            "Automatic clinic provisioning requires TENANT_DATABASE_URL_TEMPLATE.",
-            409,
-        )
+    settings = get_settings()
+    template = settings.tenant_database_url_template
     database = "teta2_" + re.sub(r"[^a-z0-9]+", "_", slug.casefold()).strip("_")
-    return template.format(slug=slug, database=database)
+    if template:
+        return template.format(slug=slug, database=database)
+
+    control_url = make_url(settings.control_database_url)
+    if control_url.get_backend_name() == "postgresql":
+        # Reuse the AWS PostgreSQL endpoint, credentials, driver and SSL query
+        # parameters, changing only the database name. render_as_string is
+        # required because str(URL) deliberately masks the password.
+        return control_url.set(database=database).render_as_string(hide_password=False)
+
+    raise AppError(
+        "TENANT_DATABASE_TEMPLATE_REQUIRED",
+        "Automatic clinic provisioning requires TENANT_DATABASE_URL_TEMPLATE "
+        "unless CONTROL_DATABASE_URL uses PostgreSQL.",
+        409,
+    )
+
+
+def tenant_auto_provisioning_configured() -> bool:
+    settings = get_settings()
+    if settings.tenant_database_url_template:
+        return True
+    return make_url(settings.control_database_url).get_backend_name() == "postgresql"
 
 
 async def _unique_slug(session: AsyncSession, clinic_name: str) -> str:
