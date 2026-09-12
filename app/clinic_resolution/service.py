@@ -19,6 +19,9 @@ class ResolvedClinic:
     name: str
     database_url: str
     allowed_origins: list[str]
+    subscription_plan: str | None
+    subscription_starts_at: datetime | None
+    subscription_expires_at: datetime | None
 
 
 class ClinicResolver:
@@ -67,6 +70,9 @@ class ClinicResolver:
             row.name,
             self._decrypt(row.encrypted_database_url),
             row.allowed_origins,
+            row.subscription_plan,
+            row.subscription_starts_at,
+            row.subscription_expires_at,
         )
 
     async def by_id(self, db: AsyncSession, clinic_id: uuid.UUID) -> ResolvedClinic:
@@ -80,6 +86,9 @@ class ClinicResolver:
             row.name,
             self._decrypt(row.encrypted_database_url),
             row.allowed_origins,
+            row.subscription_plan,
+            row.subscription_starts_at,
+            row.subscription_expires_at,
         )
 
     def session_factory(self, clinic: ResolvedClinic) -> async_sessionmaker[AsyncSession]:

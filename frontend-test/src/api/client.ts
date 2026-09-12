@@ -252,6 +252,13 @@ export const api = {
 
   me(signal?: AbortSignal) { return request<CurrentUser>("/api/v1/auth/me", { signal }); },
 
+  changePassword(currentPassword: string, newPassword: string) {
+    return request<void>("/api/v1/auth/password", {
+      method: "POST",
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+    });
+  },
+
   async logout() {
     const session = getSession();
     if (!session) return;
