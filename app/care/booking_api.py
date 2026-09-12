@@ -108,10 +108,7 @@ def _approved_message(language: str, slot: datetime, timezone_name: str) -> str:
             "Սպասում ենք ձեզ կլինիկայում։"
         )
     if language == "ru":
-        return (
-            f"Врач подтвердил ваш прием: {label} ({timezone_name}). "
-            "Ждем вас в клинике."
-        )
+        return f"Врач подтвердил ваш прием: {label} ({timezone_name}). Ждем вас в клинике."
     return (
         f"Your doctor has confirmed your check-up for {label} ({timezone_name}). "
         "We look forward to seeing you at the clinic."
@@ -290,11 +287,7 @@ async def public_booking_form(
             try:
                 window_start = _utc(datetime.fromisoformat(str(start_raw)))
                 window_end = _utc(datetime.fromisoformat(str(end_raw)))
-                slots = [
-                    slot
-                    for slot in slots
-                    if window_start <= slot.astimezone(UTC) <= window_end
-                ]
+                slots = [slot for slot in slots if window_start <= slot.astimezone(UTC) <= window_end]
             except (ValueError, TypeError) as exc:
                 raise AppError(
                     "BOOKING_LINK_INVALID",
@@ -465,13 +458,9 @@ async def public_book(
             kind="booking_link_requested",
         )
         appointment.notification_status = notification_status
-        appointment.notification_attempt_count = (
-            1 if notification_status != "NOT_AVAILABLE" else 0
-        )
+        appointment.notification_attempt_count = 1 if notification_status != "NOT_AVAILABLE" else 0
         appointment.notification_provider_id = provider_id
-        appointment.notification_sent_at = (
-            datetime.now(UTC) if notification_status == "SENT" else None
-        )
+        appointment.notification_sent_at = datetime.now(UTC) if notification_status == "SENT" else None
         await session.commit()
         return {
             "id": str(appointment.id),
@@ -532,9 +521,7 @@ async def approve_booking_appointment(
         else None
     )
     phone = patient.whatsapp_phone or patient.phone
-    language = _language(
-        conversation.language if conversation else language_for_phone(phone, "en")
-    )
+    language = _language(conversation.language if conversation else language_for_phone(phone, "en"))
     message = _approved_message(language, row.starts_at, row.timezone)
     notification_status, provider_id = await _send_and_log(
         ctx.session,
@@ -556,9 +543,7 @@ async def approve_booking_appointment(
     row.notification_status = notification_status
     row.notification_attempt_count += 1
     row.notification_provider_id = provider_id
-    row.notification_sent_at = (
-        datetime.now(UTC) if notification_status == "SENT" else None
-    )
+    row.notification_sent_at = datetime.now(UTC) if notification_status == "SENT" else None
     if row.care_plan_item_id:
         item = await ctx.session.get(CarePlanItem, row.care_plan_item_id)
         if item:
@@ -664,9 +649,7 @@ async def suggest_booking_range(
             503,
         )
     row.status = "RESCHEDULE_REQUESTED"
-    row.doctor_note = body.note or (
-        f"Suggested range: {start.isoformat()} – {end.isoformat()}"
-    )
+    row.doctor_note = body.note or (f"Suggested range: {start.isoformat()} – {end.isoformat()}")
     row.reschedule_count += 1
     await audit(
         ctx.session,
