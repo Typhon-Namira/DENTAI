@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { AllRolesAiRunAccess } from "./product/AllRolesAiRunAccess";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
@@ -48,6 +49,7 @@ createRoot(document.getElementById("root")!).render(
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
       <PlatformAccessExperienceV2 />
+      <AllRolesAiRunAccess />
     </>
   </StrictMode>
 );
