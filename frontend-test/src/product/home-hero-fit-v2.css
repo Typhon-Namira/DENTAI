@@ -1,0 +1,94 @@
+/* Final responsive fit pass.
+   Goal: keep the full source photo visible, make the hero feel photo-filled edge-to-edge,
+   and make the source image itself span the full phone width without introducing blank bands. */
+
+/* Laptop / desktop: the complete sharp photo stays visible in the middle, while a nearly-sharp
+   copy of the same photo fills the horizontal remainder so the hero reads as one full-width image. */
+@media (min-width:1121px){
+  .product-home-hero::before{
+    inset:-10px;
+    background-position:center center;
+    background-size:cover;
+    filter:blur(4px) saturate(1.03) brightness(.94);
+    transform:scale(1.025);
+  }
+
+  .product-home-hero .product-home-hero-image{
+    width:100%;
+    height:100%;
+    object-fit:contain !important;
+    object-position:center center !important;
+    transform:none !important;
+  }
+
+  /* Avoid dark side bands; contrast is concentrated toward the copy at the bottom/right. */
+  .product-home-hero .product-home-hero-shade{
+    background:
+      linear-gradient(180deg,rgba(4,18,35,0) 0%,rgba(4,18,35,.02) 44%,rgba(4,18,35,.24) 73%,rgba(4,18,35,.56) 100%),
+      linear-gradient(90deg,rgba(4,18,35,0) 0%,rgba(4,18,35,0) 48%,rgba(4,18,35,.22) 78%,rgba(4,18,35,.34) 100%);
+  }
+}
+
+/* Tablet: same complete-image treatment, with lighter edge extension. */
+@media (min-width:681px) and (max-width:1120px){
+  .product-home-hero::before{
+    inset:-10px;
+    background-position:center center;
+    background-size:cover;
+    filter:blur(5px) saturate(1.03) brightness(.92);
+    transform:scale(1.03);
+  }
+
+  .product-home-hero .product-home-hero-image{
+    width:100%;
+    height:100%;
+    object-fit:contain !important;
+    object-position:center center !important;
+    transform:none !important;
+  }
+}
+
+/* Mobile: size the real photograph by width, not by hero height.
+   The full landscape source is therefore exactly as wide as the phone hero and never gets
+   squeezed into a narrow center column. The same photo continues behind the lower copy area. */
+@media (max-width:680px){
+  .product-home-hero::before{
+    inset:-12px;
+    background-position:center 24%;
+    background-size:cover;
+    filter:blur(10px) saturate(1.04) brightness(.80);
+    transform:scale(1.04);
+  }
+
+  .product-home-hero .product-home-hero-image{
+    inset:auto 0 auto 0;
+    top:0;
+    width:100%;
+    height:auto !important;
+    max-width:100%;
+    max-height:none !important;
+    object-fit:contain !important;
+    object-position:center top !important;
+    transform:none !important;
+  }
+
+  .product-home-hero .product-home-hero-shade{
+    background:
+      linear-gradient(180deg,
+        rgba(4,18,35,0) 0%,
+        rgba(4,18,35,.02) 30%,
+        rgba(4,18,35,.12) 48%,
+        rgba(4,18,35,.44) 70%,
+        rgba(4,18,35,.84) 100%);
+  }
+}
+
+@media (max-width:390px){
+  .product-home-hero .product-home-hero-image{
+    width:100%;
+    height:auto !important;
+    max-height:none !important;
+    object-position:center top !important;
+    transform:none !important;
+  }
+}
