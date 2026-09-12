@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
+import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { PlatformAccessExperience } from "./product/PlatformAccessExperience";
 import ProductApp from "./product/ProductApp";
 import "./styles/medical-workspace.css";
@@ -32,6 +33,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <>
       <ProductApp />
+      <HomepageHeroFollowupAsset />
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
