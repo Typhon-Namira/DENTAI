@@ -21,6 +21,7 @@ import "./product/home-hero-overrides.css";
 import "./product/home-hero-composition.css";
 import "./product/home-hero-fit.css";
 import "./product/home-hero-fit-v2.css";
+import "./product/home-hero-fit-v3.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
