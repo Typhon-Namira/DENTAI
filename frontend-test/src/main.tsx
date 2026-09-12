@@ -8,6 +8,7 @@ import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
+import { BookingExperience } from "./product/BookingExperience";
 import ProductApp from "./product/ProductApp";
 import { PublicSeo } from "./product/PublicSeo";
 import "./styles/medical-workspace.css";
@@ -38,6 +39,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <>
       <ProductApp />
+      <BookingExperience />
       <PublicSeo />
       <HomepageHeroFollowupAsset />
       <HomepageEvidenceSections />
