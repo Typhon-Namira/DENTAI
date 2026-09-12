@@ -47,9 +47,8 @@ export function PublicNavbar({ language, onLanguage, copy, route, go }: { langua
   const navigate = (path: PublicPath) => { setMobileOpen(false); go(path); };
   return <header className="t2-navbar">
     <button className="t2-wordmark" onClick={() => navigate("/")} aria-label="Teta2 home"><span>Teta2</span><small><Activity/>Clinical AI</small></button>
-    <button className="t2-menu-trigger" aria-label="Open navigation" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>{mobileOpen ? <X/> : <Menu/>}</button>
     <nav className={mobileOpen ? "open" : ""} aria-label="Primary navigation">{LINKS.map(([path,key]) => <button key={path} className={route === path ? "active" : ""} onClick={() => navigate(path)}>{copy[key]}</button>)}<button className="t2-mobile-only" onClick={() => navigate("/login")}>{copy.login}</button><button className="t2-mobile-only" onClick={() => navigate("/register")}>{copy.access}</button></nav>
-    <div className="t2-nav-actions"><button className="t2-login-link" onClick={() => navigate("/login")}>{copy.login}</button><button className="t2-access-button" onClick={() => navigate("/register")}>{copy.access}</button><LanguageDropdown language={language} onChange={onLanguage}/></div>
+    <div className="t2-nav-actions"><button className="t2-login-link" onClick={() => navigate("/login")}>{copy.login}</button><button className="t2-access-button" onClick={() => navigate("/register")}>{copy.access}</button><LanguageDropdown language={language} onChange={onLanguage}/><button className="t2-menu-trigger" aria-label="Open navigation" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>{mobileOpen ? <X/> : <Menu/>}</button></div>
   </header>;
 }
 
