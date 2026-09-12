@@ -1,0 +1,78 @@
+/* Final composition pass for the public homepage hero.
+   Loaded after home-hero-overrides.css so these viewport-specific rules win cleanly. */
+
+/* Laptop-height screens: use the spare cabinet area above the subjects and bias the crop
+   much farther downward so the patient remains visibly inside the hero without increasing
+   the section height. */
+@media (min-width:1121px) and (max-height:900px){
+  .product-home-hero .product-home-hero-image{
+    object-position:center 78%;
+  }
+}
+
+/* Tablet / small laptop: same idea, but slightly less aggressive to preserve the monitor. */
+@media (min-width:681px) and (max-width:1120px){
+  .product-home-hero .product-home-hero-image{
+    object-position:center 70%;
+  }
+}
+
+/* Mobile: make the people the focal point and deliberately pull the content block upward.
+   This removes the large empty-looking middle band while keeping the photograph as the
+   continuous background of the text. */
+@media (max-width:680px){
+  .product-home-hero .product-home-hero-image{
+    object-position:44% 34%;
+    transform:scale(1.31);
+    transform-origin:44% 22%;
+  }
+
+  .product-home-hero .product-home-hero-shade{
+    background:
+      radial-gradient(circle at 50% 46%,rgba(9,31,50,.02) 0%,rgba(9,31,50,.08) 31%,rgba(7,26,45,.28) 57%,rgba(5,21,38,.55) 76%,rgba(4,18,35,.88) 100%),
+      linear-gradient(180deg,rgba(4,18,35,.02) 0%,rgba(4,18,35,.05) 26%,rgba(4,18,35,.22) 49%,rgba(4,18,35,.62) 72%,rgba(4,18,35,.90) 100%);
+  }
+
+  .product-home-hero .product-hero-actions{
+    margin-bottom:clamp(58px,9svh,86px);
+  }
+
+  .product-home-hero .product-hero-copy h1{
+    text-shadow:0 5px 26px rgba(0,0,0,.44),0 1px 3px rgba(0,0,0,.48);
+  }
+}
+
+/* Narrow phones need an even tighter crop, otherwise the source image leaves too much
+   visual breathing room between the patient and the copy. */
+@media (max-width:390px){
+  .product-home-hero .product-home-hero-image{
+    object-position:45% 31%;
+    transform:scale(1.36);
+    transform-origin:45% 20%;
+  }
+
+  .product-home-hero .product-hero-actions{
+    margin-bottom:56px;
+  }
+}
+
+/* Short portrait phones: keep the stronger composition while protecting above-the-fold fit. */
+@media (max-width:680px) and (max-height:650px){
+  .product-home-hero .product-home-hero-image{
+    transform:scale(1.24);
+    transform-origin:44% 22%;
+  }
+
+  .product-home-hero .product-hero-actions{
+    margin-bottom:28px;
+  }
+
+  .product-home-hero .product-hero-copy h1{
+    font-size:clamp(1.65rem,8vw,2.05rem);
+  }
+
+  .product-home-hero .product-hero-copy>p{
+    font-size:.77rem;
+    line-height:1.34;
+  }
+}
