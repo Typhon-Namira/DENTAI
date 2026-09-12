@@ -11,7 +11,7 @@ import "./v4/v4.css";
 import "./v4/v4-real-opg.css";
 import "./v4/v4-clinical-tools.css";
 import "./v4/v4-opg-findings.css";
-import "./v4/v4-opg-coordinate-fix.css";
+import "./v4/v4-coordinate-fix.css";
 import "./product/product.css";
 import "./product/care-experience.css";
 import "./product/followup-case.css";
@@ -22,6 +22,7 @@ import "./product/home-hero-composition.css";
 import "./product/home-hero-fit.css";
 import "./product/home-hero-fit-v2.css";
 import "./product/home-hero-fit-v3.css";
+import "./product/home-hero-workflow.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
