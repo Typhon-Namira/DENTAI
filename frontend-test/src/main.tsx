@@ -7,7 +7,7 @@ import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
-import { PlatformAccessExperience } from "./product/PlatformAccessExperience";
+import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
 import ProductApp from "./product/ProductApp";
 import { PublicSeo } from "./product/PublicSeo";
 import "./styles/medical-workspace.css";
@@ -32,6 +32,7 @@ import "./product/home-hero-workflow-fix.css";
 import "./product/home-hero-polish.css";
 import "./product/home-hero-quality-title.css";
 import "./product/home-hero-followup-hq.css";
+import "./product/login-polish.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -44,7 +45,7 @@ createRoot(document.getElementById("root")!).render(
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
-      <PlatformAccessExperience />
+      <PlatformAccessExperienceV2 />
     </>
   </StrictMode>
 );
