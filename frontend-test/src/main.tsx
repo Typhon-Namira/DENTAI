@@ -17,6 +17,7 @@ import "./product/care-experience.css";
 import "./product/followup-case.css";
 import "./product/platform-access.css";
 import "./product/public-chrome.css";
+import "./product/home-hero-overrides.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
