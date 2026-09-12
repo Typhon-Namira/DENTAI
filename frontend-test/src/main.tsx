@@ -6,7 +6,7 @@ import { CareGenerationContractPanel } from "./product/CareGenerationContractPan
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
-import { PageDeckSections } from "./product/PageDeckSections";
+import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
 import { PlatformAccessExperience } from "./product/PlatformAccessExperience";
 import ProductApp from "./product/ProductApp";
 import { PublicSeo } from "./product/PublicSeo";
@@ -40,7 +40,7 @@ createRoot(document.getElementById("root")!).render(
       <PublicSeo />
       <HomepageHeroFollowupAsset />
       <HomepageEvidenceSections />
-      <PageDeckSections />
+      <PageDeckSectionsV2 />
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
