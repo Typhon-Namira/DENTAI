@@ -24,6 +24,7 @@ import "./product/home-hero-fit-v2.css";
 import "./product/home-hero-fit-v3.css";
 import "./product/home-hero-workflow.css";
 import "./product/home-hero-workflow-fix.css";
+import "./product/home-hero-polish.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
