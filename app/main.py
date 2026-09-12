@@ -31,6 +31,7 @@ from app.core.logging import configure_logging, request_logging, security_header
 from app.database.sessions import ControlSession, dispose_control_engine
 from app.outreach import api as outreach
 from app.platform import api as platform
+from app.platform import market_api as platform_market
 from app.platform.api import record_platform_visit
 
 settings = get_settings()
@@ -69,6 +70,7 @@ app.add_middleware(
 )
 for router in (
     platform.router,
+    platform_market.router,
     auth.router,
     branches.router,
     patients.router,
