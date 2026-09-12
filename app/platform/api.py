@@ -31,6 +31,7 @@ from app.platform.service import (
     provision_clinic,
     renew_clinic,
     send_logged_email,
+    tenant_auto_provisioning_configured,
 )
 
 router = APIRouter(prefix="/platform", tags=["platform"])
@@ -295,7 +296,7 @@ async def admin_overview(session: Annotated[AsyncSession, Depends(control_sessio
             "api": "HEALTHY",
             "control_database": "HEALTHY",
             "smtp_configured": bool(app_settings.smtp_host and app_settings.smtp_from_email),
-            "tenant_auto_provisioning_configured": bool(app_settings.tenant_database_url_template),
+            "tenant_auto_provisioning_configured": tenant_auto_provisioning_configured(),
             "ai_provider": app_settings.ai_provider,
             "groq_configured": bool(app_settings.groq_api_key),
             "whatsapp_configured": bool(app_settings.whatsapp_service_url),
