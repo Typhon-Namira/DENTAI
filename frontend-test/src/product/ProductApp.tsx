@@ -159,6 +159,11 @@ export default function ProductApp() {
   const go = useCallback((path: PublicRoute) => {
     window.history.pushState({}, "", path);
     setRoute(path);
+    // PlatformAccessExperience owns the live access-request form and listens
+    // for route changes independently. pushState does not emit popstate, so
+    // notify every mounted route consumer immediately instead of requiring a
+    // full page refresh before the form appears.
+    window.dispatchEvent(new PopStateEvent("popstate"));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
