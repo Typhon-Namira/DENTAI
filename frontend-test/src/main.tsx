@@ -6,8 +6,10 @@ import { CareGenerationContractPanel } from "./product/CareGenerationContractPan
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
+import { PageDeckSections } from "./product/PageDeckSections";
 import { PlatformAccessExperience } from "./product/PlatformAccessExperience";
 import ProductApp from "./product/ProductApp";
+import { PublicSeo } from "./product/PublicSeo";
 import "./styles/medical-workspace.css";
 import "./v4/v4.css";
 import "./v4/v4-real-opg.css";
@@ -35,8 +37,10 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <>
       <ProductApp />
+      <PublicSeo />
       <HomepageHeroFollowupAsset />
       <HomepageEvidenceSections />
+      <PageDeckSections />
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
