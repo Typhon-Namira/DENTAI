@@ -1,0 +1,83 @@
+/* Shared Teta2 brand logo treatment across public and clinical navigation chrome. */
+.t2-navbar>.t2-wordmark::before{
+  content:"";
+  display:block;
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  background:url('/images/teta2_logo_transparent.png') center/contain no-repeat;
+}
+
+.t2-footer .t2-wordmark{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+}
+.t2-footer .t2-wordmark::before{
+  content:"";
+  display:block;
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  background:url('/images/teta2_logo_transparent.png') center/contain no-repeat;
+}
+
+/* Authenticated clinical workspace brand. */
+.care-brand::before{
+  content:"";
+  display:block;
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  border-radius:12px;
+  background:url('/images/teta2_logo_transparent.png') center/contain no-repeat;
+}
+
+/* Legacy clinic shell, retained for routes that still render it. */
+.clinic-sidebar>.product-wordmark{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.clinic-sidebar>.product-wordmark::before{
+  content:"";
+  display:block;
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  background:url('/images/teta2_logo_transparent.png') center/contain no-repeat;
+}
+
+/* Platform admin/access brand chrome. */
+.pa-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.pa-brand::before{
+  content:"";
+  display:block;
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  background:url('/images/teta2_logo_transparent.png') center/contain no-repeat;
+}
+
+@media(max-width:680px){
+  .t2-navbar>.t2-wordmark::before{
+    width:30px;
+    height:30px;
+    flex-basis:30px;
+  }
+}
+
+@media(max-width:390px){
+  .t2-navbar>.t2-wordmark{
+    gap:8px;
+  }
+  .t2-navbar>.t2-wordmark::before{
+    width:27px;
+    height:27px;
+    flex-basis:27px;
+  }
+}
