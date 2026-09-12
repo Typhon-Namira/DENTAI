@@ -287,7 +287,9 @@ async def public_booking_form(
             try:
                 window_start = _utc(datetime.fromisoformat(str(start_raw)))
                 window_end = _utc(datetime.fromisoformat(str(end_raw)))
-                slots = [slot for slot in slots if window_start <= slot.astimezone(UTC) <= window_end]
+                slots = [
+                    slot for slot in slots if window_start <= slot.astimezone(UTC) <= window_end
+                ]
             except (ValueError, TypeError) as exc:
                 raise AppError(
                     "BOOKING_LINK_INVALID",
@@ -460,7 +462,9 @@ async def public_book(
         appointment.notification_status = notification_status
         appointment.notification_attempt_count = 1 if notification_status != "NOT_AVAILABLE" else 0
         appointment.notification_provider_id = provider_id
-        appointment.notification_sent_at = datetime.now(UTC) if notification_status == "SENT" else None
+        appointment.notification_sent_at = (
+            datetime.now(UTC) if notification_status == "SENT" else None
+        )
         await session.commit()
         return {
             "id": str(appointment.id),
