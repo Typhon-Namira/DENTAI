@@ -1,0 +1,54 @@
+/* Homepage hero only: reconstruct the supplied 1024x576 follow-up artwork from four
+   high-quality WebP tiles. This replaces the older heavily compressed embedded preview
+   without changing any other frontend or backend area. */
+.product-home-hero::before{
+  background-image:
+    url('/images/teta2-followup-hq-1.webp'),
+    url('/images/teta2-followup-hq-2.webp'),
+    url('/images/teta2-followup-hq-3.webp'),
+    url('/images/teta2-followup-hq-4.webp') !important;
+  background-repeat:no-repeat,no-repeat,no-repeat,no-repeat !important;
+  background-size:25.08% 100%,25.08% 100%,25.08% 100%,25.08% 100% !important;
+  background-position:0% 0%,33.333% 0%,66.667% 0%,100% 0% !important;
+  filter:none !important;
+  opacity:1 !important;
+  transform:none !important;
+  image-rendering:auto !important;
+}
+
+/* Preserve the accepted two-line editorial headline on desktop and phone. */
+html[lang='en'] .product-home-hero .product-hero-copy h1{
+  width:52% !important;
+  max-width:790px !important;
+}
+html[lang='en'] .product-home-hero .product-hero-copy h1::before{
+  content:'Turn Every OPG Into\A Actionable Patient Follow-up.' !important;
+  white-space:pre !important;
+  font-size:clamp(2.15rem,3.18vw,4.05rem) !important;
+  line-height:.98 !important;
+  letter-spacing:-.052em !important;
+}
+
+@media (max-width:1120px) and (min-width:681px){
+  html[lang='en'] .product-home-hero .product-hero-copy h1{
+    width:52% !important;
+    max-width:650px !important;
+  }
+}
+
+@media (max-width:680px){
+  .product-home-hero::before{
+    background-size:25.08% 100%,25.08% 100%,25.08% 100%,25.08% 100% !important;
+    background-position:0% 0%,33.333% 0%,66.667% 0%,100% 0% !important;
+  }
+  html[lang='en'] .product-home-hero .product-hero-copy h1{
+    width:90% !important;
+    max-width:none !important;
+  }
+  html[lang='en'] .product-home-hero .product-hero-copy h1::before{
+    content:'Turn Every OPG Into\A Actionable Patient Follow-up.' !important;
+    font-size:clamp(1.36rem,6.05vw,2rem) !important;
+    line-height:1.01 !important;
+    white-space:pre !important;
+  }
+}
