@@ -1,0 +1,100 @@
+/* Homepage hero only: final title/step-02 rendering refinement. */
+
+/* Keep the follow-up card on exact device pixels as much as possible. The prior
+   slight rotation forced continuous resampling and made the embedded image look
+   softer than its source. */
+.product-home-hero::before{
+  width:40.5%!important;
+  transform:none!important;
+  transform-origin:center!important;
+  filter:none!important;
+  opacity:1!important;
+  backdrop-filter:none!important;
+  background-size:100% 100%!important;
+  background-position:center center!important;
+  background-repeat:no-repeat!important;
+  image-rendering:auto!important;
+  box-shadow:0 22px 54px rgba(28,55,80,.17),0 5px 18px rgba(25,83,104,.08)!important;
+}
+
+/* English headline: deliberately typeset as two balanced lines rather than the
+   old three tight rows. The accessible h1/aria-label remains the same. */
+html[lang="en"] .product-home-hero .product-hero-copy h1{
+  width:50.5%!important;
+  max-width:760px!important;
+  bottom:12.4%!important;
+  font-size:0!important;
+  line-height:1!important;
+  letter-spacing:normal!important;
+}
+html[lang="en"] .product-home-hero .product-hero-copy h1 .product-hero-line{
+  display:none!important;
+}
+html[lang="en"] .product-home-hero .product-hero-copy h1::before{
+  content:"Turn Every OPG Into\A Actionable Patient Follow-up.";
+  display:block;
+  white-space:pre;
+  color:#082b4d;
+  font-size:clamp(2.15rem,3.12vw,4rem);
+  line-height:.98;
+  letter-spacing:-.052em;
+  font-weight:800;
+  text-wrap:balance;
+  animation:tetaHeroHeadlineIn .82s .16s cubic-bezier(.2,.75,.2,1) both;
+}
+
+@keyframes tetaHeroHeadlineIn{
+  from{opacity:0;transform:translateY(14px);filter:blur(5px)}
+  to{opacity:1;transform:translateY(0);filter:blur(0)}
+}
+
+@media (max-width:1120px) and (min-width:681px){
+  .product-home-hero::before{
+    width:43.5%!important;
+    transform:none!important;
+  }
+  html[lang="en"] .product-home-hero .product-hero-copy h1{
+    width:51%!important;
+    max-width:620px!important;
+  }
+  html[lang="en"] .product-home-hero .product-hero-copy h1::before{
+    font-size:clamp(2rem,4.05vw,3.25rem);
+  }
+}
+
+@media (max-width:680px){
+  /* Preserve the same two-line editorial hierarchy on phones. */
+  .product-home-hero::before{
+    width:74%!important;
+    top:39.5%!important;
+    transform:none!important;
+    background-size:100% 100%!important;
+    box-shadow:0 15px 34px rgba(25,54,80,.16)!important;
+  }
+  html[lang="en"] .product-home-hero .product-hero-copy h1{
+    left:5%!important;
+    width:90%!important;
+    max-width:none!important;
+    bottom:12.8%!important;
+  }
+  html[lang="en"] .product-home-hero .product-hero-copy h1::before{
+    font-size:clamp(1.36rem,6.05vw,2rem);
+    line-height:1.01;
+    letter-spacing:-.045em;
+    white-space:pre;
+  }
+}
+
+@media (max-width:390px){
+  .product-home-hero::before{
+    width:72%!important;
+    top:40%!important;
+  }
+  html[lang="en"] .product-home-hero .product-hero-copy h1::before{
+    font-size:clamp(1.28rem,5.85vw,1.72rem);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  html[lang="en"] .product-home-hero .product-hero-copy h1::before{animation:none!important}
+}
