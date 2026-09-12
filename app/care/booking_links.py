@@ -6,7 +6,7 @@ import jwt
 from app.core.config import get_settings
 from app.core.errors import AppError
 
-BOOKING_TOKEN_TYPE = "teta2_booking"
+BOOKING_LINK_KIND = "teta2_booking"
 BOOKING_TOKEN_VERSION = 1
 
 
@@ -28,7 +28,7 @@ def booking_token(
     other direct identifiers. Patient-specific follow-up links are also tamper-proof.
     """
     payload: dict[str, Any] = {
-        "type": BOOKING_TOKEN_TYPE,
+        "type": BOOKING_LINK_KIND,
         "v": BOOKING_TOKEN_VERSION,
         "clinic_id": str(clinic_id),
         "branch_id": str(branch_id),
@@ -53,7 +53,7 @@ def decode_booking_token(token: str) -> dict[str, Any]:
         payload = jwt.decode(token, get_settings().app_secret, algorithms=["HS256"])
     except jwt.PyJWTError as exc:
         raise AppError("BOOKING_LINK_INVALID", "This booking link is invalid.", 404) from exc
-    if payload.get("type") != BOOKING_TOKEN_TYPE or payload.get("v") != BOOKING_TOKEN_VERSION:
+    if payload.get("type") != BOOKING_LINK_KIND or payload.get("v") != BOOKING_TOKEN_VERSION:
         raise AppError("BOOKING_LINK_INVALID", "This booking link is invalid.", 404)
     for key in ("clinic_id", "branch_id"):
         try:
