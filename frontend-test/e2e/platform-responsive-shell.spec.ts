@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const baseUrl = process.env.CARE_E2E_URL ?? "http://127.0.0.1:5173";
-const publicRoutes = ["/", "/product", "/how-it-works", "/pricing", "/clinical-safety", "/about", "/login", "/register"];
+const publicRoutes = ["/", "/product", "/how-it-works", "/pricing", "/clinical-safety", "/about", "/login", "/register", "/privacy", "/terms", "/cookies", "/payments", "/clinical-disclaimer"];
 const viewports = [
   { name: "phone", width: 390, height: 844 },
   { name: "tablet", width: 768, height: 1024 },
@@ -33,6 +33,16 @@ test("first visit uses a compact flag-only language modal", async ({ page }) => 
   await modal.getByRole("button", { name: "Русский" }).click();
   await expect(modal).toBeHidden();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("teta2-product-language"))).toBe("ru");
+});
+
+test("essential storage notice is factual and links to its policy", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("teta2-product-language", "en"));
+  await page.goto(baseUrl);
+  const notice = page.getByLabel("Essential browser storage only");
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText("does not use advertising or analytics cookies");
+  await notice.getByRole("button", { name: "Read policy" }).click();
+  await expect(page).toHaveURL(/\/cookies$/);
 });
 
 test("laptop renders SVG flag and opens the downward language menu", async ({ page }) => {
