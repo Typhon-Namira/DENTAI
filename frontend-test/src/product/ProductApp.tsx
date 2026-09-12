@@ -68,7 +68,17 @@ function browserRoute(): PublicRoute {
 
 function storedLanguage(): ProductLang | null {
   const value = localStorage.getItem(LANG_KEY) ?? localStorage.getItem("teta2-v4-language");
-  return value === "en" || value === "hy" ? value : null;
+  return value === "en" || value === "hy" || value === "ru" ? value : null;
+}
+
+const LANGUAGE_META: Record<ProductLang, { flag: string; label: string; locale: string }> = {
+  en: { flag: "🇬🇧", label: "English", locale: "en-US" },
+  hy: { flag: "🇦🇲", label: "Հայերեն", locale: "hy-AM" },
+  ru: { flag: "🇷🇺", label: "Русский", locale: "ru-RU" }
+};
+
+function LanguageSwitch({ lang, setLang, className = "product-lang-switch" }: { lang: ProductLang; setLang: (lang: ProductLang) => void; className?: string }) {
+  return <div className={className} role="group" aria-label="Language">{(Object.keys(LANGUAGE_META) as ProductLang[]).map((key) => <button key={key} className={lang === key ? "active" : ""} onClick={() => setLang(key)} title={LANGUAGE_META[key].label} aria-label={LANGUAGE_META[key].label} aria-pressed={lang === key}><span aria-hidden="true">{LANGUAGE_META[key].flag}</span></button>)}</div>;
 }
 
 function patientName(patient: Patient): string {
@@ -83,7 +93,7 @@ function dateTime(value: string | null | undefined, lang: ProductLang): string {
   if (!value) return "—";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "—";
-  return new Intl.DateTimeFormat(lang === "hy" ? "hy-AM" : "en-US", {
+  return new Intl.DateTimeFormat(LANGUAGE_META[lang].locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -96,7 +106,7 @@ function dateOnly(value: string | null | undefined, lang: ProductLang): string {
   if (!value) return "—";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "—";
-  return new Intl.DateTimeFormat(lang === "hy" ? "hy-AM" : "en-US", {
+  return new Intl.DateTimeFormat(LANGUAGE_META[lang].locale, {
     year: "numeric",
     month: "short",
     day: "numeric"
@@ -189,33 +199,20 @@ export default function ProductApp() {
   }, []);
 
   if (!lang) return <LanguageGate onSelect={setLang} />;
-  if (restoring) return <div className="product-restore"><TetaLogo /><span className="product-spinner" /></div>;
+  if (restoring) return <div className="product-restore"><strong>Teta2</strong><span className="product-spinner" /></div>;
   if (user) return <ClinicalCareApp onSignedOut={() => setUser(null)} />;
   if (route === "/login") return <LoginPage lang={lang} setLang={setLang} onAuthenticated={setUser} go={go} />;
-  if (route === "/register") return <AccessPage lang={lang} go={go} />;
+  if (route === "/register") return <AccessPage lang={lang} setLang={setLang} go={go} />;
   return <PublicProduct lang={lang} setLang={setLang} route={route} go={go} />;
-}
-
-function TetaLogo({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={`product-logo ${compact ? "compact" : ""}`} aria-label="Teta2">
-      <span className="product-logo-mark" aria-hidden="true"><i /><b /></span>
-      <span><strong>Teta2</strong>{!compact && <small>OPG intelligence + follow-up</small>}</span>
-    </div>
-  );
 }
 
 function LanguageGate({ onSelect }: { onSelect: (lang: ProductLang) => void }) {
   return (
     <main className="product-language-gate">
       <section>
-        <TetaLogo />
-        <span className="product-kicker">WELCOME · ԲԱՐԻ ԳԱԼՈՒՍՏ</span>
-        <h1>Choose your language<br /><em>Ընտրեք ձեր լեզուն</em></h1>
-        <p>Choose the interface language for Teta2.<br />Ընտրեք Teta2 միջերեսի լեզուն։</p>
-        <div className="product-language-grid">
-          <button onClick={() => onSelect("en")}><b>EN</b><span><strong>English</strong><small>Continue in English</small></span><ChevronRight /></button>
-          <button onClick={() => onSelect("hy")}><b>ՀՅ</b><span><strong>Հայերեն</strong><small>Շարունակել հայերեն</small></span><ChevronRight /></button>
+        <div className="language-tech-orbit" aria-hidden="true"><span>AI</span><i /><i /><i /></div>
+        <div className="product-language-grid" aria-label="Choose language">
+          {(Object.keys(LANGUAGE_META) as ProductLang[]).map((key) => <button key={key} onClick={() => onSelect(key)} title={LANGUAGE_META[key].label} aria-label={LANGUAGE_META[key].label}><b aria-hidden="true">{LANGUAGE_META[key].flag}</b></button>)}
         </div>
       </section>
     </main>
@@ -248,12 +245,12 @@ function PublicNav({ lang, setLang, route, go }: { lang: ProductLang; setLang: (
   ];
   return (
     <header className="product-public-nav">
-      <button className="product-plain" onClick={() => go("/")}><TetaLogo compact /></button>
+      <button className="product-wordmark" onClick={() => go("/")} aria-label="Teta2 home">Teta2</button>
       <nav>{items.map(([path, label]) => <button key={path} className={route === path ? "active" : ""} onClick={() => go(path)}>{label}</button>)}</nav>
       <div className="product-nav-actions">
         <button className="product-link-button" onClick={() => go("/login")}>{c.nav.login}</button>
         <button className="product-primary small" onClick={() => go("/register")}>{c.nav.access}</button>
-        <div className="product-lang-switch"><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button><button className={lang === "hy" ? "active" : ""} onClick={() => setLang("hy")}>HY</button></div>
+        <LanguageSwitch lang={lang} setLang={setLang} />
       </div>
     </header>
   );
@@ -276,9 +273,6 @@ function HomePage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) =>
         </div>
         <HeroOpgVisual lang={lang} />
       </section>
-      <ProblemSection lang={lang} />
-      <WorkflowSection lang={lang} />
-      <PlanSection lang={lang} go={go} />
       <SafetyStrip lang={lang} go={go} />
       <section className="product-final-cta"><div><span>{c.workflow.kicker}</span><h2>{c.plans.care.tagline}</h2><p>{c.plans.care.outcome}</p></div><button className="product-primary" onClick={() => go("/register")}>{c.nav.access}<ArrowRight size={18} /></button></section>
     </>
@@ -349,13 +343,12 @@ function SafetyStrip({ lang, go }: { lang: ProductLang; go: (route: PublicRoute)
 }
 
 function ProductPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) => void }) {
-  const c = productCopy(lang);
-  return <main className="product-marketing-page"><SectionHeading kicker={c.problem.kicker} title={c.problem.title} body={c.problem.body} /><WorkflowSection lang={lang} /><PlanSection lang={lang} go={go} /><SafetyStrip lang={lang} go={go} /></main>;
+  return <main className="product-marketing-page"><ProblemSection lang={lang} /><PlanSection lang={lang} go={go} /></main>;
 }
 
 function HowPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) => void }) {
   const c = productCopy(lang);
-  return <main className="product-marketing-page"><SectionHeading kicker={c.workflow.kicker} title={c.workflow.title} body={c.hero.lead} /><WorkflowSection lang={lang} /><section className="product-final-cta"><div><span>{c.plans.kicker}</span><h2>{c.plans.scan.tagline}</h2><p>{c.safety.body}</p></div><button className="product-primary" onClick={() => go("/login")}>{c.hero.primary}<ArrowRight size={18} /></button></section></main>;
+  return <main className="product-marketing-page"><WorkflowSection lang={lang} /><section className="product-final-cta"><div><span>{c.plans.kicker}</span><h2>{c.plans.scan.tagline}</h2><p>{c.safety.body}</p></div><button className="product-primary" onClick={() => go("/login")}>{c.hero.primary}<ArrowRight size={18} /></button></section></main>;
 }
 
 function PricingPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) => void }) {
@@ -402,16 +395,16 @@ function AboutPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) =
   );
 }
 
-function AccessPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) => void }) {
+function AccessPage({ lang, setLang, go }: { lang: ProductLang; setLang: (lang: ProductLang) => void; go: (route: PublicRoute) => void }) {
   const c = productCopy(lang);
   return (
     <main className="product-access-page">
-      <button className="product-plain product-access-logo" onClick={() => go("/")}><TetaLogo /></button>
+      <PublicNav lang={lang} setLang={setLang} route="/register" go={go} />
       <section>
-        <span className="product-kicker">TETA2 SCAN · TETA2 CARE</span>
+        <span className="product-kicker">TETA2 · CLINICAL PLATFORM</span>
         <h1>{c.access.title}</h1>
         <p>{c.access.lead}</p>
-        <div className="product-access-plans"><div><FileImage /><strong>Teta2 Scan</strong><small>{c.plans.scan.outcome}</small></div><div><HeartPulse /><strong>Teta2 Care</strong><small>{c.plans.care.outcome}</small></div></div>
+        <div className="product-access-plans"><div><FileImage /><strong>OPG intelligence</strong><small>{c.plans.scan.outcome}</small></div><div><HeartPulse /><strong>Teta2</strong><small>{c.plans.care.outcome}</small></div></div>
         <div className="product-access-note"><ShieldCheck /><p>{c.access.note}</p></div>
         <button className="product-primary" onClick={() => go("/login")}>{c.access.login}<ArrowRight size={17} /></button>
       </section>
@@ -422,7 +415,7 @@ function AccessPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) 
 function PublicFooter({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) => void }) {
   const c = productCopy(lang);
   return (
-    <footer className="product-public-footer"><TetaLogo compact /><p>{lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : "AI-powered OPG intelligence and patient follow-up."}</p><nav><button onClick={() => go("/pricing")}>{c.nav.pricing}</button><button onClick={() => go("/clinical-safety")}>{c.nav.safety}</button><button onClick={() => go("/login")}>{c.nav.login}</button></nav></footer>
+    <footer className="product-public-footer"><button className="product-wordmark" onClick={() => go("/")}>Teta2</button><p>{lang === "hy" ? "AI-ով OPG ինտելեկտ և պացիենտի հետագա վերահսկում։" : lang === "ru" ? "ИИ-анализ OPG и клиническое наблюдение пациентов." : "AI-powered OPG intelligence and patient follow-up."}</p><nav><button onClick={() => go("/pricing")}>{c.nav.pricing}</button><button onClick={() => go("/clinical-safety")}>{c.nav.safety}</button><button onClick={() => go("/login")}>{c.nav.login}</button></nav></footer>
   );
 }
 
@@ -454,8 +447,9 @@ function LoginPage({ lang, setLang, onAuthenticated, go }: { lang: ProductLang; 
 
   return (
     <main className="product-login-page">
-      <section className="product-login-story"><button className="product-plain" onClick={() => go("/")}><TetaLogo /></button><span className="product-kicker">OPG → AI → RECORD → FOLLOW → RETURN</span><h1>{lang === "hy" ? "Մուտք գործեք ձեր կլինիկական workspace։" : "Sign in to your clinical workspace."}</h1><p>{lang === "hy" ? "Մեկ կենտրոնացված workflow՝ OPG վերլուծության, պացիենտի քարտի և հետագա վերահսկման համար։" : "One focused workflow for OPG analysis, the smart patient file and follow-up."}</p><HeroOpgVisual lang={lang} /></section>
-      <section className="product-login-card"><div className="product-lang-switch"><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button><button className={lang === "hy" ? "active" : ""} onClick={() => setLang("hy")}>HY</button></div><h2>{lang === "hy" ? "Կլինիկայի մուտք" : "Clinic sign in"}</h2><p>{lang === "hy" ? "Օգտագործեք ձեր provision արված clinic slug-ը և հաշիվը։" : "Use the clinic slug and account provisioned for your clinic."}</p><form onSubmit={submit}><label>{lang === "hy" ? "Clinic slug" : "Clinic slug"}<input required autoComplete="organization" value={clinic} onChange={(event) => setClinic(event.target.value)} placeholder="your-clinic" /></label><label>{lang === "hy" ? "Էլ․ փոստ կամ օգտանուն" : "Email or username"}<input required autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} /></label><label>{lang === "hy" ? "Գաղտնաբառ" : "Password"}<input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>{error && <div className="product-error" role="alert">{error}</div>}<button className="product-primary" disabled={busy}>{busy ? (lang === "hy" ? "Մուտք…" : "Signing in…") : (lang === "hy" ? "Անվտանգ մուտք" : "Sign in securely")}</button></form><button className="product-link-button" onClick={() => go("/register")}>{productCopy(lang).nav.access}</button></section>
+      <div className="product-auth-nav"><button className="product-wordmark" onClick={() => go("/")}>Teta2</button><LanguageSwitch lang={lang} setLang={setLang} /></div>
+      <section className="product-login-story"><span className="product-kicker">OPG → AI → RECORD → FOLLOW → RETURN</span><h1>{lang === "hy" ? "Մուտք գործեք ձեր կլինիկական workspace։" : lang === "ru" ? "Войдите в клиническое рабочее пространство." : "Sign in to your clinical workspace."}</h1><p>{lang === "hy" ? "Մեկ կենտրոնացված workflow՝ OPG վերլուծության, պացիենտի քարտի և հետագա վերահսկման համար։" : lang === "ru" ? "Единый процесс для OPG-анализа, карты пациента и последующего наблюдения." : "One focused workflow for OPG analysis, the smart patient file and follow-up."}</p><HeroOpgVisual lang={lang} /></section>
+      <section className="product-login-card"><h2>{lang === "hy" ? "Կլինիկայի մուտք" : lang === "ru" ? "Вход для клиники" : "Clinic sign in"}</h2><p>{lang === "hy" ? "Օգտագործեք ձեր provision արված clinic slug-ը և հաշիվը։" : lang === "ru" ? "Используйте идентификатор клиники и учетную запись, полученные при активации." : "Use the clinic slug and account provisioned for your clinic."}</p><form onSubmit={submit}><label>{lang === "ru" ? "Идентификатор клиники" : "Clinic slug"}<input required autoComplete="organization" value={clinic} onChange={(event) => setClinic(event.target.value)} placeholder="your-clinic" /></label><label>{lang === "hy" ? "Էլ․ փոստ կամ օգտանուն" : lang === "ru" ? "Email или имя пользователя" : "Email or username"}<input required autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} /></label><label>{lang === "hy" ? "Գաղտնաբառ" : lang === "ru" ? "Пароль" : "Password"}<input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>{error && <div className="product-error" role="alert">{error}</div>}<button className="product-primary" disabled={busy}>{busy ? (lang === "hy" ? "Մուտք…" : lang === "ru" ? "Вход…" : "Signing in…") : (lang === "hy" ? "Անվտանգ մուտք" : lang === "ru" ? "Безопасный вход" : "Sign in securely")}</button></form><button className="product-link-button" onClick={() => go("/register")}>{productCopy(lang).nav.access}</button></section>
     </main>
   );
 }
@@ -529,7 +523,7 @@ function ClinicProduct({ lang, setLang, user, onLogout }: { lang: ProductLang; s
   return (
     <div className="clinic-shell">
       <aside className="clinic-sidebar">
-        <TetaLogo />
+        <strong className="product-wordmark">Teta2</strong>
         <nav>{nav.map(([key, label, icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => setSection(key)}>{icon}<span>{label}</span>{key === "followups" && Number(dashboard?.followups_due ?? 0) > 0 && <i>{dashboard?.followups_due}</i>}</button>)}</nav>
         <div className="clinic-user"><span>{user.username.slice(0, 2).toUpperCase()}</span><div><strong>{user.username}</strong><small>{user.role}</small></div><button aria-label="Sign out" onClick={() => void logout()}><LogOut /></button></div>
       </aside>
@@ -537,7 +531,7 @@ function ClinicProduct({ lang, setLang, user, onLogout }: { lang: ProductLang; s
         <div><strong>{section === "dashboard" ? c.dashboardTitle : nav.find(([key]) => key === section)?.[1]}</strong><span>{section === "dashboard" ? c.dashboardLead : selectedPatient ? `${patientName(selectedPatient)} · ${selectedPatient.patient_number}` : c.selectPatient}</span></div>
         <div className="clinic-header-actions">
           <PatientQuickSelect lang={lang} patients={patients} selectedPatientId={selectedPatientId} onSelect={setSelectedPatientId} />
-          <div className="product-lang-switch"><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button><button className={lang === "hy" ? "active" : ""} onClick={() => setLang("hy")}>HY</button></div>
+          <LanguageSwitch lang={lang} setLang={setLang} />
           <button className="clinic-icon-button" aria-label="Notifications"><Bell /></button>
         </div>
       </header>
@@ -775,7 +769,7 @@ function FollowUpsPage({ lang, patients, followUps, selectedPatientId, onSelectP
 
 function MessagesPage({ lang, patients, selectedPatientId, onSelectPatient, onPatientUpdated }: { lang: ProductLang; patients: Patient[]; selectedPatientId: string | null; onSelectPatient: (id: string) => void; onPatientUpdated: (patient: Patient) => void }) {
   const patient = patients.find((item) => item.id === selectedPatientId) ?? null;
-  return <div className="clinic-messages-page"><section className="clinic-card message-context"><div><span className="product-kicker">TETA2 CARE</span><h1>{productCopy(lang).clinic.messages}</h1><p>{productCopy(lang).clinic.messagesLead}</p></div><label><span>{productCopy(lang).clinic.selectPatient}</span><select value={selectedPatientId ?? ""} onChange={(event) => onSelectPatient(event.target.value)}><option value="" disabled>{productCopy(lang).clinic.selectPatient}</option>{patients.map((item) => <option key={item.id} value={item.id}>{patientName(item)} · {item.patient_number}</option>)}</select></label></section>{patient ? <div className="v4-outreach-tool product-whatsapp-wrapper"><WhatsAppOutreachCard patient={patient} onPatientUpdated={onPatientUpdated} /></div> : <section className="clinic-card"><EmptyState icon={<MessageCircle />} text={productCopy(lang).clinic.noPatient} /></section>}</div>;
+  return <div className="clinic-messages-page"><section className="clinic-card message-context"><div><span className="product-kicker">TETA2</span><h1>{productCopy(lang).clinic.messages}</h1><p>{productCopy(lang).clinic.messagesLead}</p></div><label><span>{productCopy(lang).clinic.selectPatient}</span><select value={selectedPatientId ?? ""} onChange={(event) => onSelectPatient(event.target.value)}><option value="" disabled>{productCopy(lang).clinic.selectPatient}</option>{patients.map((item) => <option key={item.id} value={item.id}>{patientName(item)} · {item.patient_number}</option>)}</select></label></section>{patient ? <div className="v4-outreach-tool product-whatsapp-wrapper"><WhatsAppOutreachCard patient={patient} onPatientUpdated={onPatientUpdated} /></div> : <section className="clinic-card"><EmptyState icon={<MessageCircle />} text={productCopy(lang).clinic.noPatient} /></section>}</div>;
 }
 
 function SettingsPage({ lang, user, branches }: { lang: ProductLang; user: CurrentUser; branches: BranchSummary[] }) {

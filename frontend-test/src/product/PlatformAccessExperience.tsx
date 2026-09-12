@@ -17,6 +17,12 @@ import {
 import { API_BASE_URL } from "../api/client";
 
 const ADMIN_SESSION_KEY = "teta2-platform-admin-session";
+type AccessLang = "en" | "hy" | "ru";
+const ACCESS_COPY = {
+  en: { login:"Clinic login", eyebrow:"REQUEST ACCESS", title:"Bring your clinic into Teta2.", lead:"Submit one secure application. Our team reviews your clinic, sends payment instructions and activates the same workspace for a fixed 30-day period.", plan:"THE TETA2 CLINIC PLAN", retained:"Data is retained between renewals", retainedText:"When access expires, the dashboard is locked—not deleted. Renewal restores the same patients, analyses, follow-ups and history.", application:"CLINIC APPLICATION", request:"Access request", step:"Step 1 of 3", submit:"Submit access request" },
+  hy: { login:"Կլինիկայի մուտք", eyebrow:"ՄՈՒՏՔԻ ՀԱՐՑՈՒՄ", title:"Միացրեք ձեր կլինիկան Teta2-ին։", lead:"Ուղարկեք մեկ անվտանգ հայտ։ Մեր թիմը ստուգում է կլինիկան, ուղարկում վճարման տվյալները և ակտիվացնում նույն workspace-ը 30 օրով։", plan:"TETA2 ԿԼԻՆԻԿԱԿԱՆ ՓԱԹԵԹ", retained:"Տվյալները պահպանվում են երկարաձգումների միջև", retainedText:"Մուտքի ժամկետը լրանալուց հետո վահանակը կողպվում է, բայց չի ջնջվում։ Երկարաձգումը վերականգնում է նույն տվյալներն ու պատմությունը։", application:"ԿԼԻՆԻԿԱՅԻ ՀԱՅՏ", request:"Մուտքի հարցում", step:"Քայլ 1 / 3", submit:"Ուղարկել հարցումը" },
+  ru: { login:"Вход для клиники", eyebrow:"ЗАПРОС ДОСТУПА", title:"Подключите свою клинику к Teta2.", lead:"Отправьте одну защищенную заявку. Наша команда проверит клинику, направит инструкции по оплате и активирует то же рабочее пространство на 30 дней.", plan:"ТАРИФ TETA2 ДЛЯ КЛИНИКИ", retained:"Данные сохраняются между продлениями", retainedText:"После окончания доступа панель блокируется, но не удаляется. Продление возвращает тех же пациентов, анализы, наблюдение и историю.", application:"ЗАЯВКА КЛИНИКИ", request:"Запрос доступа", step:"Шаг 1 из 3", submit:"Отправить заявку" }
+} as const;
 
 type AccessRequest = {
   id: string;
@@ -132,10 +138,13 @@ export function PlatformAccessExperience() {
 }
 
 function Brand() {
-  return <div className="pa-brand"><span><HeartPulse /></span><div><strong>Teta2 Care</strong><small>Clinic access</small></div></div>;
+  return <div className="pa-brand"><strong>Teta2</strong></div>;
 }
 
 function AccessRequestPage() {
+  const initial = localStorage.getItem("teta2-product-language");
+  const [lang, setLang] = useState<AccessLang>(initial === "hy" || initial === "ru" ? initial : "en");
+  const copy = ACCESS_COPY[lang];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -166,18 +175,18 @@ function AccessRequestPage() {
   }
 
   return <main className="pa-overlay pa-access-page">
-    <header className="pa-public-head"><button onClick={() => go("/")} className="pa-plain"><Brand /></button><button onClick={() => go("/login")} className="pa-link">Clinic login</button></header>
+    <header className="pa-public-head"><button onClick={() => go("/")} className="pa-plain"><Brand /></button><nav aria-label="Primary"><button onClick={() => go("/product")} className="pa-link">Platform</button><button onClick={() => go("/how-it-works")} className="pa-link">How it works</button><button onClick={() => go("/pricing")} className="pa-link">Pricing</button></nav><div className="pa-public-actions"><div className="pa-flag-switch" role="group" aria-label="Language">{([['en','🇬🇧','English'],['hy','🇦🇲','Հայերեն'],['ru','🇷🇺','Русский']] as const).map(([key,flag,label])=><button key={key} className={lang===key?"active":""} title={label} aria-label={label} aria-pressed={lang===key} onClick={()=>{localStorage.setItem("teta2-product-language",key);setLang(key);}}><span aria-hidden="true">{flag}</span></button>)}</div><button onClick={() => go("/login")} className="pa-link">{copy.login}</button></div></header>
     <section className="pa-access-layout">
       <aside className="pa-access-story">
-        <span className="pa-eyebrow">REQUEST ACCESS</span>
-        <h1>Bring your clinic into Teta2 Care.</h1>
-        <p>Submit one secure application. Our team reviews the clinic, sends payment instructions, verifies payment, and activates the same clinic workspace for a fixed 30-day subscription period.</p>
-        <div className="pa-single-plan"><HeartPulse/><div><small>THE ONLY TETA2 PLAN</small><strong>Teta2 Care</strong><span>{plan ? `${plan.price_amount.toLocaleString()} ${plan.price_currency} · ${plan.period_days} days` : "30-day clinic subscription"}</span></div></div>
-        <div className="pa-flow-note"><ShieldCheck/><div><b>Data is retained between renewals</b><p>When access expires, the clinic dashboard is locked—not deleted. Renewal restores the same patients, analyses, follow-ups, conversations and history.</p></div></div>
+        <span className="pa-eyebrow">{copy.eyebrow}</span>
+        <h1>{copy.title}</h1>
+        <p>{copy.lead}</p>
+        <div className="pa-single-plan"><HeartPulse/><div><small>{copy.plan}</small><strong>Teta2</strong><span>{plan ? `${plan.price_amount.toLocaleString()} ${plan.price_currency} · ${plan.period_days} days` : "30-day clinic subscription"}</span></div></div>
+        <div className="pa-flow-note"><ShieldCheck/><div><b>{copy.retained}</b><p>{copy.retainedText}</p></div></div>
       </aside>
       <section className="pa-request-card">
         {done ? <div className="pa-success"><span><Check/></span><h2>Request submitted</h2><p>Your application is now waiting for review. If approved, payment instructions will be sent to the email you provided.</p><button onClick={() => go("/")} className="pa-primary">Back to Teta2</button></div> : <>
-          <div className="pa-card-head"><div><small>CLINIC APPLICATION</small><h2>Access request</h2></div><span>Step 1 of 3</span></div>
+          <div className="pa-card-head"><div><small>{copy.application}</small><h2>{copy.request}</h2></div><span>{copy.step}</span></div>
           <form onSubmit={submit} className="pa-form">
             <label className="wide"><span>Clinic name *</span><input name="clinic_name" required minLength={2}/></label>
             <label><span>Country *</span><input name="country" required/></label><label><span>City *</span><input name="city" required/></label>
@@ -188,7 +197,7 @@ function AccessRequestPage() {
             <label><span>Number of dentists *</span><input name="dentists_count" type="number" min="1" defaultValue="1" required/></label><label><span>Number of branches *</span><input name="branches_count" type="number" min="1" defaultValue="1" required/></label>
             <label className="wide"><span>Anything we should know?</span><textarea name="notes" rows={4}/></label>
             {error && <div className="pa-error wide">{error}</div>}
-            <div className="pa-form-footer wide"><p>By submitting, you confirm that the information belongs to a legitimate clinic and may be reviewed for platform access.</p><button className="pa-primary" disabled={busy}>{busy ? <Activity className="spin"/> : <Send/>}{busy ? "Submitting…" : "Submit access request"}</button></div>
+            <div className="pa-form-footer wide"><p>By submitting, you confirm that the information belongs to a legitimate clinic and may be reviewed for platform access.</p><button className="pa-primary" disabled={busy}>{busy ? <Activity className="spin"/> : <Send/>}{busy ? "…" : copy.submit}</button></div>
           </form>
         </>}
       </section>
@@ -303,7 +312,7 @@ function RequestsPanel({rows,busy,action}:{rows:AccessRequest[];busy:string;acti
 }
 
 function ClinicsPanel({rows,busy,action}:{rows:Clinic[];busy:string;action:(id:string,name:string,body?:unknown)=>Promise<void>}) {
-  return <section className="pa-panel"><div className="pa-panel-title"><Building2/><div><small>CLINIC DIRECTORY</small><h3>{rows.length} registered clinics</h3></div></div><div className="pa-clinic-list">{rows.map(c=><article key={c.id}><div className="pa-clinic-icon"><Building2/></div><div><b>{c.name}</b><span>{c.slug}</span></div><div><small>Plan</small><b>{c.subscription_plan==="TETA2_CARE"?"Teta2 Care":c.subscription_plan}</b></div><div><small>Access</small><b>{c.subscription_expires_at?new Date(c.subscription_expires_at).toLocaleDateString():"Legacy / no expiry"}</b><span>{c.days_remaining!=null?`${c.days_remaining} days remaining`:""}</span></div><span className={`pa-status ${c.is_active?"sent":"failed"}`}>{c.is_active?"ACTIVE":"EXPIRED"}</span><button className="pa-secondary" disabled={!!busy} onClick={()=>void action(c.id,`clinics/${c.id}/renew`,{days:30})}><RefreshCw/>Renew +30 days</button></article>)}</div></section>;
+  return <section className="pa-panel"><div className="pa-panel-title"><Building2/><div><small>CLINIC DIRECTORY</small><h3>{rows.length} registered clinics</h3></div></div><div className="pa-clinic-list">{rows.map(c=><article key={c.id}><div className="pa-clinic-icon"><Building2/></div><div><b>{c.name}</b><span>{c.slug}</span></div><div><small>Plan</small><b>{c.subscription_plan==="TETA2_CARE"?"Teta2":c.subscription_plan}</b></div><div><small>Access</small><b>{c.subscription_expires_at?new Date(c.subscription_expires_at).toLocaleDateString():"Legacy / no expiry"}</b><span>{c.days_remaining!=null?`${c.days_remaining} days remaining`:""}</span></div><span className={`pa-status ${c.is_active?"sent":"failed"}`}>{c.is_active?"ACTIVE":"EXPIRED"}</span><button className="pa-secondary" disabled={!!busy} onClick={()=>void action(c.id,`clinics/${c.id}/renew`,{days:30})}><RefreshCw/>Renew +30 days</button></article>)}</div></section>;
 }
 
 function SettingsPanel({value,token,onSaved,setError}:{value:PlatformSettings;token:string;onSaved:()=>Promise<void>;setError:(v:string)=>void}) {
@@ -311,5 +320,5 @@ function SettingsPanel({value,token,onSaved,setError}:{value:PlatformSettings;to
   useEffect(()=>setForm(value),[value]);
   const update=(key:keyof PlatformSettings,val:string|number)=>setForm(prev=>({...prev,[key]:val}));
   async function save(){setBusy(true);setError("");try{await adminJson("/api/v1/platform/admin/settings",token,{method:"PUT",body:JSON.stringify({price_amount:form.price_amount,price_currency:form.price_currency,payment_recipient:form.payment_recipient,payment_card:form.payment_card,payment_bank_details:form.payment_bank_details,payment_email_subject:form.payment_email_subject,payment_email_intro:form.payment_email_intro,activation_email_subject:form.activation_email_subject,activation_email_intro:form.activation_email_intro})});await onSaved()}catch(e){setError(e instanceof Error?e.message:"Could not save settings")}finally{setBusy(false)}}
-  return <section className="pa-panel pa-settings"><div className="pa-settings-fixed"><ShieldCheck/><div><small>FIXED PRODUCT RULE</small><b>Teta2 Care · 30-day access periods</b><p>The product name and 30-day subscription lifecycle are fixed. Price, payment destination and email copy are editable.</p></div></div><div className="pa-settings-grid"><label><span>Subscription price</span><input type="number" value={form.price_amount} onChange={e=>update("price_amount",Number(e.target.value))}/></label><label><span>Currency</span><input value={form.price_currency} onChange={e=>update("price_currency",e.target.value)}/></label><label className="wide"><span>Payment recipient</span><input value={form.payment_recipient} onChange={e=>update("payment_recipient",e.target.value)}/></label><label className="wide"><span>Card / payment number</span><input value={form.payment_card} onChange={e=>update("payment_card",e.target.value)} placeholder="Editable payment card or account number"/></label><label className="wide"><span>Bank / transfer details</span><textarea rows={4} value={form.payment_bank_details} onChange={e=>update("payment_bank_details",e.target.value)}/></label><label className="wide"><span>Payment email subject</span><input value={form.payment_email_subject} onChange={e=>update("payment_email_subject",e.target.value)}/></label><label className="wide"><span>Payment email introduction</span><textarea rows={5} value={form.payment_email_intro} onChange={e=>update("payment_email_intro",e.target.value)}/></label><label className="wide"><span>Activation email subject</span><input value={form.activation_email_subject} onChange={e=>update("activation_email_subject",e.target.value)}/></label><label className="wide"><span>Activation email introduction</span><textarea rows={5} value={form.activation_email_intro} onChange={e=>update("activation_email_intro",e.target.value)}/></label></div><button className="pa-primary pa-save" disabled={busy} onClick={()=>void save()}><Save/>{busy?"Saving…":"Save platform settings"}</button></section>;
+  return <section className="pa-panel pa-settings"><div className="pa-settings-fixed"><ShieldCheck/><div><small>FIXED PRODUCT RULE</small><b>Teta2 · 30-day access periods</b><p>The product name and 30-day subscription lifecycle are fixed. Price, payment destination and email copy are editable.</p></div></div><div className="pa-settings-grid"><label><span>Subscription price</span><input type="number" value={form.price_amount} onChange={e=>update("price_amount",Number(e.target.value))}/></label><label><span>Currency</span><input value={form.price_currency} onChange={e=>update("price_currency",e.target.value)}/></label><label className="wide"><span>Payment recipient</span><input value={form.payment_recipient} onChange={e=>update("payment_recipient",e.target.value)}/></label><label className="wide"><span>Card / payment number</span><input value={form.payment_card} onChange={e=>update("payment_card",e.target.value)} placeholder="Editable payment card or account number"/></label><label className="wide"><span>Bank / transfer details</span><textarea rows={4} value={form.payment_bank_details} onChange={e=>update("payment_bank_details",e.target.value)}/></label><label className="wide"><span>Payment email subject</span><input value={form.payment_email_subject} onChange={e=>update("payment_email_subject",e.target.value)}/></label><label className="wide"><span>Payment email introduction</span><textarea rows={5} value={form.payment_email_intro} onChange={e=>update("payment_email_intro",e.target.value)}/></label><label className="wide"><span>Activation email subject</span><input value={form.activation_email_subject} onChange={e=>update("activation_email_subject",e.target.value)}/></label><label className="wide"><span>Activation email introduction</span><textarea rows={5} value={form.activation_email_intro} onChange={e=>update("activation_email_intro",e.target.value)}/></label></div><button className="pa-primary pa-save" disabled={busy} onClick={()=>void save()}><Save/>{busy?"Saving…":"Save platform settings"}</button></section>;
 }
