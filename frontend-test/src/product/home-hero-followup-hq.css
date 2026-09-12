@@ -1,20 +1,21 @@
-/* Homepage hero only: one full-resolution step-02 image, with no slicing, blur,
-   overlay treatment, scaling filter, or reconstruction. */
+/* Homepage hero only: use the exact uploaded follow-up image, untouched. */
 .product-home-hero::before{
-  background-image:var(--teta2-followup-image) !important;
+  background-image:url('/images/followup.png') !important;
   background-repeat:no-repeat !important;
   background-size:cover !important;
   background-position:center center !important;
   filter:none !important;
   opacity:1 !important;
+  transform:none !important;
   image-rendering:auto !important;
 }
 
-/* Keep the accepted headline as two deliberate editorial lines. */
+/* Keep the accepted two-line headline */
 html[lang='en'] .product-home-hero .product-hero-copy h1{
   width:52% !important;
   max-width:790px !important;
 }
+
 html[lang='en'] .product-home-hero .product-hero-copy h1::before{
   content:'Turn Every OPG Into\A Actionable Patient Follow-up.' !important;
   white-space:pre !important;
@@ -35,6 +36,7 @@ html[lang='en'] .product-home-hero .product-hero-copy h1::before{
     width:90% !important;
     max-width:none !important;
   }
+
   html[lang='en'] .product-home-hero .product-hero-copy h1::before{
     content:'Turn Every OPG Into\A Actionable Patient Follow-up.' !important;
     font-size:clamp(1.36rem,6.05vw,2rem) !important;
