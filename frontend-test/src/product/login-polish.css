@@ -1,3 +1,73 @@
 .product-auth-shell{min-height:100svh;background:radial-gradient(circle at 12% 18%,rgba(35,185,174,.13),transparent 27%),radial-gradient(circle at 88% 82%,rgba(50,91,203,.12),transparent 30%),linear-gradient(145deg,#f7fbfc,#eef4fb)}.product-auth-shell .product-login-page{width:min(1240px,calc(100% - 36px));min-height:calc(100svh - 104px);margin:10px auto 24px;padding:clamp(24px,4vw,52px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(390px,.78fr);gap:clamp(28px,5vw,70px);align-items:center;border:1px solid rgba(18,78,103,.1);border-radius:34px;background:linear-gradient(145deg,rgba(255,255,255,.86),rgba(240,248,252,.88));box-shadow:0 26px 80px rgba(18,65,91,.08);overflow:hidden;position:relative}.product-auth-shell .product-login-page:before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;left:-180px;bottom:-240px;border:1px solid rgba(28,151,150,.13);box-shadow:0 0 0 45px rgba(28,151,150,.035),0 0 0 90px rgba(52,98,203,.025);pointer-events:none}.product-auth-shell .product-login-story{position:relative;z-index:1}.product-auth-shell .product-login-story>.product-kicker{display:inline-flex;padding:8px 12px;border-radius:999px;background:#e8f7f5;color:#117f7c;font-size:.68rem;font-weight:900;letter-spacing:.1em}.product-auth-shell .product-login-story>h1{max-width:760px;margin:18px 0 15px;font-size:clamp(3rem,5.5vw,5.8rem);line-height:.91;letter-spacing:-.065em;color:#093457}.product-auth-shell .product-login-story>p{max-width:630px;margin:0;color:#62778a;font-size:1.03rem;line-height:1.7}.product-auth-shell .product-login-story .product-hero-visual{margin-top:30px;max-width:720px;border-radius:27px!important;border:1px solid rgba(21,85,108,.11)!important;background:rgba(255,255,255,.95)!important;box-shadow:0 22px 58px rgba(18,66,91,.09)!important;overflow:hidden}.product-auth-shell .product-login-card{position:relative;z-index:2;padding:32px!important;border-radius:28px!important;border:1px solid rgba(18,78,104,.11)!important;background:rgba(255,255,255,.96)!important;box-shadow:0 30px 70px rgba(18,58,88,.13)!important;backdrop-filter:blur(18px)}.product-auth-shell .product-login-card:before{content:"SECURE CLINIC ACCESS";display:inline-flex;margin-bottom:17px;padding:6px 9px;border-radius:999px;background:#eef7f6;color:#157f7c;font-size:.6rem;font-weight:900;letter-spacing:.11em}.product-auth-shell .product-login-card h2{margin:0 0 7px!important;font-size:clamp(1.7rem,3vw,2.35rem)!important;letter-spacing:-.045em;color:#0c3557}.product-auth-shell .product-login-card>p{margin:0 0 24px!important;color:#6a7d8f!important;line-height:1.6}.product-auth-shell .product-login-card form{display:grid!important;gap:15px!important}.product-auth-shell .product-login-card form label{display:grid!important;gap:7px!important;color:#51687a!important;font-size:.72rem!important;font-weight:800!important}.product-auth-shell .product-login-card form input{width:100%;box-sizing:border-box;min-height:49px;padding:0 14px!important;border-radius:13px!important;border:1px solid #d9e4e9!important;background:#f9fcfd!important;color:#0d3150!important;font:inherit!important;outline:none;transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}.product-auth-shell .product-login-card form input:focus{border-color:#55a5a0!important;box-shadow:0 0 0 4px rgba(28,153,145,.09)!important;background:#fff!important}.product-auth-shell .product-login-card form .product-primary{width:100%;min-height:50px;margin-top:3px;border-radius:13px!important;background:linear-gradient(135deg,#0d7883,#285bc1)!important;box-shadow:0 12px 26px rgba(34,92,164,.2)!important}.product-auth-shell .product-login-card .product-link-button{width:100%;margin-top:14px!important;padding-top:14px!important;border-top:1px solid #edf2f4!important;text-align:center;color:#2c6c83!important;font-weight:800!important}.product-auth-shell .product-error{border-radius:12px!important}.product-auth-shell .product-login-card:after{content:"Clinician-controlled · Patient-specific · Follow-up visible";display:block;margin-top:18px;text-align:center;color:#8495a4;font-size:.63rem;letter-spacing:.025em}.product-auth-shell .product-hero-visual-top{background:linear-gradient(90deg,#f7fbfc,#eef7fb)!important}.product-auth-shell .product-hero-loop{background:#0d3558!important;color:#e8f2f7!important}.product-auth-shell .product-hero-loop strong{color:#70d9cc!important}
 @media(max-width:980px){.product-auth-shell .product-login-page{grid-template-columns:1fr;min-height:auto;padding:34px}.product-auth-shell .product-login-card{max-width:620px;width:100%;box-sizing:border-box;margin:0 auto}.product-auth-shell .product-login-story{text-align:center}.product-auth-shell .product-login-story>h1,.product-auth-shell .product-login-story>p,.product-auth-shell .product-login-story .product-hero-visual{margin-left:auto;margin-right:auto}}
 @media(max-width:680px){.product-auth-shell .product-login-page{width:calc(100% - 18px);margin:7px auto 16px;padding:18px 14px 24px;border-radius:24px;gap:22px}.product-auth-shell .product-login-card{order:1;padding:23px 18px!important;border-radius:21px!important}.product-auth-shell .product-login-story{order:2}.product-auth-shell .product-login-story>h1{font-size:clamp(2.25rem,11vw,3.45rem)}.product-auth-shell .product-login-story>p{font-size:.9rem}.product-auth-shell .product-login-story .product-hero-visual{margin-top:21px}.product-auth-shell .product-login-card:after{font-size:.57rem}}
+
+/* Keep the complete login body inside the first viewport. The footer remains below the fold. */
+@media(min-width:981px){
+  .product-auth-shell .product-login-page{height:calc(100svh - 82px);min-height:0;margin:0 auto;padding:clamp(18px,2.4svh,30px) clamp(24px,3.2vw,44px);gap:clamp(24px,4vw,56px);border-radius:0 0 30px 30px}
+  .product-auth-shell .product-login-story>h1{margin:12px 0 10px;font-size:clamp(2.65rem,4.3vw,4.65rem);line-height:.92}
+  .product-auth-shell .product-login-story>p{font-size:clamp(.88rem,1.15vw,1rem);line-height:1.5}
+  .product-auth-shell .product-login-story .product-hero-visual{margin-top:16px;max-width:650px}
+  .product-auth-shell .product-login-story .product-hero-opg img{height:clamp(145px,21svh,245px);object-fit:cover}
+  .product-auth-shell .product-login-card{padding:clamp(22px,2.7svh,30px)!important}
+  .product-auth-shell .product-login-card:before{margin-bottom:12px}
+  .product-auth-shell .product-login-card>p{margin-bottom:17px!important}
+  .product-auth-shell .product-login-card form{gap:11px!important}
+  .product-auth-shell .product-login-card form input{min-height:45px}
+  .product-auth-shell .product-login-card form .product-primary{min-height:46px}
+  .product-auth-shell .product-login-card .product-link-button{margin-top:10px!important;padding-top:10px!important}
+  .product-auth-shell .product-login-card:after{margin-top:11px}
+}
+@media(max-width:980px){
+  .product-auth-shell .product-login-page{height:calc(100svh - 82px);min-height:0;margin:0 auto;padding:clamp(16px,3svh,28px);display:grid;place-items:center;overflow:hidden}
+  .product-auth-shell .product-login-story{display:none}
+  .product-auth-shell .product-login-card{max-width:560px;width:100%;margin:auto;padding:clamp(20px,3svh,28px)!important}
+  .product-auth-shell .product-login-card:before{margin-bottom:11px}
+  .product-auth-shell .product-login-card>p{margin-bottom:16px!important}
+  .product-auth-shell .product-login-card form{gap:11px!important}
+  .product-auth-shell .product-login-card form input{min-height:45px}
+  .product-auth-shell .product-login-card form .product-primary{min-height:46px}
+  .product-auth-shell .product-login-card .product-link-button{margin-top:10px!important;padding-top:10px!important}
+  .product-auth-shell .product-login-card:after{margin-top:11px}
+}
+@media(max-width:680px){
+  .product-auth-shell .product-login-page{width:calc(100% - 14px);height:calc(100svh - 68px);margin:0 auto;padding:10px;border-radius:0 0 22px 22px;gap:0}
+  .product-auth-shell .product-login-card{order:initial;padding:18px 16px!important;border-radius:19px!important}
+  .product-auth-shell .product-login-card h2{font-size:1.65rem!important}
+  .product-auth-shell .product-login-card>p{font-size:.82rem;line-height:1.45}
+  .product-auth-shell .product-login-card form{gap:9px!important}
+  .product-auth-shell .product-login-card form label{gap:5px!important}
+  .product-auth-shell .product-login-card form input{min-height:42px}
+  .product-auth-shell .product-login-card form .product-primary{min-height:44px}
+  .product-auth-shell .product-login-card:after{font-size:.55rem}
+}
+@media(max-height:720px) and (min-width:981px){
+  .product-auth-shell .product-login-page{padding-block:12px}
+  .product-auth-shell .product-login-story>.product-kicker{padding:6px 10px}
+  .product-auth-shell .product-login-story>h1{margin:9px 0 8px;font-size:clamp(2.35rem,3.8vw,3.9rem)}
+  .product-auth-shell .product-login-story>p{font-size:.86rem;line-height:1.4}
+  .product-auth-shell .product-login-story .product-hero-visual{margin-top:11px}
+  .product-auth-shell .product-login-story .product-hero-opg img{height:clamp(120px,18svh,175px)}
+  .product-auth-shell .product-login-card{padding:19px!important}
+  .product-auth-shell .product-login-card:before{margin-bottom:8px;padding:5px 8px}
+  .product-auth-shell .product-login-card h2{font-size:1.75rem!important}
+  .product-auth-shell .product-login-card>p{margin-bottom:11px!important;font-size:.84rem;line-height:1.4}
+  .product-auth-shell .product-login-card form{gap:8px!important}
+  .product-auth-shell .product-login-card form label{gap:4px!important}
+  .product-auth-shell .product-login-card form input{min-height:40px}
+  .product-auth-shell .product-login-card form .product-primary{min-height:42px}
+  .product-auth-shell .product-login-card .product-link-button{margin-top:7px!important;padding-top:7px!important;min-height:36px}
+  .product-auth-shell .product-login-card:after{margin-top:7px}
+}
+@media(max-height:620px) and (max-width:980px){
+  .product-auth-shell .product-login-page{padding:7px}
+  .product-auth-shell .product-login-card{padding:13px 15px!important}
+  .product-auth-shell .product-login-card:before{margin-bottom:7px;padding:4px 7px}
+  .product-auth-shell .product-login-card h2{font-size:1.5rem!important}
+  .product-auth-shell .product-login-card>p{margin-bottom:8px!important;font-size:.76rem}
+  .product-auth-shell .product-login-card form{gap:6px!important}
+  .product-auth-shell .product-login-card form input{min-height:37px}
+  .product-auth-shell .product-login-card form .product-primary{min-height:39px}
+  .product-auth-shell .product-login-card .product-link-button{margin-top:5px!important;padding-top:5px!important;min-height:31px}
+  .product-auth-shell .product-login-card:after{margin-top:5px}
+}
