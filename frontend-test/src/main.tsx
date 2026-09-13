@@ -10,6 +10,7 @@ import { FrontendLocaleQuality } from "./product/FrontendLocaleQuality";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { LegalLocaleQuality } from "./product/LegalLocaleQuality";
+import { LocalizedPublicRouteBridge, prepareLocalizedPublicRoute } from "./product/publicLocaleRouting";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
 import ProductApp from "./product/ProductApp";
@@ -40,9 +41,12 @@ import "./product/login-polish.css";
 import "./product/booking-public-polish.css";
 import "./product/page-deck-v2-polish.css";
 
+prepareLocalizedPublicRoute();
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <>
+      <LocalizedPublicRouteBridge />
       <ProductApp />
       <BookingExperience />
       <PublicSeo />
