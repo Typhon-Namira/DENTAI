@@ -1,153 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <url>
-    <loc>https://www.teta2.com/</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/"/>
-    <changefreq>weekly</changefreq><priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/hy/</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/"/>
-    <changefreq>weekly</changefreq><priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/ru/</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/"/>
-    <changefreq>weekly</changefreq><priority>1.0</priority>
-  </url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url><loc>https://www.teta2.com/</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/"/><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.teta2.com/hy/</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/"/><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.teta2.com/ru/</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/"/><changefreq>weekly</changefreq><priority>1.0</priority></url>
 
-  <url>
-    <loc>https://www.teta2.com/product</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/product"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/product"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/product"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/product"/>
-    <changefreq>weekly</changefreq><priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/hy/product</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/product"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/product"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/product"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/product"/>
-    <changefreq>weekly</changefreq><priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/ru/product</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/product"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/product"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/product"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/product"/>
-    <changefreq>weekly</changefreq><priority>0.9</priority>
-  </url>
+  <url><loc>https://www.teta2.com/dental-ai/</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/dental-ai/"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/dental-ai/"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/dental-ai/"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/dental-ai/"/><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.teta2.com/hy/dental-ai/</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/dental-ai/"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/dental-ai/"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/dental-ai/"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/dental-ai/"/><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.teta2.com/ru/dental-ai/</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/dental-ai/"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/dental-ai/"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/dental-ai/"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/dental-ai/"/><changefreq>weekly</changefreq><priority>1.0</priority></url>
 
-  <url>
-    <loc>https://www.teta2.com/how-it-works</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/how-it-works"/>
-    <changefreq>weekly</changefreq><priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/hy/how-it-works</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/how-it-works"/>
-    <changefreq>weekly</changefreq><priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/ru/how-it-works</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/how-it-works"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/how-it-works"/>
-    <changefreq>weekly</changefreq><priority>0.9</priority>
-  </url>
+  <url><loc>https://www.teta2.com/product</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/product"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/product"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/product"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/product"/><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.teta2.com/hy/product</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/product"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/product"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/product"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/product"/><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.teta2.com/ru/product</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/product"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/product"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/product"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/product"/><changefreq>weekly</changefreq><priority>0.9</priority></url>
 
-  <url>
-    <loc>https://www.teta2.com/pricing</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/pricing"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/pricing"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/pricing"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/pricing"/>
-    <changefreq>weekly</changefreq><priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/hy/pricing</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/pricing"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/pricing"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/pricing"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/pricing"/>
-    <changefreq>weekly</changefreq><priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/ru/pricing</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/pricing"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/pricing"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/pricing"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/pricing"/>
-    <changefreq>weekly</changefreq><priority>0.8</priority>
-  </url>
+  <url><loc>https://www.teta2.com/how-it-works</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/how-it-works"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/how-it-works"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/how-it-works"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/how-it-works"/><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.teta2.com/hy/how-it-works</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/how-it-works"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/how-it-works"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/how-it-works"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/how-it-works"/><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.teta2.com/ru/how-it-works</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/how-it-works"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/how-it-works"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/how-it-works"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/how-it-works"/><changefreq>weekly</changefreq><priority>0.9</priority></url>
 
-  <url>
-    <loc>https://www.teta2.com/clinical-safety</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/clinical-safety"/>
-    <changefreq>monthly</changefreq><priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/hy/clinical-safety</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/clinical-safety"/>
-    <changefreq>monthly</changefreq><priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/ru/clinical-safety</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/clinical-safety"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/clinical-safety"/>
-    <changefreq>monthly</changefreq><priority>0.9</priority>
-  </url>
+  <url><loc>https://www.teta2.com/pricing</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/pricing"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/pricing"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/pricing"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/pricing"/><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.teta2.com/hy/pricing</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/pricing"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/pricing"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/pricing"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/pricing"/><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.teta2.com/ru/pricing</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/pricing"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/pricing"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/pricing"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/pricing"/><changefreq>weekly</changefreq><priority>0.8</priority></url>
 
-  <url>
-    <loc>https://www.teta2.com/about</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/about"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/about"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/about"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/about"/>
-    <changefreq>monthly</changefreq><priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/hy/about</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/about"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/about"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/about"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/about"/>
-    <changefreq>monthly</changefreq><priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.teta2.com/ru/about</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/about"/>
-    <xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/about"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/about"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/about"/>
-    <changefreq>monthly</changefreq><priority>0.8</priority>
-  </url>
+  <url><loc>https://www.teta2.com/clinical-safety</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/clinical-safety"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/clinical-safety"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/clinical-safety"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/clinical-safety"/><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.teta2.com/hy/clinical-safety</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/clinical-safety"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/clinical-safety"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/clinical-safety"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/clinical-safety"/><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.teta2.com/ru/clinical-safety</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/clinical-safety"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/clinical-safety"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/clinical-safety"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/clinical-safety"/><changefreq>monthly</changefreq><priority>0.9</priority></url>
+
+  <url><loc>https://www.teta2.com/about</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/about"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/about"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/about"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/about"/><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.teta2.com/hy/about</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/about"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/about"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/about"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/about"/><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.teta2.com/ru/about</loc><xhtml:link rel="alternate" hreflang="en" href="https://www.teta2.com/about"/><xhtml:link rel="alternate" hreflang="hy" href="https://www.teta2.com/hy/about"/><xhtml:link rel="alternate" hreflang="ru" href="https://www.teta2.com/ru/about"/><xhtml:link rel="alternate" hreflang="x-default" href="https://www.teta2.com/about"/><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>
