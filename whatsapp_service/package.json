@@ -8,6 +8,7 @@
   "dependencies": {
     "@hapi/boom": "10.0.1",
     "@whiskeysockets/baileys": "7.0.0-rc14",
+    "baileys_helper": "1.0.6",
     "express": "4.19.2",
     "pino": "9.4.0",
     "qrcode": "1.5.4"

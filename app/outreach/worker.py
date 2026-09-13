@@ -8,13 +8,19 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import or_, select
 
+from app.care.booking_links import booking_url
+from app.care.groq import care_outreach_drafts
+from app.care.language import language_for_phone
+from app.care.models import CarePlan, CarePlanItem
 from app.care.sequential import record_scheduled_outreach_sent
+from app.care.service import settings_for_branch
 from app.clinic_resolution.service import resolver
 from app.core.config import get_settings
 from app.database.control_models import ClinicRegistry
 from app.database.models import (
     AIAnalysis,
     DentalFinding,
+    FindingReview,
     Patient,
     WhatsAppOutreach,
     WhatsAppOutreachStatus,
@@ -29,6 +35,25 @@ PERMANENT_ERRORS = {
     "PHONE_NOT_ON_WHATSAPP",
     "INVALID_PHONE",
     "IMAGE_SIZE_INVALID",
+    "CARE_PLAN_CONTEXT_MISSING",
+}
+
+_BUTTON_TEXT = {
+    "hy": "Ընտրել այցի ժամ",
+    "ru": "Выбрать время",
+    "fa": "رزرو زمان چکاپ",
+    "tr": "Kontrol saati seç",
+    "ka": "დროის არჩევა",
+    "az": "Müayinə vaxtını seç",
+    "uk": "Обрати час",
+    "ro": "Alege ora",
+    "ar": "اختر موعد الفحص",
+    "he": "בחירת מועד",
+    "de": "Termin wählen",
+    "fr": "Choisir un horaire",
+    "it": "Scegli un orario",
+    "es": "Elegir horario",
+    "en": "Book check-up",
 }
 
 
@@ -107,7 +132,11 @@ def _mark_permanent_failure(row, code: str) -> None:
 
 
 async def process_due(
-    session, clinic_id, worker_id: str, service: WhatsAppServiceClient | None = None
+    session,
+    clinic_id,
+    clinic_name: str,
+    worker_id: str,
+    service: WhatsAppServiceClient | None = None,
 ) -> bool:
     row = await claim_due(session, worker_id)
     if row is None:
@@ -117,18 +146,72 @@ async def process_due(
     dispatch_started = False
     try:
         patient = await session.get(Patient, row.patient_id)
-        if patient is None or not patient.whatsapp_phone:
+        if patient is None or not (patient.whatsapp_phone or patient.phone):
             raise WhatsAppServiceError("WHATSAPP_PHONE_REQUIRED", 409)
+        phone = patient.whatsapp_phone or patient.phone
         connection = await service.status(clinic_id)
         if not connection.get("connected"):
             raise WhatsAppServiceError("WHATSAPP_CONNECTION_REQUIRED", 409)
-        validation = await service.validate_phone(clinic_id, patient.whatsapp_phone)
+        validation = await service.validate_phone(clinic_id, phone)
         if not validation.get("registered"):
             raise WhatsAppServiceError("PHONE_NOT_ON_WHATSAPP", 422)
 
+        language = language_for_phone(phone, row.language or "en")
+        plan = await session.scalar(select(CarePlan).where(CarePlan.analysis_id == row.analysis_id))
+        item = None
+        if plan:
+            if row.finding_id:
+                item = await session.scalar(
+                    select(CarePlanItem).where(
+                        CarePlanItem.care_plan_id == plan.id,
+                        CarePlanItem.finding_id == row.finding_id,
+                    )
+                )
+            if not item:
+                item = await session.scalar(
+                    select(CarePlanItem).where(
+                        CarePlanItem.care_plan_id == plan.id,
+                        CarePlanItem.tooth_fdi == row.tooth_fdi,
+                        CarePlanItem.finding_type == row.finding_type,
+                    )
+                )
+        if not plan or not item:
+            raise WhatsAppServiceError("CARE_PLAN_CONTEXT_MISSING", 409)
+
+        finding = await session.get(DentalFinding, item.finding_id)
+        care_settings = await settings_for_branch(session, plan.branch_id)
+        drafts = await care_outreach_drafts(
+            language=language,
+            patient_name=f"{patient.first_name} {patient.last_name}".strip(),
+            clinic_name=clinic_name,
+            care_items=[
+                {
+                    "tooth": item.tooth_fdi,
+                    "finding": item.finding_type,
+                    "window": item.recommended_window,
+                    "rationale": item.rationale,
+                    "clinician_reviewed": bool(
+                        finding and finding.review_status == FindingReview.CONFIRMED
+                    ),
+                    "visit_outcome": item.outcome,
+                }
+            ],
+            booking_instructions=care_settings.booking_instructions,
+        )
+        message = drafts.get(item.tooth_fdi)
+        if not message:
+            raise WhatsAppServiceError("AI_MESSAGE_GENERATION_UNAVAILABLE", 503)
+
+        url = booking_url(
+            clinic_id=clinic_id,
+            branch_id=plan.branch_id,
+            doctor_id=plan.doctor_id,
+            patient_id=patient.id,
+            care_plan_id=plan.id,
+            care_plan_item_id=item.id,
+        )
         image = None
         if row.include_image and row.finding_id:
-            finding = await session.get(DentalFinding, row.finding_id)
             analysis = await session.get(AIAnalysis, row.analysis_id)
             xray = await session.get(XRay, analysis.xray_id) if analysis else None
             image = await finding_crop(xray, finding) if xray and finding else None
@@ -136,13 +219,18 @@ async def process_due(
         row.status = WhatsAppOutreachStatus.SENDING
         row.dispatch_started_at = datetime.now(UTC)
         row.safe_error = None
+        row.message = message
+        row.language = language
         await session.commit()
         dispatch_started = True
 
-        result = (
-            await service.send_image_message(clinic_id, patient.whatsapp_phone, row.message, image)
-            if image
-            else await service.send_message(clinic_id, patient.whatsapp_phone, row.message)
+        result = await service.send_booking_message(
+            clinic_id,
+            phone,
+            message,
+            url,
+            _BUTTON_TEXT.get(language, _BUTTON_TEXT["en"]),
+            image=image,
         )
         row.status = WhatsAppOutreachStatus.SENT
         row.provider_message_id = result.get("message_id")
@@ -186,7 +274,15 @@ async def run() -> None:
             for registry in clinics:
                 clinic = await resolver.by_id(control, registry.id)
                 async with resolver.session_factory(clinic)() as session:
-                    did_work = await process_due(session, clinic.id, worker_id) or did_work
+                    did_work = (
+                        await process_due(
+                            session,
+                            clinic.id,
+                            clinic.name,
+                            worker_id,
+                        )
+                        or did_work
+                    )
         if not did_work:
             await asyncio.sleep(settings.whatsapp_worker_poll_seconds)
 

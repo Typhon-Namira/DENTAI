@@ -1,4 +1,5 @@
 import json
+import secrets
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -52,19 +53,16 @@ def _first_name(value: str) -> str:
 
 
 def _safe_care_item(item: dict[str, Any]) -> dict[str, Any]:
-    """Minimize clinical data before it leaves DENTAI.
-
-    Groq never receives patient IDs, phone numbers, dates of birth, raw radiographs,
-    confidence scores, model provenance, or unrelated teeth through this helper.
-    """
-
+    """Minimize clinical data before it leaves DENTAI."""
     tooth = str(item.get("tooth") or "").strip()
     finding = str(item.get("finding") or "").strip()
     window = str(item.get("window") or "").strip()
+    rationale = str(item.get("rationale") or "").strip()
     return {
         "tooth": tooth,
         "finding": finding,
         "window": window,
+        "rationale": rationale[:600] or None,
         "clinician_reviewed": bool(item.get("clinician_reviewed")),
         "visit_outcome": str(item.get("visit_outcome") or "").strip() or None,
     }
@@ -122,8 +120,8 @@ async def _groq_json(
 def _fallback_reply(language: str) -> str:
     return {
         "hy": (
-            "Շնորհակալություն հաղորդագրության համար։ Ձեր հարցը փոխանցել եմ կլինիկայի թիմին, "
-            "որպեսզի ձեզ ճշգրիտ օգնեն։ Նրանք կշարունակեն կապը ձեզ հետ։"
+            "Շնորհակալ եմ, որ գրեցիք։ Ձեր հարցը փոխանցել եմ կլինիկայի թիմին, որպեսզի "
+            "ճիշտ պատասխան ստանաք։ Հենց պատասխան ունենանք, անմիջապես կգրենք ձեզ։"
         ),
         "ru": (
             "Спасибо за сообщение. Я передал ваш вопрос команде клиники, чтобы вам ответили "
@@ -134,13 +132,30 @@ def _fallback_reply(language: str) -> str:
             "دریافت کنید. همکاران کلینیک گفتگو را با شما ادامه می‌دهند."
         ),
         "tr": (
-            "Mesajınız için teşekkürлер. Size doğru ve güvenli şekilde yardımcı olabilmeleri için "
+            "Mesajınız için teşekkürler. Size doğru ve güvenli şekilde yardımcı olabilmeleri için "
             "sorunuzu klinik ekibine ilettim. Görüşmeye onlar devam edecek."
         ),
     }.get(
         language,
         "Thanks for your message. I’ve passed it to the clinic team so they can help you accurately and safely. They’ll continue the conversation with you.",
     )
+
+
+def _native_language_instruction(language: str) -> str:
+    if language == "hy":
+        return (
+            "Use contemporary native Eastern Armenian as naturally spoken and written in Yerevan. "
+            "Do not translate English sentence structures literally. Avoid stiff medical bureaucracy, "
+            "Russian calques, awkward possessives, and unnatural phrases. Prefer simple Armenian words, "
+            "short natural sentences and the tone of a thoughtful Armenian clinic coordinator."
+        )
+    if language == "ru":
+        return "Use natural contemporary Russian written by a professional clinic coordinator, not translated English."
+    if language == "fa":
+        return "Use natural contemporary Persian appropriate for a professional clinic WhatsApp conversation."
+    if language == "tr":
+        return "Use natural contemporary Turkish appropriate for a professional clinic WhatsApp conversation."
+    return "Write like a native speaker and avoid translated, formulaic or corporate-sounding phrasing."
 
 
 async def care_outreach_drafts(
@@ -151,30 +166,35 @@ async def care_outreach_drafts(
     care_items: list[dict[str, Any]],
     booking_instructions: str | None = None,
 ) -> dict[str, str]:
-    """Create one warm, editable WhatsApp draft per tooth with a deterministic fallback.
+    """Generate genuinely individualized WhatsApp drafts for the active tooth items.
 
-    Failure is intentionally fail-open for copy generation: the clinical plan remains usable
-    and DENTAI falls back to its local message template rather than blocking patient care.
+    No local template is returned from this function. If the model is unavailable,
+    callers can retry later instead of silently sending a canned clinical message.
     """
-
     safe_items = [_safe_care_item(item) for item in care_items]
     safe_items = [item for item in safe_items if item["tooth"] and item["finding"]]
     if not safe_items:
         return {}
 
+    native_instruction = _native_language_instruction(language)
     system = f"""You are Teta2 Care, a patient-communication assistant for {clinic_name}.
-Write in {language_name(language)}.
+Write only in {language_name(language)}.
+{native_instruction}
 You are NOT a dentist and you do not diagnose, prescribe, estimate prognosis, or invent clinical facts.
 Use only the supplied ACTIVE_TOOTH_ITEMS. Each item represents a separate future sequential follow-up.
 Create exactly one WhatsApp message for each supplied tooth_fdi and never combine teeth into one message.
-The message must sound human, warm, calm and professional rather than robotic or promotional.
-Use the patient's first name naturally. Keep it concise: normally 2-4 short sentences and at most one appropriate emoji.
-Never expose model confidence, internal priority scores, internal workflow state, IDs, or technical AI terminology.
-Never call a possible finding a confirmed disease. Prefer cautious language such as 'an area we'd like to check' or 'a possible finding'.
+Every message must be individually written from the actual tooth, possible finding, follow-up window and supplied rationale. Do not use a reusable template or fixed sentence skeleton.
+Vary the opening, sentence rhythm, explanation and invitation naturally between messages. Two patients with different findings should not receive the same wording with nouns swapped.
+Explain briefly why a check-up is useful using only the supplied facts. Never invent symptoms, pain, treatment, severity, prognosis or urgency.
+The message must sound human, calm, thoughtful and professional, as if a real clinic coordinator wrote it after reading the case.
+Use the patient's first name only when it feels natural. Keep it concise: normally 2-4 short sentences and at most one appropriate emoji.
+Never expose model confidence, internal priority scores, internal workflow state, IDs, technical AI terminology or the creativity seed.
+Never call a possible finding a confirmed disease. Prefer cautious language appropriate to the target language.
 If clinician_reviewed=false, do NOT claim a dentist has reviewed or confirmed the finding.
 If clinician_reviewed=true, you may say the clinic reviewed the area, but still do not state a diagnosis as certain.
-Do not create an appointment or invent a time. End with a simple invitation to reply if the patient would like help arranging a check-up.
-Do not use fear, pressure, urgency marketing, guilt, or exaggerated claims.
+Do not invent an appointment or a time. Do not paste a booking URL into the message; the WhatsApp booking button is added separately by Teta2.
+End naturally by inviting the patient to use the booking button below to choose a check-up time.
+Do not use fear, pressure, urgency marketing, guilt, generic sales language, or exaggerated claims.
 {booking_instructions or ""}
 Return only the requested structured JSON."""
 
@@ -184,10 +204,11 @@ Return only the requested structured JSON."""
             user_payload={
                 "patient_first_name": _first_name(patient_name),
                 "active_tooth_items": safe_items,
+                "variation_seed": secrets.token_hex(12),
             },
             schema=_OutreachDraftBatch,
             schema_name="teta2_care_outreach_drafts",
-            temperature=0.35,
+            temperature=0.72,
         )
         if not isinstance(result, _OutreachDraftBatch):
             raise ValueError("Groq returned an invalid outreach draft payload")
@@ -234,6 +255,7 @@ async def care_agent_reply(
 
     system = f"""You are Teta2 Care, the WhatsApp follow-up and booking assistant for {clinic_name}.
 Communicate in {language_name(language)} unless the patient clearly asks to continue in another language.
+{_native_language_instruction(language)}
 You are NOT a dentist. Never diagnose, prescribe, guarantee disease, recommend a treatment, or invent clinical facts.
 Only discuss the single supplied ACTIVE_TOOTH_ITEM. Never introduce another tooth or another finding on your own.
 Describe it cautiously as a possible finding or an area the clinic wants to check; never as a confirmed disease.
@@ -262,7 +284,7 @@ Return only the requested structured JSON."""
             },
             schema=_CareReplySchema,
             schema_name="teta2_care_reply",
-            temperature=0.3,
+            temperature=0.45,
         )
         if not isinstance(result, _CareReplySchema):
             raise ValueError("Groq returned an invalid Care reply payload")

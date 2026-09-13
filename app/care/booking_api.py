@@ -33,6 +33,14 @@ from app.outreach.whatsapp_client import (
 
 router = APIRouter(prefix="/care/booking", tags=["care-booking"])
 
+_BUTTON_TEXT = {
+    "hy": "Ընտրել այցի ժամ",
+    "ru": "Выбрать время",
+    "fa": "انتخاب زمان چکاپ",
+    "tr": "Kontrol saati seç",
+    "en": "Choose a time",
+}
+
 
 class PublicBookingRequest(BaseModel):
     slot: datetime
@@ -73,10 +81,6 @@ def _utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-def _language(value: str | None) -> str:
-    return value if value in {"en", "hy", "ru"} else "en"
-
-
 def _slot_label(value: datetime, timezone_name: str) -> str:
     return _utc(value).astimezone(ZoneInfo(timezone_name)).strftime("%Y-%m-%d %H:%M")
 
@@ -85,18 +89,27 @@ def _requested_message(language: str, slot: datetime, timezone_name: str) -> str
     label = _slot_label(slot, timezone_name)
     if language == "hy":
         return (
-            f"Ձեր {label} ({timezone_name}) ստուգման ժամը գրանցվել է և սպասում է "
-            "բժշկի հաստատմանը։ Բժշկի պատասխանից հետո անմիջապես կգրենք ձեզ։"
+            f"Ձեր այցի հարցումն ստացանք՝ {label} ({timezone_name})։ Հիմա այն փոխանցված է բժշկին "
+            "հաստատման համար։ Հենց բժիշկը հաստատի կամ այլ ժամ առաջարկի, անմիջապես կգրենք ձեզ այստեղ։"
         )
     if language == "ru":
         return (
-            f"Ваш запрос на осмотр {label} ({timezone_name}) зарегистрирован и ожидает "
-            "подтверждения врача. Мы сразу напишем вам после ответа врача."
+            f"Получили ваш запрос на визит {label} ({timezone_name}). Сейчас он передан врачу на "
+            "подтверждение. Как только врач подтвердит время или предложит другое, сразу напишем вам здесь."
+        )
+    if language == "fa":
+        return (
+            f"درخواست شما برای ویزیت در {label} ({timezone_name}) ثبت شد و برای تأیید پزشک فرستاده شده است. "
+            "به‌محض تأیید یا پیشنهاد زمان دیگری، همین‌جا به شما پیام می‌دهیم."
+        )
+    if language == "tr":
+        return (
+            f"{label} ({timezone_name}) için kontrol talebinizi aldık ve doktor onayına ilettik. "
+            "Doktor onayladığında veya başka bir saat önerdiğinde size hemen buradan yazacağız."
         )
     return (
-        f"Your requested check-up time, {label} ({timezone_name}), has been registered "
-        "and is waiting for the doctor's confirmation. We'll message you as soon as "
-        "the doctor responds."
+        f"We received your check-up request for {label} ({timezone_name}) and sent it to the doctor "
+        "for confirmation. We’ll message you here as soon as the doctor confirms it or suggests another time."
     )
 
 
@@ -104,14 +117,27 @@ def _approved_message(language: str, slot: datetime, timezone_name: str) -> str:
     label = _slot_label(slot, timezone_name)
     if language == "hy":
         return (
-            f"Բժիշկը հաստատել է ձեր ստուգման ժամը՝ {label} ({timezone_name})։ "
-            "Սպասում ենք ձեզ կլինիկայում։"
+            f"Բժիշկը հաստատեց ձեր այցը՝ {label} ({timezone_name})։ Սպասում ենք ձեզ կլինիկայում։ "
+            "Եթե մինչ այդ որևէ բան փոխվի, պարզապես գրեք մեզ այստեղ։"
         )
     if language == "ru":
-        return f"Врач подтвердил ваш прием: {label} ({timezone_name}). Ждем вас в клинике."
+        return (
+            f"Врач подтвердил ваш визит: {label} ({timezone_name}). Будем ждать вас в клинике. "
+            "Если планы изменятся, просто напишите нам здесь."
+        )
+    if language == "fa":
+        return (
+            f"پزشک زمان ویزیت شما را برای {label} ({timezone_name}) تأیید کرد. منتظرتان هستیم. "
+            "اگر برنامه‌تان تغییر کرد، همین‌جا به ما پیام بدهید."
+        )
+    if language == "tr":
+        return (
+            f"Doktor randevunuzu onayladı: {label} ({timezone_name}). Klinikte sizi bekliyor olacağız. "
+            "Planınız değişirse buradan bize yazmanız yeterli."
+        )
     return (
-        f"Your doctor has confirmed your check-up for {label} ({timezone_name}). "
-        "We look forward to seeing you at the clinic."
+        f"Your doctor confirmed your check-up for {label} ({timezone_name}). We’ll be expecting you at the clinic. "
+        "If anything changes, just message us here."
     )
 
 
@@ -120,7 +146,6 @@ def _range_message(
     start: datetime,
     end: datetime,
     timezone_name: str,
-    url: str,
     note: str | None,
 ) -> str:
     start_label = _slot_label(start, timezone_name)
@@ -128,19 +153,27 @@ def _range_message(
     note_line = f"\n{note.strip()}" if note and note.strip() else ""
     if language == "hy":
         return (
-            "Բժիշկն առաջարկում է նոր ժամանակային միջակայք՝ "
-            f"{start_label}–{end_label} ({timezone_name})։{note_line}\n"
-            f"Այս միջակայքից ընտրեք ազատ ժամը՝ {url}"
+            f"Բժիշկը ձեր այցի համար առաջարկել է {start_label}–{end_label} ({timezone_name}) ժամանակահատվածը։"
+            f"{note_line}\nՍտորև սեղմեք «Ընտրել այցի ժամ» և ընտրեք ձեզ հարմար ազատ ժամը։"
         )
     if language == "ru":
         return (
-            f"Врач предлагает новый интервал: {start_label}–{end_label} "
-            f"({timezone_name}).{note_line}\n"
-            f"Выберите свободное время в этом интервале: {url}"
+            f"Врач предложил для вашего визита интервал {start_label}–{end_label} ({timezone_name})."
+            f"{note_line}\nНажмите «Выбрать время» ниже и выберите удобный свободный слот."
+        )
+    if language == "fa":
+        return (
+            f"پزشک بازه {start_label} تا {end_label} ({timezone_name}) را برای ویزیت پیشنهاد کرده است."
+            f"{note_line}\nروی «انتخاب زمان چکاپ» بزنید و یک زمان آزاد مناسب انتخاب کنید."
+        )
+    if language == "tr":
+        return (
+            f"Doktorunuz ziyaret için {start_label}–{end_label} ({timezone_name}) aralığını önerdi."
+            f"{note_line}\nAşağıdaki «Kontrol saati seç» düğmesine dokunup size uygun boş bir saat seçin."
         )
     return (
-        f"Your doctor suggests a new time window: {start_label}–{end_label} "
-        f"({timezone_name}).{note_line}\nChoose an available time in this window: {url}"
+        f"Your doctor suggested {start_label}–{end_label} ({timezone_name}) for your visit."
+        f"{note_line}\nUse the “Choose a time” button below to select an available slot that works for you."
     )
 
 
@@ -191,13 +224,25 @@ async def _send_and_log(
     language: str,
     message: str,
     kind: str,
+    booking_link: str | None = None,
 ) -> tuple[str, str | None]:
     phone = patient.whatsapp_phone or patient.phone
     if not phone:
         return "NOT_AVAILABLE", None
     try:
         normalized = normalize_phone(phone)
-        sent = await WhatsAppServiceClient().send_message(clinic_id, normalized, message)
+        client = WhatsAppServiceClient()
+        sent = (
+            await client.send_booking_message(
+                clinic_id,
+                normalized,
+                message,
+                booking_link,
+                _BUTTON_TEXT.get(language, _BUTTON_TEXT["en"]),
+            )
+            if booking_link
+            else await client.send_message(clinic_id, normalized, message)
+        )
     except (WhatsAppServiceError, ValueError):
         return "FAILED", None
     provider_id = sent.get("message_id")
@@ -213,7 +258,10 @@ async def _send_and_log(
                 sent_at=datetime.now(UTC),
                 attempt_count=1,
                 provider_message_id=provider_id,
-                message_metadata={"kind": kind},
+                message_metadata={
+                    "kind": kind,
+                    **({"booking_url": booking_link, "booking_cta": True} if booking_link else {}),
+                },
             )
         )
         conversation.last_message_at = datetime.now(UTC)
@@ -400,8 +448,6 @@ async def public_book(
                 session.add(patient)
                 await session.flush()
 
-        # Supersede an earlier doctor-rejected proposal only after the patient
-        # successfully chooses a fresh slot from the current availability engine.
         old_rows = (
             await session.scalars(
                 select(CareAppointment).where(
@@ -447,7 +493,10 @@ async def public_book(
                 409,
             ) from exc
 
-        language = _language(body.language)
+        phone = patient.whatsapp_phone or patient.phone
+        language = language_for_phone(phone, body.language)
+        if conversation:
+            conversation.language = language
         message = _requested_message(language, selected, settings.timezone)
         notification_status, provider_id = await _send_and_log(
             session,
@@ -525,7 +574,9 @@ async def approve_booking_appointment(
         else None
     )
     phone = patient.whatsapp_phone or patient.phone
-    language = _language(conversation.language if conversation else language_for_phone(phone, "en"))
+    language = language_for_phone(phone, conversation.language if conversation else "en")
+    if conversation:
+        conversation.language = language
     message = _approved_message(language, row.starts_at, row.timezone)
     notification_status, provider_id = await _send_and_log(
         ctx.session,
@@ -614,11 +665,10 @@ async def suggest_booking_range(
         if row.conversation_id
         else await _conversation_for_patient(ctx.session, patient.id)
     )
-    language = _language(
-        conversation.language
-        if conversation
-        else language_for_phone(patient.whatsapp_phone or patient.phone, "en")
-    )
+    phone = patient.whatsapp_phone or patient.phone
+    language = language_for_phone(phone, conversation.language if conversation else "en")
+    if conversation:
+        conversation.language = language
     url = booking_url(
         clinic_id=ctx.clinic.id,
         branch_id=row.branch_id,
@@ -633,7 +683,6 @@ async def suggest_booking_range(
         start,
         end,
         settings.timezone,
-        url,
         body.note,
     )
     notification_status, _ = await _send_and_log(
@@ -645,6 +694,7 @@ async def suggest_booking_range(
         language=language,
         message=message,
         kind="doctor_reschedule_range",
+        booking_link=url,
     )
     if notification_status == "FAILED":
         raise AppError(

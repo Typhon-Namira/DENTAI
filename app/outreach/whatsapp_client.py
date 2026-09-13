@@ -118,3 +118,25 @@ class WhatsAppServiceClient:
                 "image_mime_type": mime_type,
             },
         )
+
+    async def send_booking_message(
+        self,
+        clinic_id: uuid.UUID,
+        phone: str,
+        message: str,
+        booking_url: str,
+        button_text: str,
+        image: bytes | None = None,
+        mime_type: str = "image/jpeg",
+    ) -> dict:
+        payload = {
+            "account_id": clinic_account_id(clinic_id),
+            "phone": normalize_phone(phone),
+            "message": message,
+            "button_url": booking_url,
+            "button_text": button_text,
+        }
+        if image:
+            payload["image_base64"] = base64.b64encode(image).decode()
+            payload["image_mime_type"] = mime_type
+        return await self._request("POST", "/whatsapp/send", json=payload)

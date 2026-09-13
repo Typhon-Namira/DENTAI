@@ -5,10 +5,20 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.care import service as care_service
-from app.care.booking_links import booking_message_suffix, booking_url
+from app.care.booking_links import booking_url
+from app.care.groq import care_outreach_drafts
+from app.care.language import language_for_phone
 from app.care.models import CareConversation, CareConversationMessage, CarePlan, CarePlanItem
-from app.database.models import Patient
-from app.outreach.whatsapp_client import WhatsAppServiceClient
+from app.database.models import DentalFinding, FindingReview, Patient
+from app.outreach.whatsapp_client import WhatsAppServiceClient, WhatsAppServiceError
+
+_BUTTON_TEXT = {
+    "hy": "Ընտրել այցի ժամ",
+    "ru": "Выбрать время",
+    "fa": "رزرو زمان چکاپ",
+    "tr": "Kontrol saati seç",
+    "en": "Book check-up",
+}
 
 
 async def start_or_continue_outreach_with_booking(
@@ -20,19 +30,17 @@ async def start_or_continue_outreach_with_booking(
     plan: CarePlan,
     items: list[CarePlanItem],
 ) -> CareConversation | None:
-    """Start clinician-approved follow-up outreach with a signed booking URL.
-
-    This keeps the existing care-plan and tooth-image behavior intact, but replaces
-    free-text slot negotiation in the initial follow-up with a tamper-proof booking
-    form whose availability is calculated live from the doctor's working hours.
-    """
+    """Send individualized, phone-localized follow-up with a signed booking CTA."""
     phone = care_service._safe_phone(patient.whatsapp_phone or patient.phone)
     if not phone or not items:
         return None
 
+    language = language_for_phone(phone, plan.language or "en")
+    plan.language = language
     conversation = await care_service._conversation(
         session, patient=patient, plan=plan, phone=phone
     )
+    conversation.language = language
     prior_item_ids = set(
         (
             await session.scalars(
@@ -49,6 +57,32 @@ async def start_or_continue_outreach_with_booking(
         return conversation
 
     settings = await care_service.settings_for_branch(session, patient.branch_id)
+    findings = {
+        item.finding_id: await session.get(DentalFinding, item.finding_id) for item in pending
+    }
+    drafts = await care_outreach_drafts(
+        language=language,
+        patient_name=f"{patient.first_name} {patient.last_name}".strip(),
+        clinic_name=clinic_name,
+        care_items=[
+            {
+                "tooth": item.tooth_fdi,
+                "finding": item.finding_type,
+                "window": item.recommended_window,
+                "rationale": item.rationale,
+                "clinician_reviewed": bool(
+                    findings.get(item.finding_id)
+                    and findings[item.finding_id].review_status == FindingReview.CONFIRMED
+                ),
+                "visit_outcome": item.outcome,
+            }
+            for item in pending
+        ],
+        booking_instructions=settings.booking_instructions,
+    )
+    if any(not drafts.get(item.tooth_fdi) for item in pending):
+        raise WhatsAppServiceError("AI_MESSAGE_GENERATION_UNAVAILABLE", 503)
+
     client = WhatsAppServiceClient()
     for item in pending:
         url = booking_url(
@@ -59,22 +93,19 @@ async def start_or_continue_outreach_with_booking(
             care_plan_id=plan.id,
             care_plan_item_id=item.id,
         )
-        message = care_service._message(
-            conversation.language,
-            patient.first_name,
-            item.tooth_fdi,
-            item.finding_type,
-        )
-        message = f"{message}\n\n{booking_message_suffix(conversation.language, url)}"
+        message = drafts[item.tooth_fdi]
         crop = (
             await care_service._finding_crop(session, plan, item)
             if settings.attach_tooth_image and item.image_required
             else None
         )
-        result = await (
-            client.send_image_message(clinic_id, phone, message, crop)
-            if crop
-            else client.send_message(clinic_id, phone, message)
+        result = await client.send_booking_message(
+            clinic_id,
+            phone,
+            message,
+            url,
+            _BUTTON_TEXT.get(language, _BUTTON_TEXT["en"]),
+            image=crop,
         )
         session.add(
             CareConversationMessage(
@@ -82,7 +113,7 @@ async def start_or_continue_outreach_with_booking(
                 care_plan_item_id=item.id,
                 direction="OUT",
                 body=message,
-                language=conversation.language,
+                language=language,
                 status="SENT",
                 sent_at=datetime.now(UTC),
                 attempt_count=1,
@@ -94,21 +125,20 @@ async def start_or_continue_outreach_with_booking(
                     "image_attached": bool(crop),
                     "booking_url": url,
                     "booking_flow": "SIGNED_LINK_V1",
+                    "booking_cta": True,
                 },
             )
         )
+        item.message_preview = message
         item.status = "CONTACTED"
 
     conversation.last_message_at = datetime.now(UTC)
     conversation.summary = (
-        f"{len(pending)} clinician-confirmed tooth finding(s) sent with booking link. "
+        f"{len(pending)} individualized tooth follow-up message(s) sent with booking CTA. "
         "Awaiting appointment request."
     )
     return conversation
 
 
 def install_booking_outreach() -> None:
-    # approve_care_plan resolves this symbol from app.care.service at runtime, so
-    # installing here upgrades the existing orchestration without duplicating or
-    # replacing the clinical approval endpoints.
     care_service.start_or_continue_outreach = start_or_continue_outreach_with_booking

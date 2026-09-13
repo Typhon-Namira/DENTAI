@@ -86,6 +86,7 @@ async def generate_followup_plan(
                     "tooth": item.tooth_fdi,
                     "finding": item.finding_type,
                     "window": item.recommended_window,
+                    "rationale": item.rationale,
                     "clinician_reviewed": bool(
                         findings.get(item.finding_id)
                         and findings[item.finding_id].review_status == FindingReview.CONFIRMED
@@ -96,10 +97,16 @@ async def generate_followup_plan(
             ],
             booking_instructions=settings.booking_instructions,
         )
+        missing = [item.tooth_fdi for item in items if not groq_drafts.get(item.tooth_fdi)]
+        if missing:
+            await ctx.session.rollback()
+            raise AppError(
+                "AI_OUTREACH_DRAFT_UNAVAILABLE",
+                "Teta2 could not create individualized patient messages. Please try again; no template message was saved.",
+                503,
+            )
         for item in items:
-            draft = groq_drafts.get(item.tooth_fdi)
-            if draft:
-                item.message_preview = draft
+            item.message_preview = groq_drafts[item.tooth_fdi]
 
     await audit(
         ctx.session,

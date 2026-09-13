@@ -135,6 +135,7 @@ export function createService(deps = {}) {
   const authState = deps.authState || useMultiFileAuthState;
   const latestVersion = deps.latestVersion || fetchLatestBaileysVersion;
   const qrToDataURL = deps.qrToDataURL || qrcode.toDataURL;
+  const injectedInteractiveSender = deps.sendInteractiveMessage || null;
   const sessionRoot = path.resolve(deps.sessionRoot || SESSION_ROOT);
   const delayMs = deps.delayMs ?? 1400;
   const reconnect = deps.reconnect !== false;
@@ -463,6 +464,9 @@ export function createService(deps = {}) {
       if (!target.exists) return res.status(422).json({ error: "phone_not_on_whatsapp" });
       const message = String(req.body.message || "").trim();
       if (!message) return res.status(400).json({ error: "message_required" });
+      const buttonUrl = String(req.body.button_url || "").trim();
+      const buttonText = String(req.body.button_text || "Book check-up").trim().slice(0, 40);
+      if (buttonUrl && !/^https:\/\//i.test(buttonUrl)) return res.status(400).json({ error: "button_url_invalid" });
       if (String(target.jid).endsWith("@lid") && typeof entry.socket.assertSessions === "function") {
         try {
           await entry.socket.assertSessions([target.jid], true);
@@ -474,13 +478,50 @@ export function createService(deps = {}) {
       await entry.socket.sendPresenceUpdate("composing", target.jid);
       if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
       await entry.socket.sendPresenceUpdate("paused", target.jid);
-      let payload = { text: message };
+
+      let image = null;
       if (req.body.image_base64) {
-        const image = Buffer.from(req.body.image_base64, "base64");
+        image = Buffer.from(req.body.image_base64, "base64");
         if (!image.length || image.length > MAX_IMAGE_BYTES) return res.status(413).json({ error: "image_size_invalid" });
-        payload = { image, caption: message, mimetype: req.body.image_mime_type || "image/jpeg" };
       }
-      const result = await entry.socket.sendMessage(target.jid, payload);
+
+      let result;
+      if (buttonUrl) {
+        if (image) {
+          await entry.socket.sendMessage(target.jid, {
+            image,
+            mimetype: req.body.image_mime_type || "image/jpeg"
+          });
+        }
+        let sendInteractiveMessage = injectedInteractiveSender;
+        if (!sendInteractiveMessage) {
+          const helper = await import("baileys_helper");
+          sendInteractiveMessage = helper.sendInteractiveMessage || helper.default?.sendInteractiveMessage;
+        }
+        if (typeof sendInteractiveMessage !== "function") {
+          return res.status(503).json({ error: "interactive_buttons_unavailable" });
+        }
+        result = await sendInteractiveMessage(entry.socket, target.jid, {
+          text: message,
+          footer: "Teta2 · Patient follow-up",
+          interactiveButtons: [
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: buttonText || "Book check-up",
+                url: buttonUrl,
+                merchant_url: buttonUrl
+              })
+            }
+          ]
+        });
+      } else {
+        const payload = image
+          ? { image, caption: message, mimetype: req.body.image_mime_type || "image/jpeg" }
+          : { text: message };
+        result = await entry.socket.sendMessage(target.jid, payload);
+      }
+
       const providerMessageId = result?.key?.id || null;
       if (!providerMessageId) return res.status(502).json({ error: "provider_message_id_missing" });
       const confirmedStatus = await waitForConfirmedDelivery(providerMessageId);
