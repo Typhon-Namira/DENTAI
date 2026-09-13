@@ -11,6 +11,13 @@ function reactButtonProps(button: HTMLButtonElement): ReactButtonProps | null {
   return (button as unknown as Record<string, ReactButtonProps>)[key] ?? null;
 }
 
+/**
+ * Compatibility bridge for the legacy Doctor-only disabled prop that still
+ * exists in ClinicalCareApp. Keep this deliberately passive: the previous
+ * MutationObserver watched `disabled` and then wrote `disabled` from inside its
+ * own callback, which could create a self-triggering mutation loop as soon as
+ * the OPG page mounted and freeze the UI.
+ */
 export function AllRolesAiRunAccess() {
   useEffect(() => {
     const controls = () => document.querySelector<HTMLElement>(".ai-control");
@@ -28,11 +35,16 @@ export function AllRolesAiRunAccess() {
       const button = actionButton();
       const xray = xraySelect();
       if (!button || !xray || currentRole() === "DOCTOR") return;
+
       const running = /AI running|…/i.test(button.textContent ?? "");
       const shouldDisable = !xray.value || running;
-      button.disabled = shouldDisable;
+
+      // Never write the DOM state unless it actually changed. More importantly,
+      // do not observe attributes that this bridge itself changes.
+      if (button.disabled !== shouldDisable) button.disabled = shouldDisable;
+
       const props = reactButtonProps(button);
-      if (props) props.disabled = shouldDisable;
+      if (props && props.disabled !== shouldDisable) props.disabled = shouldDisable;
     };
 
     const handleClick = (event: MouseEvent) => {
@@ -52,26 +64,24 @@ export function AllRolesAiRunAccess() {
       event.stopPropagation();
       event.stopImmediatePropagation();
 
-      target.disabled = false;
-      props.disabled = false;
+      if (target.disabled) target.disabled = false;
+      if (props.disabled) props.disabled = false;
       props.onClick(event);
     };
 
+    // React updates select values and props without necessarily creating DOM
+    // child mutations. A small passive sync interval is safer than observing
+    // every class/disabled mutation across the whole dashboard.
     sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["disabled", "value", "class"],
-      characterData: true,
-    });
+    const timer = window.setInterval(sync, 300);
     document.addEventListener("change", sync, true);
+    document.addEventListener("focusin", sync, true);
     document.addEventListener("click", handleClick, true);
 
     return () => {
-      observer.disconnect();
+      window.clearInterval(timer);
       document.removeEventListener("change", sync, true);
+      document.removeEventListener("focusin", sync, true);
       document.removeEventListener("click", handleClick, true);
     };
   }, []);
