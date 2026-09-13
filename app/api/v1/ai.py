@@ -20,7 +20,6 @@ from app.database.models import (
     DentalFinding,
     FindingReview,
     ReviewStatus,
-    Role,
     XRay,
 )
 from app.storage.providers import storage_provider
@@ -191,8 +190,6 @@ async def review(
     body: ReviewRequest,
     ctx: Annotated[AuthContext, Depends(current_context)],
 ):
-    if ctx.user.role != Role.DOCTOR:
-        raise AppError("FORBIDDEN", "Only Doctors may review AI findings.", 403)
     analysis = await ctx.session.get(AIAnalysis, analysis_id)
     if not analysis:
         raise AppError("ANALYSIS_NOT_FOUND", "Analysis was not found.", 404)
