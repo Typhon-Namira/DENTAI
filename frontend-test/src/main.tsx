@@ -9,6 +9,7 @@ import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
 import { FrontendLocaleQuality } from "./product/FrontendLocaleQuality";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
+import { LegalLocaleQuality } from "./product/LegalLocaleQuality";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
 import ProductApp from "./product/ProductApp";
@@ -54,6 +55,7 @@ createRoot(document.getElementById("root")!).render(
       <PlatformAccessExperienceV2 />
       <AllRolesAiRunAccess />
       <FrontendLocaleQuality />
+      <LegalLocaleQuality />
     </>
   </StrictMode>
 );
