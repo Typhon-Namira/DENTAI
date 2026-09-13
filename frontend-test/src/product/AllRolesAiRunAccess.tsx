@@ -1,69 +1,60 @@
 import { useEffect } from "react";
-import { api, errorMessage } from "../api/client";
 
-/**
- * ClinicalCareApp still owns the original Doctor-only React disabled prop.
- * For non-Doctor clinic roles we bridge that legacy UI guard to the now
- * role-neutral backend endpoint without duplicating the analysis UI itself.
- * Doctors continue through the original React handler unchanged.
- */
+type ReactButtonProps = {
+  disabled?: boolean;
+  onClick?: (event: MouseEvent) => unknown;
+};
+
+function reactButtonProps(button: HTMLButtonElement): ReactButtonProps | null {
+  const key = Object.keys(button).find((item) => item.startsWith("__reactProps$"));
+  if (!key) return null;
+  return (button as unknown as Record<string, ReactButtonProps>)[key] ?? null;
+}
+
 export function AllRolesAiRunAccess() {
   useEffect(() => {
-    let nativeBusy = false;
-
     const controls = () => document.querySelector<HTMLElement>(".ai-control");
-    const actionButton = () => controls()?.querySelector<HTMLButtonElement>("button.ai-action") ?? null;
-    const xraySelect = () => controls()?.querySelectorAll<HTMLSelectElement>("select")?.[1] ?? null;
-    const currentRole = () => document.querySelector<HTMLElement>(".care-doctor small")?.textContent?.trim().toUpperCase() ?? "";
-
-    const clearFeedback = () => document.getElementById("all-roles-ai-feedback")?.remove();
-    const showFeedback = (message: string, error = false) => {
-      clearFeedback();
-      const host = controls();
-      if (!host) return;
-      const feedback = document.createElement("div");
-      feedback.id = "all-roles-ai-feedback";
-      feedback.className = error ? "care-inline-error" : "flow-success";
-      feedback.textContent = message;
-      host.insertAdjacentElement("afterend", feedback);
-    };
+    const actionButton = () =>
+      controls()?.querySelector<HTMLButtonElement>("button.ai-action") ?? null;
+    const xraySelect = () =>
+      controls()?.querySelectorAll<HTMLSelectElement>("select")?.[1] ?? null;
+    const currentRole = () =>
+      document
+        .querySelector<HTMLElement>(".care-doctor small")
+        ?.textContent?.trim()
+        .toUpperCase() ?? "";
 
     const sync = () => {
       const button = actionButton();
       const xray = xraySelect();
-      if (!button || !xray) return;
-      if (currentRole() === "DOCTOR") return;
-      const shouldDisable = !xray.value || nativeBusy;
-      if (button.disabled !== shouldDisable) button.disabled = shouldDisable;
+      if (!button || !xray || currentRole() === "DOCTOR") return;
+      const running = /AI running|…/i.test(button.textContent ?? "");
+      const shouldDisable = !xray.value || running;
+      button.disabled = shouldDisable;
+      const props = reactButtonProps(button);
+      if (props) props.disabled = shouldDisable;
     };
 
-    const handleClick = async (event: MouseEvent) => {
-      const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button.ai-action") : null;
+    const handleClick = (event: MouseEvent) => {
+      const target =
+        event.target instanceof Element
+          ? event.target.closest<HTMLButtonElement>("button.ai-action")
+          : null;
       if (!target || currentRole() === "DOCTOR") return;
+
+      const xray = xraySelect();
+      if (!xray?.value) return;
+
+      const props = reactButtonProps(target);
+      if (!props?.onClick) return;
 
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
 
-      const xray = xraySelect();
-      if (!xray?.value || nativeBusy) return;
-
-      nativeBusy = true;
-      clearFeedback();
-      target.disabled = true;
-      const originalHtml = target.innerHTML;
-      target.textContent = "AI running…";
-
-      try {
-        await api.createAnalysis(xray.value);
-        showFeedback("AI analysis started successfully.");
-        window.location.reload();
-      } catch (reason) {
-        nativeBusy = false;
-        target.innerHTML = originalHtml;
-        showFeedback(errorMessage(reason), true);
-        sync();
-      }
+      target.disabled = false;
+      props.disabled = false;
+      props.onClick(event);
     };
 
     sync();
@@ -82,7 +73,6 @@ export function AllRolesAiRunAccess() {
       observer.disconnect();
       document.removeEventListener("change", sync, true);
       document.removeEventListener("click", handleClick, true);
-      clearFeedback();
     };
   }, []);
 
