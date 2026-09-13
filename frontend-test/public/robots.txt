@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /request-access
+Disallow: /platform-admin
 
-Sitemap: https://teta2.com/sitemap.xml
+Sitemap: https://www.teta2.com/sitemap.xml
