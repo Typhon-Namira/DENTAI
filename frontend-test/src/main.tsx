@@ -36,6 +36,7 @@ import "./product/home-hero-quality-title.css";
 import "./product/home-hero-followup-hq.css";
 import "./product/login-polish.css";
 import "./product/booking-public-polish.css";
+import "./product/page-deck-v2-polish.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
