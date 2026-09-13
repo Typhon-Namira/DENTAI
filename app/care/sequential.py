@@ -348,8 +348,26 @@ async def record_visit_outcome(
     if not plan or not patient:
         return appointment
 
+    # A recorded appointment outcome is terminal for this tooth's sequential
+    # follow-up step. The exact visit result is preserved in `outcome`, while
+    # the workflow status becomes COMPLETED so the next tooth can unlock.
     item.outcome = normalized
     item.outcome_at = now
+    item.status = "COMPLETED"
+
+    followup = await session.scalar(
+        select(FollowUp)
+        .where(
+            FollowUp.patient_id == patient.id,
+            FollowUp.reason.like(f"Teta2 Care · tooth {item.tooth_fdi}%"),
+        )
+        .order_by(FollowUp.due_at.desc())
+        .limit(1)
+    )
+    if followup:
+        followup.status = "COMPLETED"
+        followup.completed_at = now
+
     conversation = (
         await session.get(CareConversation, appointment.conversation_id)
         if appointment.conversation_id
@@ -367,23 +385,11 @@ async def record_visit_outcome(
         )
         conversation.booking_context = context
         conversation.summary = (
-            f"Visit outcome for tooth {item.tooth_fdi}: {normalized.replace('_', ' ').title()}."
+            f"Visit outcome for tooth {item.tooth_fdi}: {normalized.replace('_', ' ').title()}. "
+            "This tooth is complete; advancing the sequential follow-up."
         )
 
     settings = await settings_for_branch(session, plan.branch_id)
-    if normalized == "ATTENDED_NOT_TREATED":
-        item.status = "FOLLOWUP_READY"
-        item.conversation_start_at = _next_local_contact(settings.timezone, days=7)
-        await schedule_item_outreach(
-            session,
-            plan=plan,
-            patient=patient,
-            item=item,
-            start_at=item.conversation_start_at,
-        )
-        return appointment
-
-    item.status = "COMPLETED" if normalized == "TREATED" else "NO_SHOW"
     next_item = await session.scalar(
         select(CarePlanItem)
         .where(
@@ -395,9 +401,8 @@ async def record_visit_outcome(
         .limit(1)
     )
     if next_item:
-        delay_days = 1 if normalized == "TREATED" else 30
         next_item.status = "FOLLOWUP_READY"
-        next_item.conversation_start_at = _next_local_contact(settings.timezone, days=delay_days)
+        next_item.conversation_start_at = _next_local_contact(settings.timezone, days=1)
         await schedule_item_outreach(
             session,
             plan=plan,
@@ -405,6 +410,11 @@ async def record_visit_outcome(
             item=next_item,
             start_at=next_item.conversation_start_at,
         )
+        if conversation:
+            conversation.summary = (
+                f"Tooth {item.tooth_fdi} completed with visit outcome "
+                f"{normalized.replace('_', ' ').title()}. Next: tooth {next_item.tooth_fdi}."
+            )
     else:
         remaining = await session.scalar(
             select(CarePlanItem.id)
@@ -421,6 +431,7 @@ async def record_visit_outcome(
             plan.completed_at = now
             if conversation:
                 conversation.status = "CLOSED"
+                conversation.summary = "All tooth-by-tooth follow-up steps are complete."
 
     await session.flush()
     return appointment
