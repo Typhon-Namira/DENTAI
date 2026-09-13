@@ -12,15 +12,12 @@ from app.care.models import CarePlanItem
 from app.care.service import settings_for_branch
 from app.common.serialization import model_dict
 from app.core.errors import AppError
-from app.database.models import AIAnalysis, AIStatus, DentalFinding, FindingReview, Patient, Role
+from app.database.models import AIAnalysis, AIStatus, DentalFinding, FindingReview, Patient
 
 router = APIRouter(prefix="/care", tags=["care"])
 
 
 async def _completed_analysis(ctx: AuthContext, analysis_id: uuid.UUID) -> AIAnalysis:
-    if ctx.user.role != Role.DOCTOR:
-        raise AppError("FORBIDDEN", "Only Doctors may generate a follow-up plan.", 403)
-
     analysis = await ctx.session.get(AIAnalysis, analysis_id)
     if not analysis:
         raise AppError("ANALYSIS_NOT_FOUND", "Analysis was not found.", 404)
