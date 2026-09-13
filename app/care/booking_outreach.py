@@ -21,6 +21,10 @@ _BUTTON_TEXT = {
 }
 
 
+def _is_confirmed(finding: DentalFinding | None) -> bool:
+    return bool(finding and finding.review_status == FindingReview.CONFIRMED)
+
+
 async def start_or_continue_outreach_with_booking(
     session: AsyncSession,
     *,
@@ -70,10 +74,7 @@ async def start_or_continue_outreach_with_booking(
                 "finding": item.finding_type,
                 "window": item.recommended_window,
                 "rationale": item.rationale,
-                "clinician_reviewed": bool(
-                    findings.get(item.finding_id)
-                    and findings[item.finding_id].review_status == FindingReview.CONFIRMED
-                ),
+                "clinician_reviewed": _is_confirmed(findings.get(item.finding_id)),
                 "visit_outcome": item.outcome,
             }
             for item in pending

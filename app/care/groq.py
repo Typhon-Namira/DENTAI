@@ -58,14 +58,16 @@ def _safe_care_item(item: dict[str, Any]) -> dict[str, Any]:
     finding = str(item.get("finding") or "").strip()
     window = str(item.get("window") or "").strip()
     rationale = str(item.get("rationale") or "").strip()
-    return {
+    safe: dict[str, Any] = {
         "tooth": tooth,
         "finding": finding,
         "window": window,
-        "rationale": rationale[:600] or None,
         "clinician_reviewed": bool(item.get("clinician_reviewed")),
         "visit_outcome": str(item.get("visit_outcome") or "").strip() or None,
     }
+    if rationale:
+        safe["rationale"] = rationale[:600]
+    return safe
 
 
 def _response_format(name: str, schema: type[BaseModel]) -> dict[str, Any]:
