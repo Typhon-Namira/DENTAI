@@ -76,6 +76,7 @@ export function AnalysisResults({
   );
   const decidedCount = pending.filter((finding) => decisions[finding.id]).length;
   const canSubmit = pending.length > 0 && decidedCount === pending.length;
+  const canReview = role === "DIRECTOR" || role === "MANAGER" || role === "DOCTOR";
 
   useEffect(() => {
     setDecisions({});
@@ -138,7 +139,7 @@ export function AnalysisResults({
       clinicalSummary={clinicalSummary}
       filter={filter}
       selectedGroupKey={selectedGroupKey}
-      canReview={role === "DOCTOR"}
+      canReview={canReview}
       decisions={decisions}
       pendingCount={pending.length}
       decidedCount={decidedCount}
