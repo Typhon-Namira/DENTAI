@@ -1,0 +1,55 @@
+/* Final polish for the five public navbar pages rendered by PageDeckSectionsV2. */
+
+/* The legacy marketing shell already adds top padding; PageDeckSectionsV2 adds its
+   own first-section padding as well. Remove the duplicated shell gap so the page
+   starts visually connected to the sticky navbar without touching it. */
+.product-marketing-page.deck2-only-page {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.deck2 > .deck2-section:first-child {
+  padding-top: 42px;
+}
+
+/* Use the real founder/co-founder portraits uploaded to public/images in place
+   of the temporary initials avatars on About / Contact. */
+#typhon-namira .deck2-person-head > span,
+#van-arzoyan .deck2-person-head > span {
+  width: 74px;
+  height: 74px;
+  flex: 0 0 74px;
+  border-radius: 21px;
+  color: transparent;
+  font-size: 0;
+  background-color: #eef6f8;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: 0 10px 28px rgba(14, 55, 86, .14);
+  border: 1px solid rgba(20, 78, 102, .10);
+  overflow: hidden;
+}
+
+#typhon-namira .deck2-person-head > span {
+  background-image: url('/images/typhon.jpg');
+  background-position: center 20%;
+}
+
+#van-arzoyan .deck2-person-head > span {
+  background-image: url('/images/Van.JPG');
+  background-position: center 20%;
+}
+
+@media (max-width: 680px) {
+  .deck2 > .deck2-section:first-child {
+    padding-top: 28px;
+  }
+
+  #typhon-namira .deck2-person-head > span,
+  #van-arzoyan .deck2-person-head > span {
+    width: 66px;
+    height: 66px;
+    flex-basis: 66px;
+    border-radius: 18px;
+  }
+}
