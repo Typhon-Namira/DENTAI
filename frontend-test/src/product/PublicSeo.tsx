@@ -20,104 +20,104 @@ const LOGO = `${BASE}/images/teta2_logo_transparent.png`;
 const SEO: Record<SeoPublicPath, Record<SeoPublicLanguage, SeoEntry>> = {
   "/": {
     en: {
-      title: "Teta2 | AI-assisted OPG Analysis & Patient Follow-up",
-      description: "Teta2 helps dental clinics review OPG radiographs with AI-assisted possible findings, keep patient records organized, and manage clinician-controlled follow-up.",
-      keywords: "Teta2, dental AI, OPG AI, panoramic dental x-ray, patient follow-up, dental clinic software",
+      title: "Dental AI Software for OPG & Panoramic X-Rays | Teta2",
+      description: "Teta2 is dental AI software for clinics: AI-assisted OPG and panoramic dental X-ray review, clinician-controlled findings, patient records, follow-up and booking.",
+      keywords: "dental AI software, dental x-ray AI software, OPG AI, panoramic dental x-ray AI, AI dental x-ray analysis, dental clinic software, patient follow-up software",
     },
     hy: {
-      title: "Teta2 | AI-աջակցվող OPG վերլուծություն և հետագա վերահսկում",
-      description: "Teta2-ն օգնում է ատամնաբուժական կլինիկաներին AI-աջակցվող հնարավոր փոփոխություններով վերանայել OPG պատկերները, կազմակերպել պացիենտների քարտերը և կառավարել բժշկի վերահսկմամբ հետագա կապը։",
-      keywords: "Teta2, ատամնաբուժական AI, OPG, պանորամիկ ռենտգեն, պացիենտի հետագա վերահսկում, ատամնաբուժական ծրագիր",
+      title: "Ատամնաբուժական AI՝ պանորամիկ ռենտգենի վերլուծության համար | Teta2",
+      description: "Teta2-ը ատամնաբուժական կլինիկաների համար AI ծրագիր է՝ OPG և պանորամիկ ռենտգենային պատկերների AI-աջակցվող վերլուծության, բժշկի վերանայման, պացիենտի քարտի, հետագա վերահսկման և ամրագրման համար։",
+      keywords: "ատամնաբուժական AI, արհեստական բանականություն ատամնաբուժությունում, պանորամիկ ռենտգեն, պանորամիկ ռենտգենային հետազոտություն, OPG վերլուծություն, ատամնաբուժական կլինիկայի ծրագիր",
     },
     ru: {
-      title: "Teta2 | Анализ OPG с ИИ и последующее наблюдение",
-      description: "Teta2 помогает стоматологическим клиникам анализировать OPG с поддержкой ИИ, вести карты пациентов и управлять последующим наблюдением под контролем врача.",
-      keywords: "Teta2, стоматологический ИИ, OPG AI, панорамный снимок, наблюдение пациентов, программа для стоматологии",
+      title: "ИИ для стоматологии: анализ ОПТГ и панорамных снимков | Teta2",
+      description: "Teta2 — программа с ИИ для стоматологических клиник: анализ ОПТГ и панорамных снимков зубов, проверка врачом, карта пациента, последующее наблюдение и запись на прием.",
+      keywords: "ИИ для стоматологии, искусственный интеллект в стоматологии, анализ ОПТГ, анализ панорамного снимка зубов, стоматологическая программа, программа для стоматологии",
     },
   },
   "/product": {
     en: {
-      title: "Teta2 Product | OPG AI, Patient Records & Follow-up",
-      description: "Explore Teta2's dental workflow for OPG history, AI-assisted possible findings, clinician review, patient records, WhatsApp follow-up and return tracking.",
-      keywords: "Teta2 product, OPG AI software, dental patient record, dental follow-up software, panoramic x-ray workflow",
+      title: "Dental AI OPG Software for Clinics | Teta2",
+      description: "Explore Teta2 dental AI software for panoramic X-ray and OPG review, tooth-level clinician decisions, patient records, multilingual follow-up, WhatsApp outreach and booking.",
+      keywords: "dental AI OPG software, panoramic x-ray analysis software, dental x-ray AI, dental clinic software, patient recall software, dental follow-up software",
     },
     hy: {
-      title: "Teta2 արտադրանք | OPG AI, պացիենտի քարտ և վերահսկում",
-      description: "Բացահայտեք Teta2-ի կլինիկական գործընթացը՝ OPG պատմություն, AI-աջակցվող հնարավոր փոփոխություններ, բժշկի վերանայում, պացիենտի քարտ և հետագա վերահսկում։",
-      keywords: "Teta2, OPG AI, ատամնաբուժական ծրագիր Հայաստան, պացիենտի քարտ, հետագա վերահսկում",
+      title: "Ատամնաբուժական AI ծրագիր՝ OPG-ի վերլուծության համար | Teta2",
+      description: "Teta2-ը միավորում է պանորամիկ ռենտգենի և OPG-ի AI-աջակցվող վերլուծությունը, բժշկի՝ ատամ առ ատամ վերանայումը, պացիենտի քարտը, WhatsApp հետագա կապը և ամրագրումը։",
+      keywords: "OPG AI ծրագիր, պանորամիկ ռենտգեն AI, ատամնաբուժական ծրագիր Հայաստան, ատամնաբուժական կլինիկայի ծրագիր, պացիենտի հետագա վերահսկում",
     },
     ru: {
-      title: "Teta2 | OPG AI, карта пациента и наблюдение",
-      description: "Возможности Teta2: история OPG, возможные изменения с поддержкой ИИ, проверка врачом, карта пациента, WhatsApp-наблюдение и отслеживание возвращения.",
-      keywords: "Teta2, OPG AI, стоматологическая программа, карта пациента, последующее наблюдение",
+      title: "ИИ-анализ ОПТГ для стоматологических клиник | Teta2",
+      description: "Teta2 объединяет ИИ-анализ ОПТГ и панорамных снимков, проверку каждого зуба врачом, карту пациента, WhatsApp-наблюдение и запись на прием в одном процессе.",
+      keywords: "ИИ анализ ОПТГ, анализ панорамного снимка зубов, программа для стоматологической клиники, стоматологический ИИ, карта пациента, контроль пациентов",
     },
   },
   "/how-it-works": {
     en: {
-      title: "How Teta2 Works | OPG to Clinician Review & Follow-up",
-      description: "See how Teta2 takes an OPG from AI-assisted analysis through dentist review, patient record, tooth-by-tooth follow-up, messaging and return tracking.",
-      keywords: "how Teta2 works, OPG workflow, dental AI workflow, dentist review, patient recall, dental follow-up",
+      title: "AI Dental X-Ray Analysis Workflow | Teta2",
+      description: "See how Teta2 moves a panoramic dental X-ray or OPG from AI-assisted analysis to dentist review, patient record, tooth-by-tooth follow-up, messaging and appointment booking.",
+      keywords: "AI dental x-ray analysis, dental x-ray AI workflow, OPG analysis software, panoramic radiograph AI, dentist review workflow, patient follow-up",
     },
     hy: {
-      title: "Ինչպես է աշխատում Teta2 | OPG-ից մինչև վերահսկում",
-      description: "Տեսեք Teta2-ի ամբողջ գործընթացը՝ OPG վերբեռնում, AI-աջակցվող վերլուծություն, ատամնաբույժի վերանայում, պացիենտի քարտ, ատամ առ ատամ վերահսկում և հաղորդագրություններ։",
-      keywords: "Teta2, OPG AI, ատամնաբույժի վերանայում, հետագա վերահսկում, կլինիկական գործընթաց",
+      title: "Ինչպես է աշխատում OPG-ի AI վերլուծությունը | Teta2",
+      description: "Տեսեք Teta2-ի գործընթացը՝ պանորամիկ ռենտգեն կամ OPG, AI-աջակցվող վերլուծություն, ատամնաբույժի վերանայում, պացիենտի քարտ, ատամ առ ատամ հետագա վերահսկում և ամրագրում։",
+      keywords: "OPG AI վերլուծություն, պանորամիկ ռենտգեն վերլուծություն, ատամնաբուժական AI, պացիենտի հետագա վերահսկում, ատամնաբույժի վերանայում",
     },
     ru: {
-      title: "Как работает Teta2 | От OPG до наблюдения пациента",
-      description: "Посмотрите процесс Teta2: загрузка OPG, анализ с поддержкой ИИ, проверка стоматологом, карта пациента, наблюдение по каждому зубу и сообщения.",
-      keywords: "Teta2, OPG AI, стоматологический ИИ, проверка врача, наблюдение пациента",
+      title: "Как работает ИИ-анализ ОПТГ в Teta2",
+      description: "Как Teta2 обрабатывает ОПТГ и панорамные снимки зубов: ИИ-анализ, проверка стоматологом, карта пациента, наблюдение по каждому зубу, сообщения и запись на прием.",
+      keywords: "как работает ИИ в стоматологии, ИИ анализ ОПТГ, анализ панорамного снимка, стоматологический ИИ, наблюдение пациентов",
     },
   },
   "/pricing": {
     en: {
-      title: "Teta2 Pricing | Dental OPG AI & Follow-up Subscription",
-      description: "View Teta2 clinic subscription pricing for Armenia and Russia, included OPG workflow, follow-up features, fair-use policy and access process.",
-      keywords: "Teta2 pricing, dental AI pricing, OPG AI subscription, dental clinic software pricing",
+      title: "Dental AI Software Pricing for Clinics | Teta2",
+      description: "View Teta2 dental AI software pricing for clinics in Armenia and Russia, including OPG review, patient records, clinician-controlled follow-up and clinic access terms.",
+      keywords: "dental AI software pricing, OPG AI pricing, dental clinic software pricing, dental x-ray AI subscription, Teta2 pricing",
     },
     hy: {
-      title: "Teta2 գներ | OPG AI և կլինիկայի բաժանորդագրություն",
-      description: "Տեսեք Teta2-ի՝ Հայաստանի և Ռուսաստանի կլինիկաների բաժանորդագրության գները, OPG գործընթացը, հետագա վերահսկման գործառույթները և մուտքի կարգը։",
-      keywords: "Teta2 գներ, dental AI Armenia, OPG բաժանորդագրություն, ատամնաբուժական ծրագիր",
+      title: "Teta2 գներ | AI ծրագիր ատամնաբուժական կլինիկաների համար",
+      description: "Teta2-ի ամսական գները Հայաստանի և Ռուսաստանի ատամնաբուժական կլինիկաների համար՝ OPG վերլուծություն, պացիենտի քարտ, բժշկի վերահսկմամբ հետագա կապ և ամրագրում։",
+      keywords: "Teta2 գներ, ատամնաբուժական AI գին, OPG AI գին, ատամնաբուժական ծրագիր գին, կլինիկայի բաժանորդագրություն",
     },
     ru: {
-      title: "Цены Teta2 | Подписка на OPG AI для клиник",
-      description: "Цены подписки Teta2 для клиник Армении и России, функции OPG, последующее наблюдение, правила добросовестного использования и порядок доступа.",
-      keywords: "Teta2 цена, стоматологический ИИ цена, OPG AI подписка, программа для стоматологии",
+      title: "Цена Teta2 | ИИ для стоматологической клиники",
+      description: "Стоимость Teta2 для клиник Армении и России: ИИ-анализ ОПТГ, карта пациента, наблюдение под контролем врача и запись на прием в рамках подписки.",
+      keywords: "Teta2 цена, ИИ для стоматологии цена, анализ ОПТГ цена, программа для стоматологии цена, подписка стоматологическая программа",
     },
   },
   "/clinical-safety": {
     en: {
-      title: "Teta2 Clinical Safety | Human-in-the-loop Dental AI",
-      description: "Learn how Teta2 keeps dentists in control of AI-assisted OPG findings, clinical review, patient communication and follow-up decisions.",
-      keywords: "Teta2 safety, dental AI safety, human in the loop, OPG AI clinical safety, dentist oversight",
+      title: "Dental AI Safety & Clinician Review | Teta2",
+      description: "Learn how Teta2 keeps dentists in control of AI-assisted OPG and panoramic X-ray findings, clinical review, patient communication, follow-up and care decisions.",
+      keywords: "dental AI safety, clinician review dental AI, human in the loop dental AI, OPG AI safety, panoramic x-ray AI safety",
     },
     hy: {
-      title: "Teta2 կլինիկական անվտանգություն | AI՝ բժշկի վերահսկմամբ",
-      description: "Իմացեք, թե ինչպես է Teta2-ը բժշկին պահում AI-աջակցվող OPG արդյունքների, կլինիկական վերանայման, պացիենտի հաղորդակցության և հետագա որոշումների վերահսկողության կենտրոնում։",
-      keywords: "Teta2 անվտանգություն, ատամնաբուժական AI, OPG AI, բժշկի վերահսկում",
+      title: "AI-ի անվտանգ կիրառում ատամնաբուժությունում | Teta2",
+      description: "Իմացեք, թե ինչպես է Teta2-ը պահում ատամնաբույժին OPG և պանորամիկ ռենտգենի AI արդյունքների, կլինիկական վերանայման, պացիենտի հաղորդակցության և հետագա որոշումների վերահսկողության կենտրոնում։",
+      keywords: "AI անվտանգություն ատամնաբուժությունում, ատամնաբուժական AI, OPG AI անվտանգություն, բժշկի վերահսկում, պանորամիկ ռենտգեն AI",
     },
     ru: {
-      title: "Клиническая безопасность Teta2 | ИИ под контролем врача",
-      description: "Узнайте, как Teta2 сохраняет контроль стоматолога над результатами OPG с поддержкой ИИ, клинической проверкой, сообщениями пациентам и последующим наблюдением.",
-      keywords: "Teta2 безопасность, стоматологический ИИ, OPG AI, контроль врача, human in the loop",
+      title: "Безопасность ИИ в стоматологии | Teta2",
+      description: "Teta2 сохраняет контроль стоматолога над ИИ-анализом ОПТГ и панорамных снимков, проверкой результатов, сообщениями пациентам и решениями по наблюдению.",
+      keywords: "безопасность ИИ в стоматологии, стоматологический ИИ, ИИ анализ ОПТГ, контроль врача, искусственный интеллект стоматология",
     },
   },
   "/about": {
     en: {
-      title: "About Teta2 | Team & Dental AI Project in Yerevan",
-      description: "Meet Teta2 founder Typhon Namira and co-founder Van Arzoyan, and learn about the dental AI project's mission, product focus and contact details in Yerevan, Armenia.",
-      keywords: "Teta2, Typhon Namira, Van Arzoyan, Teta2 founder, dental AI Yerevan, Armenia startup",
+      title: "Teta2 Dental AI Software | Team in Yerevan, Armenia",
+      description: "Meet the team building Teta2, a dental AI software project in Yerevan focused on panoramic X-ray and OPG review, patient records and clinician-controlled follow-up.",
+      keywords: "Teta2, dental AI Armenia, dental AI Yerevan, Typhon Namira, Van Arzoyan, dental software startup Armenia",
     },
     hy: {
-      title: "Teta2-ի մասին | Թիմ և ատամնաբուժական AI նախագիծ Երևանում",
-      description: "Ծանոթացեք Teta2-ի հիմնադիր Typhon Namira-ին և համահիմնադիր Van Arzoyan-ին, նախագծի նպատակին, արտադրանքի ուղղությանը և Երևանի կապի տվյալներին։",
-      keywords: "Teta2, Typhon Namira, Van Arzoyan, ատամնաբուժական AI Հայաստան, Երևան ստարտափ",
+      title: "Teta2-ի մասին | Ատամնաբուժական AI նախագիծ Երևանում",
+      description: "Ծանոթացեք Երևանում ստեղծվող Teta2 ատամնաբուժական AI նախագծի թիմին, որը կենտրոնացած է OPG և պանորամիկ ռենտգենի վերլուծության, պացիենտի քարտի և բժշկի վերահսկմամբ հետագա աշխատանքի վրա։",
+      keywords: "Teta2, ատամնաբուժական AI Հայաստան, ատամնաբուժական AI Երևան, Typhon Namira, Van Arzoyan, տեխնոլոգիական ստարտափ Հայաստան",
     },
     ru: {
-      title: "О Teta2 | Команда и проект стоматологического ИИ в Ереване",
-      description: "Познакомьтесь с основателем Teta2 Typhon Namira и сооснователем Van Arzoyan, миссией проекта, продуктом и контактами в Ереване, Армения.",
-      keywords: "Teta2, Typhon Namira, Van Arzoyan, стоматологический ИИ Армения, стартап Ереван",
+      title: "О Teta2 | Стоматологический ИИ из Еревана",
+      description: "Команда Teta2 в Ереване создает стоматологическое ПО с ИИ для анализа ОПТГ и панорамных снимков, ведения карт пациентов и последующего наблюдения под контролем врача.",
+      keywords: "Teta2, стоматологический ИИ Армения, стоматологический ИИ Ереван, Typhon Namira, Van Arzoyan, стоматологическое ПО",
     },
   },
 };
@@ -188,7 +188,7 @@ function organizationJsonLd() {
       addressLocality: "Yerevan",
       addressCountry: "AM",
     },
-    description: "Dental software project for AI-assisted OPG review, clinician-controlled findings, patient records and follow-up workflow.",
+    description: "Dental AI software project for AI-assisted OPG and panoramic X-ray review, clinician-controlled findings, patient records and follow-up workflow.",
   };
 }
 
@@ -225,8 +225,43 @@ function webpageJsonLd(canonical: string, language: SeoPublicLanguage, entry: Se
     name: entry.title,
     description: entry.description,
     inLanguage: language,
+    keywords: entry.keywords,
     isPartOf: { "@id": `${BASE}/#website` },
     about: { "@id": `${BASE}/#organization` },
+  };
+}
+
+function softwareJsonLd(language: SeoPublicLanguage) {
+  const names: Record<SeoPublicLanguage, string> = {
+    en: "Teta2 dental AI software",
+    hy: "Teta2 ատամնաբուժական AI ծրագիր",
+    ru: "Teta2 — ИИ для стоматологии",
+  };
+  const descriptions: Record<SeoPublicLanguage, string> = {
+    en: "Web software for dental clinics that connects AI-assisted OPG and panoramic X-ray review with clinician decisions, patient follow-up and booking.",
+    hy: "Վեբ ծրագիր ատամնաբուժական կլինիկաների համար, որը կապում է OPG և պանորամիկ ռենտգենի AI-աջակցվող վերլուծությունը բժշկի որոշումների, պացիենտի հետագա վերահսկման և ամրագրման հետ։",
+    ru: "Веб-программа для стоматологических клиник, объединяющая ИИ-анализ ОПТГ и панорамных снимков с решениями врача, наблюдением пациента и записью на прием.",
+  };
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "@id": `${BASE}/product#software`,
+    name: names[language],
+    url: `${BASE}${localizedPublicPath("/product", language)}`,
+    applicationCategory: "BusinessApplication",
+    applicationSubCategory: "Dental clinic software",
+    operatingSystem: "Web",
+    description: descriptions[language],
+    publisher: { "@id": `${BASE}/#organization` },
+    audience: { "@type": "Audience", audienceType: "Dental clinics and dental professionals" },
+    featureList: [
+      "AI-assisted OPG and panoramic dental X-ray review",
+      "Tooth-level clinician review",
+      "Patient records and OPG history",
+      "Sequential patient follow-up",
+      "Multilingual patient messaging",
+      "Appointment booking workflow",
+    ],
   };
 }
 
@@ -244,7 +279,8 @@ function breadcrumbJsonLd(basePath: SeoPublicPath, canonical: string, entry: Seo
 
 function applyStructuredData(basePath: SeoPublicPath, canonical: string, language: SeoPublicLanguage, entry: SeoEntry) {
   document.querySelectorAll('script[data-teta2-seo="true"]').forEach((node) => node.remove());
-  const data = [organizationJsonLd(), websiteJsonLd(), webpageJsonLd(canonical, language, entry)];
+  const data: object[] = [organizationJsonLd(), websiteJsonLd(), webpageJsonLd(canonical, language, entry)];
+  if (basePath === "/" || basePath === "/product" || basePath === "/pricing") data.push(softwareJsonLd(language));
   if (basePath === "/about") data.push(personJsonLd());
   const breadcrumb = breadcrumbJsonLd(basePath, canonical, entry);
   if (breadcrumb) data.push(breadcrumb);
