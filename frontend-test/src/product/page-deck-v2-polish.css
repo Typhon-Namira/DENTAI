@@ -202,3 +202,165 @@
     padding: 18px;
   }
 }
+
+/* Pricing has several nested grids that need an explicit zero minimum size.
+   Scope these rules to Pricing only so the Product page stays exactly as-is. */
+@media (max-width: 680px) {
+  html[lang="hy"] .deck2-pricing,
+  html[lang="ru"] .deck2-pricing {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  html[lang="hy"] .deck2-pricing :is(
+    .deck2-section,
+    .deck2-market-stage,
+    .deck2-market-stage > article,
+    .deck2-market-stage header,
+    .deck2-price-row,
+    .deck2-price-row > div,
+    .deck2-funding,
+    .deck2-50,
+    .deck2-inclusions,
+    .deck2-inclusions article,
+    .deck2-fair,
+    .deck2-infinity,
+    .deck2-onboard,
+    .deck2-onboard article,
+    .deck2-note
+  ),
+  html[lang="ru"] .deck2-pricing :is(
+    .deck2-section,
+    .deck2-market-stage,
+    .deck2-market-stage > article,
+    .deck2-market-stage header,
+    .deck2-price-row,
+    .deck2-price-row > div,
+    .deck2-funding,
+    .deck2-50,
+    .deck2-inclusions,
+    .deck2-inclusions article,
+    .deck2-fair,
+    .deck2-infinity,
+    .deck2-onboard,
+    .deck2-onboard article,
+    .deck2-note
+  ) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-price-row,
+  html[lang="ru"] .deck2-pricing .deck2-price-row {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-price-row > div,
+  html[lang="ru"] .deck2-pricing .deck2-price-row > div {
+    width: 100%;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-price-row b,
+  html[lang="ru"] .deck2-pricing .deck2-price-row b {
+    display: block;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.05;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-price-row small,
+  html[lang="hy"] .deck2-pricing .deck2-price-row span,
+  html[lang="ru"] .deck2-pricing .deck2-price-row small,
+  html[lang="ru"] .deck2-pricing .deck2-price-row span {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-50,
+  html[lang="ru"] .deck2-pricing .deck2-50 {
+    width: 100%;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-50 > div,
+  html[lang="ru"] .deck2-pricing .deck2-50 > div {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-infinity,
+  html[lang="ru"] .deck2-pricing .deck2-infinity {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-infinity b,
+  html[lang="ru"] .deck2-pricing .deck2-infinity b {
+    margin-left: 0;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-note,
+  html[lang="ru"] .deck2-pricing .deck2-note {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  html[lang="hy"] .deck2-pricing .deck2-section,
+  html[lang="ru"] .deck2-pricing .deck2-section {
+    width: calc(100% - 20px);
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-market-stage > article,
+  html[lang="ru"] .deck2-pricing .deck2-market-stage > article {
+    border-radius: 22px;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-market-stage header,
+  html[lang="ru"] .deck2-pricing .deck2-market-stage header {
+    padding: 14px;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-price-row,
+  html[lang="ru"] .deck2-pricing .deck2-price-row {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-price-row .fund,
+  html[lang="ru"] .deck2-pricing .deck2-price-row .fund {
+    padding: 14px;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-inclusions article,
+  html[lang="ru"] .deck2-pricing .deck2-inclusions article {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-inclusions article > svg,
+  html[lang="ru"] .deck2-pricing .deck2-inclusions article > svg {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-infinity,
+  html[lang="ru"] .deck2-pricing .deck2-infinity {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    padding: 18px;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-infinity b,
+  html[lang="ru"] .deck2-pricing .deck2-infinity b {
+    grid-column: 1 / -1;
+    font-size: 2.5rem;
+  }
+
+  html[lang="hy"] .deck2-pricing .deck2-onboard article,
+  html[lang="ru"] .deck2-pricing .deck2-onboard article {
+    padding: 18px;
+  }
+}
