@@ -2,14 +2,15 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { AllRolesAiRunAccess } from "./product/AllRolesAiRunAccess";
+import { BookingExperience } from "./product/BookingExperience";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
+import { FrontendLocaleQuality } from "./product/FrontendLocaleQuality";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
-import { BookingExperience } from "./product/BookingExperience";
 import ProductApp from "./product/ProductApp";
 import { PublicSeo } from "./product/PublicSeo";
 import "./styles/medical-workspace.css";
@@ -52,6 +53,7 @@ createRoot(document.getElementById("root")!).render(
       <FollowupCaseWorkspace />
       <PlatformAccessExperienceV2 />
       <AllRolesAiRunAccess />
+      <FrontendLocaleQuality />
     </>
   </StrictMode>
 );
