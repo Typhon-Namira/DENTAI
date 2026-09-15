@@ -1,42 +1,31 @@
 import { useLayoutEffect } from "react";
 
 import { CareCommandCenter as LegacyCareCommandCenter } from "./CareCommandCenter";
-import "./care-command-current-shell.css";
-
-const SELECTOR_ALIASES: Record<string, string> = {
-  ".clinic-sidebar nav": ".care-sidebar nav",
-  ".clinic-main": ".care-main",
-  ".clinic-shell": ".care-shell",
-  ".clinic-sidebar nav > button:not(.care-nav-button)": ".care-sidebar nav > button:not(.care-nav-button)",
-  ".clinic-patient-select select": ".care-quick-patient select"
-};
-
-type SimpleDocumentQueries = {
-  querySelector: (selectors: string) => Element | null;
-  querySelectorAll: (selectors: string) => NodeListOf<Element>;
-};
 
 /**
- * Compatibility mount for the current clinical dashboard shell.
- *
- * CareCommandCenter predates the current `.care-*` shell class names and still
- * queries the former `.clinic-*` selectors. Keep the command-center behavior
- * untouched and translate only those exact legacy selectors while it is mounted.
+ * Adapts the legacy Teta2 AI command center to the current clinical dashboard
+ * without changing its backend/API behavior. The command center still expects
+ * the former `.clinic-*` shell class names, while the current dashboard uses
+ * `.care-*`. We add those legacy class aliases to the real shell nodes for as
+ * long as the command center is mounted.
  */
 export function CareCommandCenter() {
   useLayoutEffect(() => {
-    const doc = document as unknown as SimpleDocumentQueries;
-    const originalQuerySelector = doc.querySelector;
-    const originalQuerySelectorAll = doc.querySelectorAll;
+    const sidebar = document.querySelector(".care-sidebar");
+    const main = document.querySelector(".care-main");
+    const shell = document.querySelector(".care-shell");
+    const patientSelect = document.querySelector(".care-quick-patient");
 
-    doc.querySelector = (selectors: string) =>
-      originalQuerySelector.call(document, SELECTOR_ALIASES[selectors] ?? selectors);
-    doc.querySelectorAll = (selectors: string) =>
-      originalQuerySelectorAll.call(document, SELECTOR_ALIASES[selectors] ?? selectors);
+    sidebar?.classList.add("clinic-sidebar");
+    main?.classList.add("clinic-main");
+    shell?.classList.add("clinic-shell");
+    patientSelect?.classList.add("clinic-patient-select");
 
     return () => {
-      doc.querySelector = originalQuerySelector;
-      doc.querySelectorAll = originalQuerySelectorAll;
+      sidebar?.classList.remove("clinic-sidebar");
+      main?.classList.remove("clinic-main");
+      shell?.classList.remove("clinic-shell");
+      patientSelect?.classList.remove("clinic-patient-select");
     };
   }, []);
 
