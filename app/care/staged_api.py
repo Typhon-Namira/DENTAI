@@ -210,9 +210,7 @@ async def approve_staged_appointment(
         conversation.booking_context = context
         conversation.status = "WAITING_NEXT_TOOTH"
         conversation.last_message_at = now
-        conversation.summary = (
-            "Appointment confirmed by patient and doctor; AI is inactive until the next tooth follow-up."
-        )
+        conversation.summary = "Appointment confirmed by patient and doctor; AI is inactive until the next tooth follow-up."
         ctx.session.add(
             CareConversationMessage(
                 conversation_id=conversation.id,
