@@ -17,10 +17,13 @@ class ClinicRegistry(Base):
     allowed_origins: Mapped[list] = mapped_column(JSON, default=list)
     feature_flags: Mapped[dict] = mapped_column(JSON, default=dict)
     subscription_plan: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    subscription_state: Mapped[str] = mapped_column(String(40), default="ACTIVE", index=True)
     subscription_starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     subscription_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True
     )
+    free_trial_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    upgrade_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 

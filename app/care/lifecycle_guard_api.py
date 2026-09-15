@@ -16,6 +16,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError
 from app.database.models import Role
 from app.database.sessions import control_session
+from app.platform.entitlements import require_product_access
 
 router = APIRouter(prefix="/care", tags=["care-lifecycle-guard"])
 
@@ -119,7 +120,6 @@ async def _enforce_post_confirmation_patient_lock(
     *,
     phone: str,
 ) -> bool:
-    """Return True when inbound AI handling must remain blocked for this patient."""
     patient = await _find_patient(session, phone)
     if not patient:
         return False
@@ -189,6 +189,7 @@ async def guarded_staged_inbound_whatsapp(
         raise AppError("CLINIC_CONTEXT_INVALID", "Clinic context is invalid.", 422) from exc
 
     clinic = await resolver.by_id(control, clinic_id)
+    require_product_access(clinic)
     async with resolver.session_factory(clinic)() as session:
         locked = await _enforce_post_confirmation_patient_lock(session, phone=phone)
         if locked:

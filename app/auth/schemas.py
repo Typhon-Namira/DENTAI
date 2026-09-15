@@ -43,6 +43,11 @@ class MeResponse(BaseModel):
     role: str
     branch_scope: list[str]
     subscription_plan: str | None
+    subscription_state: str
     subscription_starts_at: datetime | None
     subscription_expires_at: datetime | None
     subscription_days_remaining: int | None
+    subscription_seconds_remaining: int | None
+    free_trial_started_at: datetime | None
+    upgrade_requested_at: datetime | None
+    entitlements: dict[str, int | None]

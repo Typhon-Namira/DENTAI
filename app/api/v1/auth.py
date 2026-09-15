@@ -30,6 +30,7 @@ from app.core.errors import AppError
 from app.core.rate_limit import sensitive_limit
 from app.database.models import AuditLog, RefreshSession, User
 from app.database.sessions import control_session
+from app.platform.entitlements import entitlement_payload, seconds_remaining, subscription_state
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
@@ -137,7 +138,6 @@ async def refresh(body: RefreshRequest, control: Annotated[AsyncSession, Depends
 
 @router.post("/logout", status_code=204)
 async def logout(body: LogoutRequest):
-    # Resolve the clinic from the signed refresh token, never from request clinic input.
     payload = decode_token(body.refresh_token, "refresh")
     from app.database.sessions import ControlSession
 
@@ -157,10 +157,9 @@ async def me(ctx: Annotated[AuthContext, Depends(current_context)]):
     expires_at = ctx.clinic.subscription_expires_at
     if expires_at is not None and expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=UTC)
+    remaining_seconds = seconds_remaining(ctx.clinic)
     days_remaining = (
-        max(0, math.ceil((expires_at - datetime.now(UTC)).total_seconds() / 86400))
-        if expires_at is not None
-        else None
+        max(0, math.ceil(remaining_seconds / 86400)) if remaining_seconds is not None else None
     )
     return MeResponse(
         id=str(ctx.user.id),
@@ -170,9 +169,14 @@ async def me(ctx: Annotated[AuthContext, Depends(current_context)]):
         role=ctx.user.role.value,
         branch_scope=[str(x) for x in ctx.branch_ids],
         subscription_plan=ctx.clinic.subscription_plan,
+        subscription_state=subscription_state(ctx.clinic),
         subscription_starts_at=ctx.clinic.subscription_starts_at,
         subscription_expires_at=expires_at,
         subscription_days_remaining=days_remaining,
+        subscription_seconds_remaining=remaining_seconds,
+        free_trial_started_at=getattr(ctx.clinic, "free_trial_started_at", None),
+        upgrade_requested_at=getattr(ctx.clinic, "upgrade_requested_at", None),
+        entitlements=entitlement_payload(ctx.clinic),
     )
 
 

@@ -29,9 +29,18 @@ export interface CurrentUser {
   role: Role;
   branch_scope: string[];
   subscription_plan: string | null;
+  subscription_state: "ACTIVE" | "FREE_EXPIRED" | "EXPIRED" | "PAYMENT_REVIEW" | string;
   subscription_starts_at: string | null;
   subscription_expires_at: string | null;
   subscription_days_remaining: number | null;
+  subscription_seconds_remaining: number | null;
+  free_trial_started_at: string | null;
+  upgrade_requested_at: string | null;
+  entitlements: {
+    patient_limit: number | null;
+    opg_per_patient_limit: number | null;
+    followup_teeth_per_opg_limit: number | null;
+  };
 }
 
 export interface Patient {

@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +12,20 @@ from app.clinic_resolution.service import ResolvedClinic, resolver
 from app.core.errors import AppError
 from app.database.models import Patient, PatientDoctorAssignment, Role, User, UserBranchScope
 from app.database.sessions import control_session
+from app.platform.entitlements import (
+    enforce_free_opg_limit,
+    enforce_free_patient_limit,
+    require_product_access,
+)
 
 bearer = HTTPBearer(auto_error=False)
+
+_SUBSCRIPTION_SHELL_PATHS = {
+    "/api/v1/auth/me",
+    "/api/v1/auth/logout",
+    "/api/v1/platform/subscription/status",
+    "/api/v1/platform/subscription/upgrade",
+}
 
 
 @dataclass
@@ -25,6 +37,7 @@ class AuthContext:
 
 
 async def current_context(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
     control: Annotated[AsyncSession, Depends(control_session)],
 ):
@@ -32,6 +45,8 @@ async def current_context(
         raise AppError("AUTH_REQUIRED", "Authentication is required.", 401)
     payload = decode_token(credentials.credentials, "access")
     clinic = await resolver.by_id(control, uuid.UUID(payload["clinic"]))
+    if request.url.path not in _SUBSCRIPTION_SHELL_PATHS:
+        require_product_access(clinic)
     factory = resolver.session_factory(clinic)
     async with factory() as db:
         user = await db.get(User, uuid.UUID(payload["sub"]))
@@ -44,6 +59,18 @@ async def current_context(
                 )
             ).all()
         )
+
+        if request.method == "POST" and request.url.path == "/api/v1/patients":
+            await enforce_free_patient_limit(db, clinic)
+        xray_prefix = "/api/v1/xrays/patients/"
+        if request.method == "POST" and request.url.path.startswith(xray_prefix):
+            raw_patient_id = request.url.path.removeprefix(xray_prefix).split("/", 1)[0]
+            try:
+                patient_id = uuid.UUID(raw_patient_id)
+            except ValueError as exc:
+                raise AppError("PATIENT_ID_INVALID", "Patient ID is invalid.", 422) from exc
+            await enforce_free_opg_limit(db, clinic, patient_id)
+
         yield AuthContext(clinic, user, branches, db)
 
 

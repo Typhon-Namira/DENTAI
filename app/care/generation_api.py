@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -13,6 +14,7 @@ from app.care.service import settings_for_branch
 from app.common.serialization import model_dict
 from app.core.errors import AppError
 from app.database.models import AIAnalysis, AIStatus, DentalFinding, FindingReview, Patient
+from app.platform.entitlements import FREE_FOLLOWUP_TEETH_PER_OPG_LIMIT, is_free
 
 router = APIRouter(prefix="/care", tags=["care"])
 
@@ -37,7 +39,11 @@ async def followup_generation_readiness(
     ctx: Annotated[AuthContext, Depends(current_context)],
 ):
     analysis = await _completed_analysis(ctx, analysis_id)
-    return await generation_readiness(ctx.session, analysis)
+    result = await generation_readiness(ctx.session, analysis)
+    if is_free(ctx.clinic):
+        result["free_plan_limit"] = FREE_FOLLOWUP_TEETH_PER_OPG_LIMIT
+        result["candidate_count_before_plan_limit"] = result.get("candidate_count", 0)
+    return result
 
 
 @router.post("/analyses/{analysis_id}/generate-plan")
@@ -54,16 +60,31 @@ async def generate_followup_plan(
             409,
         )
 
-    items = (
-        await ctx.session.scalars(
-            select(CarePlanItem)
-            .where(
-                CarePlanItem.care_plan_id == plan.id,
-                CarePlanItem.status != "REJECTED",
+    items = list(
+        (
+            await ctx.session.scalars(
+                select(CarePlanItem)
+                .where(
+                    CarePlanItem.care_plan_id == plan.id,
+                    CarePlanItem.status != "REJECTED",
+                )
+                .order_by(CarePlanItem.sequence_order.asc(), CarePlanItem.priority_score.desc())
             )
-            .order_by(CarePlanItem.sequence_order.asc(), CarePlanItem.priority_score.desc())
+        ).all()
+    )
+
+    if is_free(ctx.clinic) and len(items) > FREE_FOLLOWUP_TEETH_PER_OPG_LIMIT:
+        keep = items[:FREE_FOLLOWUP_TEETH_PER_OPG_LIMIT]
+        for item in items[FREE_FOLLOWUP_TEETH_PER_OPG_LIMIT:]:
+            item.status = "REJECTED"
+            item.outcome = "FREE_PLAN_LIMIT"
+            item.outcome_at = datetime.now(UTC)
+            item.conversation_start_at = None
+        items = keep
+        plan.summary = (
+            "Free plan follow-up: the highest-priority pathological tooth is included. "
+            "Upgrade to Premium to follow all eligible teeth from this OPG."
         )
-    ).all()
 
     patient = await ctx.session.get(Patient, plan.patient_id)
     findings = {
@@ -119,6 +140,7 @@ async def generate_followup_plan(
             "review_status": str(analysis.review_status),
             "tooth_count": len(items),
             "groq_draft_count": len(groq_drafts),
+            "subscription_plan": ctx.clinic.subscription_plan,
         },
     )
     await ctx.session.commit()

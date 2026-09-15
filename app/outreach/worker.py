@@ -29,6 +29,7 @@ from app.database.models import (
 from app.database.sessions import ControlSession
 from app.outreach.images import finding_crop
 from app.outreach.whatsapp_client import WhatsAppServiceClient, WhatsAppServiceError
+from app.platform.entitlements import subscription_state
 
 PERMANENT_ERRORS = {
     "WHATSAPP_PHONE_REQUIRED",
@@ -273,6 +274,10 @@ async def run() -> None:
             ).all()
             for registry in clinics:
                 clinic = await resolver.by_id(control, registry.id)
+                # Keep already queued reminders intact while access is locked.
+                # They can resume on the same tenant if Premium is approved.
+                if subscription_state(clinic) != "ACTIVE":
+                    continue
                 async with resolver.session_factory(clinic)() as session:
                     did_work = (
                         await process_due(
