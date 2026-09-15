@@ -8,7 +8,6 @@ import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
 import { FreemiumCountryField } from "./product/FreemiumCountryField";
-import { FrontendLocaleQuality } from "./product/FrontendLocaleQuality";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { LegalLocaleQuality } from "./product/LegalLocaleQuality";
@@ -16,6 +15,7 @@ import { LocalizedPublicRouteBridge, prepareLocalizedPublicRoute } from "./produ
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
 import ProductApp from "./product/ProductApp";
+import { PublicLocaleQualityGate } from "./product/PublicLocaleQualityGate";
 import { PublicSeo } from "./product/PublicSeo";
 import { PublicSeoSemantics } from "./product/PublicSeoSemantics";
 import { SeoAuthorityContent } from "./product/SeoAuthorityContent";
@@ -70,7 +70,7 @@ createRoot(document.getElementById("root")!).render(
       <FreemiumPublicExperience />
       <SubscriptionExperience />
       <AllRolesAiRunAccess />
-      <FrontendLocaleQuality />
+      <PublicLocaleQualityGate />
       <LegalLocaleQuality />
     </>
   </StrictMode>
