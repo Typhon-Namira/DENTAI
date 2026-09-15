@@ -1,6 +1,6 @@
 """Platform admin accounting, gift provenance, and audit metadata.
 
-Revision ID: 0014_platform_admin_control_center
+Revision ID: 0014_admin_control
 Revises: 0013_freemium_subscriptions
 """
 
@@ -9,7 +9,7 @@ import os
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0014_platform_admin_control_center"
+revision = "0014_admin_control"
 down_revision = "0013_freemium_subscriptions"
 branch_labels = None
 depends_on = None
@@ -43,9 +43,7 @@ def upgrade() -> None:
     request_columns = {
         column["name"] for column in inspector.get_columns("platform_access_requests")
     }
-    request_indexes = {
-        index["name"] for index in inspector.get_indexes("platform_access_requests")
-    }
+    request_indexes = {index["name"] for index in inspector.get_indexes("platform_access_requests")}
     with op.batch_alter_table("platform_access_requests") as batch:
         if "payment_amount" not in request_columns:
             batch.add_column(sa.Column("payment_amount", sa.Integer()))
@@ -107,9 +105,7 @@ def downgrade() -> None:
     request_columns = {
         column["name"] for column in inspector.get_columns("platform_access_requests")
     }
-    request_indexes = {
-        index["name"] for index in inspector.get_indexes("platform_access_requests")
-    }
+    request_indexes = {index["name"] for index in inspector.get_indexes("platform_access_requests")}
     with op.batch_alter_table("platform_access_requests") as batch:
         if "ix_platform_access_requests_payment_verified_at" in request_indexes:
             batch.drop_index("ix_platform_access_requests_payment_verified_at")
