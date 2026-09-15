@@ -6,6 +6,7 @@ import { BookingExperience } from "./product/BookingExperience";
 import { CareCommandCenter } from "./product/CareCommandCenterCurrentShell";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
+import { DashboardNativeLocale } from "./product/DashboardNativeLocale";
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
 import { FreemiumCountryField } from "./product/FreemiumCountryField";
 import { FrontendLocaleQuality } from "./product/FrontendLocaleQuality";
@@ -70,6 +71,7 @@ createRoot(document.getElementById("root")!).render(
       <FreemiumPublicExperience />
       <SubscriptionExperience />
       <AllRolesAiRunAccess />
+      <DashboardNativeLocale />
       <FrontendLocaleQuality />
       <LegalLocaleQuality />
     </>
