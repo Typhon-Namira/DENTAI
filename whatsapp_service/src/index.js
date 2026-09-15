@@ -322,7 +322,9 @@ export function createService(deps = {}) {
         remote_jid_domain: messages?.[0] ? jidDomain(messages[0]?.key?.remoteJid) : null,
         from_me: messages?.[0]?.key?.fromMe ?? null
       });
-      for (const message of messages || []) void forwardInbound(safeId, message, socket);
+      if (type === "notify") {
+        for (const message of messages || []) void forwardInbound(safeId, message, socket);
+      }
     });
     socket.ev.on("messages.update", (updates) => {
       for (const item of updates || []) {
