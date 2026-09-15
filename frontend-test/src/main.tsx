@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { AllRolesAiRunAccess } from "./product/AllRolesAiRunAccess";
 import { BookingExperience } from "./product/BookingExperience";
+import { CareCommandCenter } from "./product/CareCommandCenter";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
@@ -24,6 +25,7 @@ import "./v4/v4-clinical-tools.css";
 import "./v4/v4-opg-findings.css";
 import "./v4/v4-opg-coordinate-fix.css";
 import "./product/product.css";
+import "./product/care-command.css";
 import "./product/care-experience.css";
 import "./product/followup-case.css";
 import "./product/platform-access.css";
@@ -57,6 +59,7 @@ createRoot(document.getElementById("root")!).render(
       <HomepageHeroFollowupAsset />
       <HomepageEvidenceSections />
       <PageDeckSectionsV2 />
+      <CareCommandCenter />
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
