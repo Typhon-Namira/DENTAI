@@ -6,302 +6,62 @@ import { api, errorMessage } from "../api/client";
 import { productApi, type CarePlan, type CarePlanItem, type CareSettings } from "../api/product";
 import type { WhatsAppConnection } from "../api/types";
 import { WHATSAPP_QR_POLL_MS } from "../utils/whatsapp";
+import { dashboardFinding, dashboardLocale, dashboardStatus, type DashboardLang } from "./dashboardI18n";
+import { useDashboardLanguage } from "./useDashboardLanguage";
 
-function title(value: string | null | undefined): string {
-  if (!value) return "—";
-  return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function patientName(plan: CarePlan): string {
-  const patient = plan.patient;
-  return patient ? `${patient.first_name} ${patient.last_name}`.trim() : plan.patient_id;
-}
-
-function dateParts(value: string, timeZone: string): Record<string, string> {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
-    hourCycle: "h23"
-  }).formatToParts(new Date(value));
-  return Object.fromEntries(parts.map((part) => [part.type, part.value]));
-}
-
-function localInputValue(value: string | null | undefined, timeZone: string): string {
-  if (!value) return "";
-  const p = dateParts(value, timeZone);
-  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
-}
-
-function formatClinicDate(value: string | null | undefined, timeZone: string, withTime = true): string {
-  if (!value) return "Not scheduled";
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    month: "short", day: "numeric", year: "numeric",
-    ...(withTime ? { hour: "numeric", minute: "2-digit" } : {})
-  }).format(new Date(value));
-}
-
-function zoneOffsetMs(at: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
-  }).formatToParts(at);
-  const p = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const wallAsUtc = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second));
-  return wallAsUtc - at.getTime();
-}
-
-function clinicLocalToIso(localValue: string, timeZone: string): string {
-  const [date, clock] = localValue.split("T");
-  const [year, month, day] = date.split("-").map(Number);
-  const [hour, minute] = clock.split(":").map(Number);
-  const wallUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
-  let instant = new Date(wallUtc);
-  let offset = zoneOffsetMs(instant, timeZone);
-  instant = new Date(wallUtc - offset);
-  const corrected = zoneOffsetMs(instant, timeZone);
-  if (corrected !== offset) instant = new Date(wallUtc - corrected);
-  return instant.toISOString();
-}
-
-function ensureHost(): HTMLElement | null {
-  if (!document.querySelector(".plan-list")) return null;
-  const oldHost = document.getElementById("care-enhancer-plans");
-  if (oldHost) oldHost.style.display = "none";
-  let host = document.getElementById("followup-case-workspace-host");
-  if (host) return host;
-  const anchor = document.querySelector(".plan-list");
-  if (!anchor?.parentElement) return null;
-  host = document.createElement("div");
-  host.id = "followup-case-workspace-host";
-  anchor.parentElement.insertBefore(host, anchor);
-  return host;
-}
-
-export function FollowupCaseWorkspace() {
-  const [host, setHost] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    const sync = () => {
-      const active = Boolean(document.querySelector(".plan-list"));
-      const oldHost = document.getElementById("care-enhancer-plans");
-      if (oldHost) oldHost.style.display = active ? "none" : "";
-      setHost(active ? ensureHost() : null);
-    };
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-    const timer = window.setInterval(sync, 700);
-    return () => {
-      observer.disconnect();
-      window.clearInterval(timer);
-      const oldHost = document.getElementById("care-enhancer-plans");
-      if (oldHost) oldHost.style.display = "";
-    };
-  }, []);
-  return host ? createPortal(<CaseWorkspace />, host) : null;
-}
-
-function CaseWorkspace() {
-  const [plans, setPlans] = useState<CarePlan[]>([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [query, setQuery] = useState("");
-  const [settings, setSettings] = useState<Record<string, CareSettings>>({});
-  const [busy, setBusy] = useState("");
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
-  const load = useCallback(async () => {
-    const next = await productApi.sequentialCarePlans();
-    setPlans(next);
-    setSelectedId((current) => current && next.some((p) => p.id === current) ? current : next[0]?.id ?? "");
-    const branchIds = [...new Set(next.map((p) => p.branch_id))];
-    const rows = await Promise.all(branchIds.map(async (id) => [id, await productApi.careSettings(id)] as const));
-    setSettings(Object.fromEntries(rows));
-  }, []);
-
-  useEffect(() => { void load().catch((reason) => setError(errorMessage(reason))); }, [load]);
-
-  const visible = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return plans;
-    return plans.filter((plan) => {
-      const patient = plan.patient;
-      const hay = `${patientName(plan)} ${patient?.patient_number ?? ""} ${patient?.whatsapp_phone ?? ""} ${plan.status}`.toLowerCase();
-      return hay.includes(term);
-    });
-  }, [plans, query]);
-  const selected = plans.find((plan) => plan.id === selectedId) ?? visible[0];
-  const zone = selected ? settings[selected.branch_id]?.timezone ?? "UTC" : "UTC";
-
-  async function approve(planId: string) {
-    setBusy(planId); setError(""); setNotice("");
-    try {
-      await productApi.approveSequentialCarePlan(planId);
-      setNotice("Follow-up activated. The first outreach is scheduled; later teeth stay locked to the sequence.");
-      await load();
-    } catch (reason) { setError(errorMessage(reason)); } finally { setBusy(""); }
+const COPY = {
+  en: {
+    notScheduled:"Not scheduled", activated:"Follow-up activated. The first outreach is scheduled; later teeth stay locked to the sequence.", rescheduled:(date:string)=>`First WhatsApp outreach rescheduled to ${date}.`,
+    cases:"FOLLOW-UP CASES", workspace:"Patient follow-up workspace", workspaceLead:"One patient = one organized case file. All dates are shown in the clinic timezone.", clinicTimezone:"Clinic timezone", search:"Search patient, ID or WhatsApp", patient:"Patient", teeth:(n:number)=>`${n} tooth${n===1?"":"s"}`, next:"Next", noCases:"No matching patient cases.", noSelected:"No follow-up case selected.",
+    clinicWhatsapp:"Clinic WhatsApp", connected:"Connected", disconnected:"Disconnected", disconnect:"Disconnect", qrConnect:"QR connect", connect:"Connect clinic WhatsApp", closeQr:"Close QR", scan:"Scan QR to connect", generatingQr:"Generating QR…", qrSteps:"WhatsApp → Linked devices → Link a device", connectedTitle:"Clinic WhatsApp connected", disconnectedTitle:"Clinic WhatsApp disconnected",
+    patientFile:"PATIENT FOLLOW-UP FILE", whatsappMissing:"WhatsApp not registered", approve:"Approve outreach", teethInPlan:"Teeth in plan", currentTooth:"Current tooth", firstOutreach:"First outreach", timezone:"Timezone", firstWhatsapp:"FIRST WHATSAPP OUTREACH", doctorCanChange:"Doctor can change this before the first message is sent", scheduledOutreach:"Scheduled outreach", controls:"This controls when the AI sends the opening WhatsApp message for the first priority tooth.", saving:"Saving…", saveTime:"Save send time", sequence:"TREATMENT FOLLOW-UP SEQUENCE", toothPlan:"Tooth-by-tooth plan", sequenceRule:"Later teeth unlock only after the previous outcome.", clinicalFollowup:"Clinical follow-up", outreach:"Outreach", afterPrevious:"After previous tooth outcome", clinicalTarget:"Clinical target", outcome:"Outcome", openingMessage:"Opening message will be prepared before outreach."
+  },
+  hy: {
+    notScheduled:"Պլանավորված չէ", activated:"Հետագա հսկողությունն ակտիվացված է։ Առաջին կապը պացիենտի հետ պլանավորված է, իսկ հաջորդ ատամները բացվում են միայն հերթականությամբ։", rescheduled:(date:string)=>`WhatsApp-ի առաջին հաղորդագրության ժամը փոխվել է՝ ${date}։`,
+    cases:"ՀԵՏԱԳԱ ՀՍԿՈՂՈՒԹՅԱՆ ԳՈՐԾԵՐ", workspace:"Պացիենտների հետագա հսկողության աշխատանքային միջավայր", workspaceLead:"Յուրաքանչյուր պացիենտ ունի առանձին կազմակերպված գործ։ Բոլոր ամսաթվերը ցուցադրվում են կլինիկայի ժամային գոտով։", clinicTimezone:"Կլինիկայի ժամային գոտի", search:"Փնտրել պացիենտ, համար կամ WhatsApp", patient:"Պացիենտ", teeth:(n:number)=>`${n} ատամ`, next:"Հաջորդը", noCases:"Համապատասխան պացիենտի գործ չի գտնվել։", noSelected:"Հետագա հսկողության գործ ընտրված չէ։",
+    clinicWhatsapp:"Կլինիկայի WhatsApp", connected:"Միացված է", disconnected:"Անջատված է", disconnect:"Անջատել", qrConnect:"Միացնել QR-ով", connect:"Միացնել կլինիկայի WhatsApp-ը", closeQr:"Փակել QR պատուհանը", scan:"Սկանավորեք QR կոդը՝ միացնելու համար", generatingQr:"Ստեղծվում է QR կոդը…", qrSteps:"WhatsApp → Կապակցված սարքեր → Կապակցել սարք", connectedTitle:"Կլինիկայի WhatsApp-ը միացված է", disconnectedTitle:"Կլինիկայի WhatsApp-ը անջատված է",
+    patientFile:"ՊԱՑԻԵՆՏԻ ՀԵՏԱԳԱ ՀՍԿՈՂՈՒԹՅԱՆ ԳՈՐԾ", whatsappMissing:"WhatsApp համարը գրանցված չէ", approve:"Հաստատել կապը պացիենտի հետ", teethInPlan:"Պլանում ընդգրկված ատամներ", currentTooth:"Ընթացիկ ատամ", firstOutreach:"Առաջին կապ", timezone:"Ժամային գոտի", firstWhatsapp:"WHATSAPP-Ի ԱՌԱՋԻՆ ՀԱՂՈՐԴԱԳՐՈՒԹՅՈՒՆ", doctorCanChange:"Բժիշկը կարող է փոխել ժամը մինչև առաջին հաղորդագրության ուղարկումը", scheduledOutreach:"Պլանավորված կապ", controls:"Այստեղ սահմանվում է առաջին առաջնահերթ ատամի համար WhatsApp-ի սկզբնական հաղորդագրության ուղարկման ժամը։", saving:"Պահպանվում է…", saveTime:"Պահպանել ուղարկման ժամը", sequence:"ԲՈՒԺՄԱՆ ՀԵՏԱԳԱ ՀՍԿՈՂՈՒԹՅԱՆ ՀԵՐԹԱԿԱՆՈՒԹՅՈՒՆ", toothPlan:"Ատամ առ ատամ պլան", sequenceRule:"Հաջորդ ատամը բացվում է միայն նախորդ փուլի արդյունքը գրանցելուց հետո։", clinicalFollowup:"Կլինիկական հետագա հսկողություն", outreach:"Կապ", afterPrevious:"Նախորդ ատամի արդյունքից հետո", clinicalTarget:"Կլինիկական հսկողության ժամկետ", outcome:"Արդյունք", openingMessage:"Առաջին հաղորդագրությունը կպատրաստվի կապից առաջ։"
+  },
+  ru: {
+    notScheduled:"Не запланировано", activated:"Наблюдение активировано. Первая связь с пациентом запланирована; следующие зубы открываются только по очереди.", rescheduled:(date:string)=>`Время первого сообщения WhatsApp изменено: ${date}.`,
+    cases:"СЛУЧАИ ПОСЛЕДУЮЩЕГО НАБЛЮДЕНИЯ", workspace:"Рабочее пространство наблюдения пациентов", workspaceLead:"Для каждого пациента ведется отдельное организованное дело. Все даты отображаются в часовом поясе клиники.", clinicTimezone:"Часовой пояс клиники", search:"Поиск по пациенту, номеру или WhatsApp", patient:"Пациент", teeth:(n:number)=>`${n} зуб${n===1?"":"ов"}`, next:"Далее", noCases:"Подходящих случаев не найдено.", noSelected:"Случай наблюдения не выбран.",
+    clinicWhatsapp:"WhatsApp клиники", connected:"Подключен", disconnected:"Не подключен", disconnect:"Отключить", qrConnect:"Подключить по QR", connect:"Подключить WhatsApp клиники", closeQr:"Закрыть QR", scan:"Отсканируйте QR-код для подключения", generatingQr:"Создание QR-кода…", qrSteps:"WhatsApp → Связанные устройства → Привязать устройство", connectedTitle:"WhatsApp клиники подключен", disconnectedTitle:"WhatsApp клиники не подключен",
+    patientFile:"КАРТА ПОСЛЕДУЮЩЕГО НАБЛЮДЕНИЯ", whatsappMissing:"WhatsApp не указан", approve:"Подтвердить связь с пациентом", teethInPlan:"Зубов в плане", currentTooth:"Текущий зуб", firstOutreach:"Первая связь", timezone:"Часовой пояс", firstWhatsapp:"ПЕРВОЕ СООБЩЕНИЕ WHATSAPP", doctorCanChange:"Врач может изменить время до отправки первого сообщения", scheduledOutreach:"Запланированная связь", controls:"Здесь задается время отправки первого сообщения WhatsApp по первому приоритетному зубу.", saving:"Сохранение…", saveTime:"Сохранить время отправки", sequence:"ПОСЛЕДОВАТЕЛЬНОСТЬ ПОСЛЕДУЮЩЕГО НАБЛЮДЕНИЯ", toothPlan:"План по каждому зубу", sequenceRule:"Следующий зуб открывается только после фиксации результата предыдущего этапа.", clinicalFollowup:"Клиническое наблюдение", outreach:"Связь", afterPrevious:"После результата по предыдущему зубу", clinicalTarget:"Срок клинического наблюдения", outcome:"Результат", openingMessage:"Первое сообщение будет подготовлено до связи с пациентом."
   }
+} as const;
 
-  async function saveFirstStart(plan: CarePlan, item: CarePlanItem, localValue: string) {
-    setBusy(`start-${item.id}`); setError(""); setNotice("");
-    try {
-      const iso = clinicLocalToIso(localValue, settings[plan.branch_id]?.timezone ?? "UTC");
-      await productApi.updateSequenceSchedule(plan.id, item.id, iso);
-      setNotice(`First WhatsApp outreach rescheduled to ${formatClinicDate(iso, settings[plan.branch_id]?.timezone ?? "UTC")}.`);
-      await load();
-    } catch (reason) { setError(errorMessage(reason)); } finally { setBusy(""); }
-  }
+function patientName(plan: CarePlan): string { const patient=plan.patient; return patient?`${patient.first_name} ${patient.last_name}`.trim():plan.patient_id; }
+function dateParts(value:string,timeZone:string):Record<string,string>{const parts=new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(value));return Object.fromEntries(parts.map((part)=>[part.type,part.value]))}
+function localInputValue(value:string|null|undefined,timeZone:string):string{if(!value)return"";const p=dateParts(value,timeZone);return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`}
+function formatClinicDate(value:string|null|undefined,timeZone:string,lang:DashboardLang,withTime=true):string{if(!value)return COPY[lang].notScheduled;return new Intl.DateTimeFormat(dashboardLocale(lang),{timeZone,month:"short",day:"numeric",year:"numeric",...(withTime?{hour:"numeric",minute:"2-digit"}:{})}).format(new Date(value))}
+function zoneOffsetMs(at:Date,timeZone:string):number{const parts=new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(at);const p=Object.fromEntries(parts.map((part)=>[part.type,part.value]));return Date.UTC(Number(p.year),Number(p.month)-1,Number(p.day),Number(p.hour),Number(p.minute),Number(p.second))-at.getTime()}
+function clinicLocalToIso(localValue:string,timeZone:string):string{const[date,clock]=localValue.split("T");const[year,month,day]=date.split("-").map(Number);const[hour,minute]=clock.split(":").map(Number);const wallUtc=Date.UTC(year,month-1,day,hour,minute,0);let instant=new Date(wallUtc);let offset=zoneOffsetMs(instant,timeZone);instant=new Date(wallUtc-offset);const corrected=zoneOffsetMs(instant,timeZone);if(corrected!==offset)instant=new Date(wallUtc-corrected);return instant.toISOString()}
+function ensureHost():HTMLElement|null{if(!document.querySelector(".plan-list"))return null;const oldHost=document.getElementById("care-enhancer-plans");if(oldHost)oldHost.style.display="none";let host=document.getElementById("followup-case-workspace-host");if(host)return host;const anchor=document.querySelector(".plan-list");if(!anchor?.parentElement)return null;host=document.createElement("div");host.id="followup-case-workspace-host";anchor.parentElement.insertBefore(host,anchor);return host}
 
-  return <section className="followup-case-shell">
-    <header className="followup-case-topbar">
-      <div><span>FOLLOW-UP CASES</span><h2>Patient follow-up workspace</h2><p>One patient = one organized case file. All dates are shown in the clinic timezone.</p></div>
-      <div className="followup-top-actions"><ClinicWhatsAppControl/><div className="case-timezone"><Clock3/><div><small>Clinic timezone</small><b>{zone}</b></div></div></div>
-    </header>
-    {notice && <div className="case-notice"><Check/>{notice}</div>}
-    {error && <div className="care-inline-error case-error">{error}</div>}
-    <div className="followup-case-grid">
-      <aside className="case-index">
-        <label className="case-search"><Search/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search patient, ID or WhatsApp"/></label>
-        <div className="case-index-list">
-          {visible.map((plan) => {
-            const first = [...plan.items].sort((a,b)=>(a.sequence_order ?? 999)-(b.sequence_order ?? 999))[0];
-            const tz = settings[plan.branch_id]?.timezone ?? "UTC";
-            return <button key={plan.id} className={plan.id === selected?.id ? "active" : ""} onClick={() => setSelectedId(plan.id)}>
-              <span className="case-avatar">{plan.patient?.first_name?.[0] ?? "P"}{plan.patient?.last_name?.[0] ?? ""}</span>
-              <span className="case-index-copy"><b>{patientName(plan)}</b><small>{plan.patient?.patient_number ?? "Patient"} · {plan.items.length} tooth{plan.items.length === 1 ? "" : "s"}</small><em>{first?.conversation_start_at ? `Next: ${formatClinicDate(first.conversation_start_at, tz)}` : title(first?.status ?? plan.status)}</em></span>
-              <ChevronRight/>
-            </button>;
-          })}
-          {!visible.length && <div className="case-empty">No matching patient cases.</div>}
-        </div>
-      </aside>
-      <main className="case-file">
-        {selected ? <PatientCase plan={selected} careSettings={settings[selected.branch_id]} busy={busy} onApprove={approve} onSaveFirstStart={saveFirstStart}/> : <div className="case-empty large"><FileHeart/><p>No follow-up case selected.</p></div>}
-      </main>
-    </div>
-  </section>;
+export function FollowupCaseWorkspace(){const[host,setHost]=useState<HTMLElement|null>(null);useEffect(()=>{const sync=()=>{const active=Boolean(document.querySelector(".plan-list"));const oldHost=document.getElementById("care-enhancer-plans");if(oldHost)oldHost.style.display=active?"none":"";setHost(active?ensureHost():null)};sync();const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true,attributes:true});const timer=window.setInterval(sync,700);return()=>{observer.disconnect();window.clearInterval(timer);const oldHost=document.getElementById("care-enhancer-plans");if(oldHost)oldHost.style.display=""}},[]);return host?createPortal(<CaseWorkspace/>,host):null}
+
+function CaseWorkspace(){
+  const lang=useDashboardLanguage();const c=COPY[lang];const[plans,setPlans]=useState<CarePlan[]>([]);const[selectedId,setSelectedId]=useState("");const[query,setQuery]=useState("");const[settings,setSettings]=useState<Record<string,CareSettings>>({});const[busy,setBusy]=useState("");const[error,setError]=useState("");const[notice,setNotice]=useState("");
+  const load=useCallback(async()=>{const next=await productApi.sequentialCarePlans();setPlans(next);setSelectedId((current)=>current&&next.some((p)=>p.id===current)?current:next[0]?.id??"");const branchIds=[...new Set(next.map((p)=>p.branch_id))];const rows=await Promise.all(branchIds.map(async(id)=>[id,await productApi.careSettings(id)] as const));setSettings(Object.fromEntries(rows))},[]);
+  useEffect(()=>{void load().catch((reason)=>setError(errorMessage(reason)))},[load]);
+  const visible=useMemo(()=>{const term=query.trim().toLowerCase();if(!term)return plans;return plans.filter((plan)=>{const patient=plan.patient;return `${patientName(plan)} ${patient?.patient_number??""} ${patient?.whatsapp_phone??""} ${plan.status}`.toLowerCase().includes(term)})},[plans,query]);
+  const selected=plans.find((plan)=>plan.id===selectedId)??visible[0];const zone=selected?settings[selected.branch_id]?.timezone??"UTC":"UTC";
+  async function approve(planId:string){setBusy(planId);setError("");setNotice("");try{await productApi.approveSequentialCarePlan(planId);setNotice(c.activated);await load()}catch(reason){setError(errorMessage(reason))}finally{setBusy("")}}
+  async function saveFirstStart(plan:CarePlan,item:CarePlanItem,localValue:string){setBusy(`start-${item.id}`);setError("");setNotice("");try{const tz=settings[plan.branch_id]?.timezone??"UTC";const iso=clinicLocalToIso(localValue,tz);await productApi.updateSequenceSchedule(plan.id,item.id,iso);setNotice(c.rescheduled(formatClinicDate(iso,tz,lang)));await load()}catch(reason){setError(errorMessage(reason))}finally{setBusy("")}}
+  return <section className="followup-case-shell"><header className="followup-case-topbar"><div><span>{c.cases}</span><h2>{c.workspace}</h2><p>{c.workspaceLead}</p></div><div className="followup-top-actions"><ClinicWhatsAppControl lang={lang}/><div className="case-timezone"><Clock3/><div><small>{c.clinicTimezone}</small><b>{zone}</b></div></div></div></header>{notice&&<div className="case-notice"><Check/>{notice}</div>}{error&&<div className="care-inline-error case-error">{error}</div>}<div className="followup-case-grid"><aside className="case-index"><label className="case-search"><Search/><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder={c.search}/></label><div className="case-index-list">{visible.map((plan)=>{const first=[...plan.items].sort((a,b)=>(a.sequence_order??999)-(b.sequence_order??999))[0];const tz=settings[plan.branch_id]?.timezone??"UTC";return <button key={plan.id} className={plan.id===selected?.id?"active":""} onClick={()=>setSelectedId(plan.id)}><span className="case-avatar">{plan.patient?.first_name?.[0]??"P"}{plan.patient?.last_name?.[0]??""}</span><span className="case-index-copy"><b>{patientName(plan)}</b><small>{plan.patient?.patient_number??c.patient} · {c.teeth(plan.items.length)}</small><em>{first?.conversation_start_at?`${c.next}: ${formatClinicDate(first.conversation_start_at,tz,lang)}`:dashboardStatus(first?.status??plan.status,lang)}</em></span><ChevronRight/></button>})}{!visible.length&&<div className="case-empty">{c.noCases}</div>}</div></aside><main className="case-file">{selected?<PatientCase lang={lang} plan={selected} careSettings={settings[selected.branch_id]} busy={busy} onApprove={approve} onSaveFirstStart={saveFirstStart}/>:<div className="case-empty large"><FileHeart/><p>{c.noSelected}</p></div>}</main></div></section>;
 }
 
-function ClinicWhatsAppControl() {
-  const [connection, setConnection] = useState<WhatsAppConnection>({ connected: false, connection: "unknown", sender: null });
-  const [qrOpen, setQrOpen] = useState(false);
-  const [qr, setQr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  const refresh = useCallback(async () => {
-    const next = await api.whatsappStatus();
-    setConnection(next);
-    if (next.connected) {
-      setQrOpen(false);
-      setQr(null);
-    }
-    return next;
-  }, []);
-
-  useEffect(() => { void refresh().catch((reason) => setError(errorMessage(reason))); }, [refresh]);
-  useEffect(() => {
-    if (!qrOpen || connection.connected) return;
-    let stopped = false;
-    let timer = 0;
-    const poll = async () => {
-      try {
-        const next = await api.whatsappQr();
-        if (stopped) return;
-        setConnection(next);
-        setQr(next.qr ?? null);
-        if (next.connected) {
-          setQrOpen(false);
-          setQr(null);
-          return;
-        }
-      } catch (reason) {
-        if (!stopped) setError(errorMessage(reason));
-      }
-      if (!stopped) timer = window.setTimeout(() => void poll(), WHATSAPP_QR_POLL_MS);
-    };
-    void poll();
-    return () => { stopped = true; window.clearTimeout(timer); };
-  }, [qrOpen, connection.connected]);
-
-  async function disconnect() {
-    setBusy(true);
-    setError("");
-    try {
-      await api.whatsappLogout();
-      setConnection({ connected: false, connection: "logged_out", sender: null });
-      setQr(null);
-    } catch (reason) {
-      setError(errorMessage(reason));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return <>
-    <div className={`clinic-wa-control ${connection.connected ? "connected" : "disconnected"}`} title={error || (connection.connected ? "Clinic WhatsApp connected" : "Clinic WhatsApp disconnected")}>
-      <span className="clinic-wa-logo" aria-hidden="true"><MessageCircle/><Phone/></span>
-      <div className="clinic-wa-copy"><small>Clinic WhatsApp</small><b>{connection.connected ? "Connected" : "Disconnected"}</b></div>
-      {connection.connected
-        ? <button type="button" disabled={busy} onClick={() => void disconnect()}>{busy ? "…" : "Disconnect"}</button>
-        : <button type="button" onClick={() => { setError(""); setQrOpen(true); }}>QR connect</button>}
-    </div>
-    {qrOpen && <div className="clinic-wa-qr-backdrop" role="dialog" aria-modal="true" aria-label="Connect clinic WhatsApp">
-      <div className="clinic-wa-qr-modal">
-        <button type="button" className="clinic-wa-qr-close" aria-label="Close QR" onClick={() => setQrOpen(false)}><X/></button>
-        <span className="clinic-wa-logo large" aria-hidden="true"><MessageCircle/><Phone/></span>
-        <small>CLINIC WHATSAPP</small>
-        <h3>Scan QR to connect</h3>
-        {qr ? <img src={qr} alt="Clinic WhatsApp QR code"/> : <div className="clinic-wa-qr-loading"><Activity/>Generating QR…</div>}
-        <p>WhatsApp → Linked devices → Link a device</p>
-        {error && <div className="care-inline-error">{error}</div>}
-      </div>
-    </div>}
-  </>;
+function ClinicWhatsAppControl({lang}:{lang:DashboardLang}){
+  const c=COPY[lang];const[connection,setConnection]=useState<WhatsAppConnection>({connected:false,connection:"unknown",sender:null});const[qrOpen,setQrOpen]=useState(false);const[qr,setQr]=useState<string|null>(null);const[busy,setBusy]=useState(false);const[error,setError]=useState("");
+  const refresh=useCallback(async()=>{const next=await api.whatsappStatus();setConnection(next);if(next.connected){setQrOpen(false);setQr(null)}return next},[]);useEffect(()=>{void refresh().catch((reason)=>setError(errorMessage(reason)))},[refresh]);
+  useEffect(()=>{if(!qrOpen||connection.connected)return;let stopped=false;let timer=0;const poll=async()=>{try{const next=await api.whatsappQr();if(stopped)return;setConnection(next);setQr(next.qr??null);if(next.connected){setQrOpen(false);setQr(null);return}}catch(reason){if(!stopped)setError(errorMessage(reason))}if(!stopped)timer=window.setTimeout(()=>void poll(),WHATSAPP_QR_POLL_MS)};void poll();return()=>{stopped=true;window.clearTimeout(timer)}},[qrOpen,connection.connected]);
+  async function disconnect(){setBusy(true);setError("");try{await api.whatsappLogout();setConnection({connected:false,connection:"logged_out",sender:null});setQr(null)}catch(reason){setError(errorMessage(reason))}finally{setBusy(false)}}
+  return <><div className={`clinic-wa-control ${connection.connected?"connected":"disconnected"}`} title={error||(connection.connected?c.connectedTitle:c.disconnectedTitle)}><span className="clinic-wa-logo" aria-hidden="true"><MessageCircle/><Phone/></span><div className="clinic-wa-copy"><small>{c.clinicWhatsapp}</small><b>{connection.connected?c.connected:c.disconnected}</b></div>{connection.connected?<button type="button" disabled={busy} onClick={()=>void disconnect()}>{busy?"…":c.disconnect}</button>:<button type="button" onClick={()=>{setError("");setQrOpen(true)}}>{c.qrConnect}</button>}</div>{qrOpen&&<div className="clinic-wa-qr-backdrop" role="dialog" aria-modal="true" aria-label={c.connect}><div className="clinic-wa-qr-modal"><button type="button" className="clinic-wa-qr-close" aria-label={c.closeQr} onClick={()=>setQrOpen(false)}><X/></button><span className="clinic-wa-logo large" aria-hidden="true"><MessageCircle/><Phone/></span><small>{c.clinicWhatsapp.toUpperCase()}</small><h3>{c.scan}</h3>{qr?<img src={qr} alt={`${c.clinicWhatsapp} QR`}/>:<div className="clinic-wa-qr-loading"><Activity/>{c.generatingQr}</div>}<p>{c.qrSteps}</p>{error&&<div className="care-inline-error">{error}</div>}</div></div>}</>;
 }
 
-function PatientCase({ plan, careSettings, busy, onApprove, onSaveFirstStart }: {
-  plan: CarePlan; careSettings?: CareSettings; busy: string;
-  onApprove: (planId: string) => Promise<void>;
-  onSaveFirstStart: (plan: CarePlan, item: CarePlanItem, localValue: string) => Promise<void>;
-}) {
-  const zone = careSettings?.timezone ?? "UTC";
-  const items = [...plan.items].sort((a,b)=>(a.sequence_order ?? 999)-(b.sequence_order ?? 999));
-  const first = items[0];
-  const [firstStart, setFirstStart] = useState(localInputValue(first?.conversation_start_at, zone));
-  useEffect(() => setFirstStart(localInputValue(first?.conversation_start_at, zone)), [first?.conversation_start_at, zone]);
-  const canEditStart = Boolean(first && ["PENDING_APPROVAL", "ACTIVE"].includes(plan.status) && !["CONTACTED", "BOOKED", "COMPLETED", "NO_SHOW"].includes(first.status));
-
-  return <article className="patient-case-file">
-    <header className="case-file-head">
-      <div className="case-patient"><span><UserRound/></span><div><small>PATIENT FOLLOW-UP FILE</small><h3>{patientName(plan)}</h3><p>{plan.patient?.patient_number ?? "Patient"} · <Smartphone/> {plan.patient?.whatsapp_phone ?? "WhatsApp not registered"}</p></div></div>
-      <div className="case-file-actions"><span className={`case-status ${plan.status.toLowerCase()}`}>{title(plan.status)}</span>{plan.status === "PENDING_APPROVAL" && <button className="care-primary" disabled={Boolean(busy)} onClick={() => void onApprove(plan.id)}><Check/>Approve outreach</button>}</div>
-    </header>
-
-    <section className="case-summary-strip">
-      <div><small>Teeth in plan</small><b>{items.length}</b></div>
-      <div><small>Current tooth</small><b>{first ? `#${first.tooth_fdi}` : "—"}</b></div>
-      <div><small>First outreach</small><b>{first?.conversation_start_at ? formatClinicDate(first.conversation_start_at, zone) : "Not scheduled"}</b></div>
-      <div><small>Timezone</small><b>{zone}</b></div>
-    </section>
-
-    {first && <section className="first-contact-card">
-      <div className="first-contact-copy"><CalendarClock/><div><small>FIRST WHATSAPP OUTREACH</small><h4>{canEditStart ? "Doctor can change this before the first message is sent" : "Scheduled outreach"}</h4><p>This controls when the AI sends the opening WhatsApp message for the first priority tooth.</p></div></div>
-      <div className="first-contact-editor"><input type="datetime-local" value={firstStart} disabled={!canEditStart} onChange={(e)=>setFirstStart(e.target.value)}/><span>{zone}</span>{canEditStart && <button className="care-secondary" disabled={!firstStart || busy === `start-${first.id}`} onClick={()=>void onSaveFirstStart(plan, first, firstStart)}><Save/>{busy === `start-${first.id}` ? "Saving…" : "Save send time"}</button>}</div>
-    </section>}
-
-    <section className="case-sequence">
-      <header><div><small>TREATMENT FOLLOW-UP SEQUENCE</small><h4>Tooth-by-tooth plan</h4></div><span><ShieldCheck/>Later teeth unlock only after the previous outcome.</span></header>
-      <div className="case-tooth-list">{items.map((item, index) => <ToothRow key={item.id} item={item} index={index} zone={zone}/>)}</div>
-    </section>
-  </article>;
+function PatientCase({lang,plan,careSettings,busy,onApprove,onSaveFirstStart}:{lang:DashboardLang;plan:CarePlan;careSettings?:CareSettings;busy:string;onApprove:(planId:string)=>Promise<void>;onSaveFirstStart:(plan:CarePlan,item:CarePlanItem,localValue:string)=>Promise<void>}){
+  const c=COPY[lang];const zone=careSettings?.timezone??"UTC";const items=[...plan.items].sort((a,b)=>(a.sequence_order??999)-(b.sequence_order??999));const first=items[0];const[firstStart,setFirstStart]=useState(localInputValue(first?.conversation_start_at,zone));useEffect(()=>setFirstStart(localInputValue(first?.conversation_start_at,zone)),[first?.conversation_start_at,zone]);const canEditStart=Boolean(first&&["PENDING_APPROVAL","ACTIVE"].includes(plan.status)&&!["CONTACTED","BOOKED","COMPLETED","NO_SHOW"].includes(first.status));
+  return <article className="patient-case-file"><header className="case-file-head"><div className="case-patient"><span><UserRound/></span><div><small>{c.patientFile}</small><h3>{patientName(plan)}</h3><p>{plan.patient?.patient_number??c.patient} · <Smartphone/> {plan.patient?.whatsapp_phone??c.whatsappMissing}</p></div></div><div className="case-file-actions"><span className={`case-status ${plan.status.toLowerCase()}`}>{dashboardStatus(plan.status,lang)}</span>{plan.status==="PENDING_APPROVAL"&&<button className="care-primary" disabled={Boolean(busy)} onClick={()=>void onApprove(plan.id)}><Check/>{c.approve}</button>}</div></header><section className="case-summary-strip"><div><small>{c.teethInPlan}</small><b>{items.length}</b></div><div><small>{c.currentTooth}</small><b>{first?`#${first.tooth_fdi}`:"—"}</b></div><div><small>{c.firstOutreach}</small><b>{first?.conversation_start_at?formatClinicDate(first.conversation_start_at,zone,lang):c.notScheduled}</b></div><div><small>{c.timezone}</small><b>{zone}</b></div></section>{first&&<section className="first-contact-card"><div className="first-contact-copy"><CalendarClock/><div><small>{c.firstWhatsapp}</small><h4>{canEditStart?c.doctorCanChange:c.scheduledOutreach}</h4><p>{c.controls}</p></div></div><div className="first-contact-editor"><input type="datetime-local" value={firstStart} disabled={!canEditStart} onChange={(e)=>setFirstStart(e.target.value)}/><span>{zone}</span>{canEditStart&&<button className="care-secondary" disabled={!firstStart||busy===`start-${first.id}`} onClick={()=>void onSaveFirstStart(plan,first,firstStart)}><Save/>{busy===`start-${first.id}`?c.saving:c.saveTime}</button>}</div></section>}<section className="case-sequence"><header><div><small>{c.sequence}</small><h4>{c.toothPlan}</h4></div><span><ShieldCheck/>{c.sequenceRule}</span></header><div className="case-tooth-list">{items.map((item,index)=><ToothRow key={item.id} lang={lang} item={item} index={index} zone={zone}/>)}</div></section></article>;
 }
 
-function ToothRow({ item, index, zone }: { item: CarePlanItem; index: number; zone: string }) {
-  const active = index === 0 || item.status !== "WAITING_PREVIOUS_TOOTH";
-  return <article className={`case-tooth-row ${active ? "active" : "waiting"}`}>
-    <div className="case-tooth-order">{item.sequence_order ?? index + 1}</div>
-    <div className="case-tooth-badge">{item.tooth_fdi}</div>
-    <div className="case-tooth-main"><div><b>{title(item.finding_type)}</b><span className={`case-status compact ${item.status.toLowerCase()}`}>{title(item.status)}</span></div><p>{item.rationale ? title(item.rationale) : "Clinical follow-up"}</p><div className="case-tooth-meta"><span><Clock3/>Outreach: {item.conversation_start_at ? formatClinicDate(item.conversation_start_at, zone) : "After previous tooth outcome"}</span><span><CalendarClock/>Clinical target: {formatClinicDate(item.target_followup_at, zone, false)}</span>{item.outcome && <span><Check/>Outcome: {title(item.outcome)}</span>}</div></div>
-    <div className="case-message-preview"><MessageCircle/><span>{item.message_preview ?? "Opening message will be prepared before outreach."}</span></div>
-  </article>;
-}
+function ToothRow({lang,item,index,zone}:{lang:DashboardLang;item:CarePlanItem;index:number;zone:string}){const c=COPY[lang];const active=index===0||item.status!=="WAITING_PREVIOUS_TOOTH";return <article className={`case-tooth-row ${active?"active":"waiting"}`}><div className="case-tooth-order">{item.sequence_order??index+1}</div><div className="case-tooth-badge">{item.tooth_fdi}</div><div className="case-tooth-main"><div><b>{dashboardFinding(item.finding_type,lang)}</b><span className={`case-status compact ${item.status.toLowerCase()}`}>{dashboardStatus(item.status,lang)}</span></div><p>{item.rationale||c.clinicalFollowup}</p><div className="case-tooth-meta"><span><Clock3/>{c.outreach}: {item.conversation_start_at?formatClinicDate(item.conversation_start_at,zone,lang):c.afterPrevious}</span><span><CalendarClock/>{c.clinicalTarget}: {formatClinicDate(item.target_followup_at,zone,lang,false)}</span>{item.outcome&&<span><Check/>{c.outcome}: {dashboardStatus(item.outcome,lang)}</span>}</div></div><div className="case-message-preview"><MessageCircle/><span>{item.message_preview??c.openingMessage}</span></div></article>}
