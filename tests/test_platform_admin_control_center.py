@@ -26,14 +26,8 @@ def clinic(**overrides):
 
 def test_free_paid_and_gift_accounts_are_separate():
     assert clinic_category(clinic()) == "FREE"
-    assert (
-        clinic_category(clinic(subscription_plan="PREMIUM", subscription_source="FREE"))
-        == "PAID"
-    )
-    assert (
-        clinic_category(clinic(subscription_plan="PREMIUM", subscription_source="GIFT"))
-        == "GIFT"
-    )
+    assert clinic_category(clinic(subscription_plan="PREMIUM", subscription_source="FREE")) == "PAID"
+    assert clinic_category(clinic(subscription_plan="PREMIUM", subscription_source="GIFT")) == "GIFT"
 
 
 def test_archived_and_expired_states_are_operationally_distinct():
