@@ -603,6 +603,14 @@ async def approve_booking_appointment(
         item = await ctx.session.get(CarePlanItem, row.care_plan_item_id)
         if item:
             item.status = "BOOKED"
+    if conversation:
+        context = dict(conversation.booking_context or {})
+        context["stage"] = "APPOINTMENT_CONFIRMED"
+        conversation.booking_context = context
+        conversation.status = "WAITING_NEXT_TOOTH"
+        conversation.summary = (
+            "Appointment confirmed by the clinician. AI is inactive until the next tooth outreach is actually sent."
+        )
     await audit(
         ctx.session,
         ctx.user,
