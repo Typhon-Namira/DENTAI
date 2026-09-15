@@ -6,182 +6,48 @@ import { careGenerationApi, type GenerationReadiness } from "../api/careGenerati
 import { api, errorMessage } from "../api/client";
 import { productApi, type CarePlan } from "../api/product";
 import type { AIAnalysis, PatientProfile } from "../api/types";
+import { dashboardFinding, dashboardStatus, type DashboardLang } from "./dashboardI18n";
+import { useDashboardLanguage } from "./useDashboardLanguage";
 
-function title(value: string): string {
-  return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
+const COPY = {
+  en: {
+    orchestration: "AI FOLLOW-UP ORCHESTRATION", waiting: "Waiting for analysis to complete", waitingBody: "The Generate button will unlock automatically as soon as the current OPG analysis finishes. No page refresh is required.", generate: "Generate with AI", status: "Analysis status", ready: "Follow-up plan ready", generatePlan: "Generate follow-up plan", noEligible: "No pathological tooth findings with a resolved FDI are available in this completed OPG analysis.", checking: "Checking pathological tooth eligibility with the care backend…", candidate: (n:number)=>`${n} pathological/red tooth${n===1?"":"s"} can enter the plan. Confidence affects priority and review guidance, not eligibility.`, reviewed: "reviewed", tooth: "Tooth", reviewRecommended: (n:number)=>`Review recommended for ${n} tooth${n===1?"":"s"}, but generation is available now.`, generated: (n:number)=>`Sequential follow-up plan generated for ${n} pathological tooth${n===1?"":"s"}.`, openPlans: "Open follow-up plans", generating: "Generating…", doctorControl: "Clinician review is recommended; doctor remains in control.", backendMismatch: "Care backend is not on the same release as this frontend. Generation is temporarily unavailable until the protected backend deployment completes."
+  },
+  hy: {
+    orchestration: "ԱԲ ՀԵՏԱԳԱ ՀՍԿՈՂՈՒԹՅԱՆ ԿԱՌԱՎԱՐՈՒՄ", waiting: "Սպասում ենք վերլուծության ավարտին", waitingBody: "«Ստեղծել ԱԲ-ով» կոճակն ինքնաբերաբար կակտիվանա ընթացիկ OPG վերլուծության ավարտից հետո։ Էջը թարմացնելու կարիք չկա։", generate: "Ստեղծել ԱԲ-ով", status: "Վերլուծության կարգավիճակ", ready: "Հետագա հսկողության պլանը պատրաստ է", generatePlan: "Ստեղծել հետագա հսկողության պլան", noEligible: "Ավարտված OPG վերլուծության մեջ FDI համարով որոշված պաթոլոգիական ատամներ չկան, որոնք կարելի է ներառել պլանում։", checking: "Ստուգվում է, թե որ պաթոլոգիական ատամները կարելի է ներառել պլանում…", candidate: (n:number)=>`${n} պաթոլոգիական/կարմիր ատամ կարող է ներառվել պլանում։ Վստահության միավորը ազդում է առաջնահերթության և վերանայման խորհուրդների վրա, ոչ թե համապատասխանության։`, reviewed: "վերանայված", tooth: "Ատամ", reviewRecommended: (n:number)=>`Խորհուրդ է տրվում վերանայել ${n} ատամ, սակայն պլանը կարելի է ստեղծել արդեն հիմա։`, generated: (n:number)=>`Ստեղծվել է հերթական հետագա հսկողության պլան՝ ${n} պաթոլոգիական ատամի համար։`, openPlans: "Բացել հետագա հսկողության պլանները", generating: "Ստեղծվում է…", doctorControl: "Խորհուրդ է տրվում բժշկի վերանայում․ վերջնական վերահսկողությունը մնում է բժշկի մոտ։", backendMismatch: "Հետագա հսկողության սերվերը դեռ նույն թողարկման տարբերակում չէ, ինչ վահանակը։ Պլանի ստեղծումը ժամանակավորապես հասանելի չէ մինչև պաշտպանված backend տեղադրումն ավարտվի։"
+  },
+  ru: {
+    orchestration: "УПРАВЛЕНИЕ ПОСЛЕДУЮЩИМ НАБЛЮДЕНИЕМ С ИИ", waiting: "Ожидание завершения анализа", waitingBody: "Кнопка «Создать с ИИ» активируется автоматически после завершения текущего анализа ОПТГ. Обновлять страницу не нужно.", generate: "Создать с ИИ", status: "Статус анализа", ready: "План наблюдения готов", generatePlan: "Создать план наблюдения", noEligible: "В завершенном анализе ОПТГ нет патологических изменений с определенным номером FDI, которые можно включить в план наблюдения.", checking: "Проверяем, какие патологические зубы можно включить в план наблюдения…", candidate: (n:number)=>`${n} патологических/красных зуба могут быть включены в план. Уверенность модели влияет на приоритет и рекомендации по проверке, но не на допустимость.`, reviewed: "проверено", tooth: "Зуб", reviewRecommended: (n:number)=>`Рекомендуется проверить ${n} зуба, но план можно создать уже сейчас.`, generated: (n:number)=>`Создан последовательный план наблюдения для ${n} патологических зубов.`, openPlans: "Открыть планы наблюдения", generating: "Создание…", doctorControl: "Рекомендуется проверка врачом; окончательное решение остается за врачом.", backendMismatch: "Сервис наблюдения еще не обновлен до той же версии, что и интерфейс. Создание плана временно недоступно до завершения защищенного развертывания backend."
+  }
+} as const;
 
-function selectedPatient(): string {
-  return (document.querySelector(".care-quick-patient select") as HTMLSelectElement | null)?.value ?? "";
-}
-
+function selectedPatient(): string { return (document.querySelector(".care-quick-patient select") as HTMLSelectElement | null)?.value ?? ""; }
 function ensureHost(): HTMLElement | null {
-  const anchor = document.querySelector(".ai-results-shell");
-  if (!anchor?.parentElement) return null;
-  const existing = document.getElementById("care-generation-contract-panel");
-  if (existing) return existing;
-  const host = document.createElement("div");
-  host.id = "care-generation-contract-panel";
-  host.className = "care-enhancer-host analysis care-generation-contract-host";
-  anchor.parentElement.insertBefore(host, anchor.nextSibling);
-  return host;
+  const anchor=document.querySelector(".ai-results-shell"); if(!anchor?.parentElement)return null;
+  const existing=document.getElementById("care-generation-contract-panel"); if(existing)return existing;
+  const host=document.createElement("div"); host.id="care-generation-contract-panel"; host.className="care-enhancer-host analysis care-generation-contract-host"; anchor.parentElement.insertBefore(host,anchor.nextSibling); return host;
+}
+function hideLegacyPanel(hidden:boolean){const legacy=document.getElementById("care-enhancer-analysis");if(legacy)legacy.style.display=hidden?"none":""}
+
+export function CareGenerationContractPanel(){
+  const [patientId,setPatientId]=useState(""); const [host,setHost]=useState<HTMLElement|null>(null);
+  useEffect(()=>{const sync=()=>{const active=Boolean(document.querySelector(".ai-page"));hideLegacyPanel(active);setPatientId(active?selectedPatient():"");setHost(active?ensureHost():null)};sync();const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true,attributes:true});const timer=window.setInterval(sync,750);return()=>{observer.disconnect();window.clearInterval(timer);hideLegacyPanel(false)}},[]);
+  if(!host||!patientId)return null; return createPortal(<GenerationPanel patientId={patientId}/>,host);
 }
 
-function hideLegacyPanel(hidden: boolean): void {
-  const legacy = document.getElementById("care-enhancer-analysis");
-  if (legacy) legacy.style.display = hidden ? "none" : "";
-}
-
-export function CareGenerationContractPanel() {
-  const [patientId, setPatientId] = useState("");
-  const [host, setHost] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const sync = () => {
-      const active = Boolean(document.querySelector(".ai-page"));
-      hideLegacyPanel(active);
-      setPatientId(active ? selectedPatient() : "");
-      setHost(active ? ensureHost() : null);
-    };
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-    const timer = window.setInterval(sync, 750);
-    return () => {
-      observer.disconnect();
-      window.clearInterval(timer);
-      hideLegacyPanel(false);
-    };
-  }, []);
-
-  if (!host || !patientId) return null;
-  return createPortal(<GenerationPanel patientId={patientId} />, host);
-}
-
-function GenerationPanel({ patientId }: { patientId: string }) {
-  const [profile, setProfile] = useState<PatientProfile | null>(null);
-  const [plans, setPlans] = useState<CarePlan[]>([]);
-  const [readiness, setReadiness] = useState<GenerationReadiness | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [done, setDone] = useState("");
-
-  const latestAnalysis = useMemo<AIAnalysis | null>(() => {
-    if (!profile?.ai_analyses.length) return null;
-    return [...profile.ai_analyses].sort((left, right) => right.requested_at.localeCompare(left.requested_at))[0] ?? null;
-  }, [profile]);
-
-  const completedAnalysis = latestAnalysis?.status === "COMPLETED" ? latestAnalysis : null;
-
-  const loadBase = useCallback(async (showLoader = true) => {
-    if (showLoader) setLoading(true);
-    try {
-      const [nextProfile, nextPlans] = await Promise.all([
-        api.patientProfile(patientId),
-        productApi.carePlans(patientId)
-      ]);
-      setProfile(nextProfile);
-      setPlans(nextPlans);
-      setError("");
-    } catch (reason) {
-      setError(errorMessage(reason));
-    } finally {
-      if (showLoader) setLoading(false);
-    }
-  }, [patientId]);
-
-  useEffect(() => { void loadBase(); }, [loadBase]);
-
-  useEffect(() => {
-    if (!latestAnalysis || latestAnalysis.status === "COMPLETED" || latestAnalysis.status === "FAILED") return;
-    let stopped = false;
-    const poll = async () => {
-      if (stopped) return;
-      await loadBase(false);
-      if (!stopped) window.setTimeout(() => void poll(), 1800);
-    };
-    const timer = window.setTimeout(() => void poll(), 1200);
-    return () => { stopped = true; window.clearTimeout(timer); };
-  }, [latestAnalysis?.id, latestAnalysis?.status, loadBase]);
-
-  useEffect(() => {
-    if (!completedAnalysis) {
-      setReadiness(null);
-      return;
-    }
-    let active = true;
-    careGenerationApi.readiness(completedAnalysis.id)
-      .then((value) => {
-        if (active) {
-          setReadiness(value);
-          setError("");
-        }
-      })
-      .catch((reason: unknown) => {
-        if (!active) return;
-        const status = (reason as { status?: number }).status;
-        if (status === 404) {
-          setError("Care backend is not on the same release as this frontend. Generation is temporarily unavailable until the protected backend deployment completes.");
-        } else {
-          setError(errorMessage(reason));
-        }
-      });
-    return () => { active = false; };
-  }, [completedAnalysis?.id]);
-
-  const plan = completedAnalysis ? plans.find((item) => item.analysis_id === completedAnalysis.id) : undefined;
-  const generated = Boolean(plan && ["PENDING_APPROVAL", "ACTIVE", "PAUSED", "COMPLETED"].includes(plan.status));
-
-  async function generate() {
-    if (!completedAnalysis || !readiness?.ready) return;
-    setBusy(true); setError(""); setDone("");
-    try {
-      const next = await careGenerationApi.generate(completedAnalysis.id);
-      setPlans((items) => [next, ...items.filter((item) => item.id !== next.id)]);
-      setDone(`Sequential follow-up plan generated for ${next.items.length} pathological tooth${next.items.length === 1 ? "" : "s"}.`);
-      setReadiness(await careGenerationApi.readiness(completedAnalysis.id));
-    } catch (reason) {
-      setError(errorMessage(reason));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function openFollowUps() {
-    const buttons = Array.from(document.querySelectorAll(".care-sidebar nav button")) as HTMLButtonElement[];
-    buttons.find((button) => ["Follow-up plans", "Հետագա պլաններ"].includes(button.getAttribute("aria-label") ?? ""))?.click();
-  }
-
-  if (loading || !latestAnalysis) return null;
-
-  if (!completedAnalysis) {
-    return <section className="care-flow-banner care-card bottom-placement authoritative-generation-panel">
-      <div className="flow-orb"><LoaderCircle className="spin" /></div>
-      <div className="flow-copy"><span>AI FOLLOW-UP ORCHESTRATION</span><h2>Waiting for analysis to complete</h2><p>The Generate button will unlock automatically as soon as the current OPG analysis finishes. No page refresh is required.</p></div>
-      <div className="flow-actions"><button className="care-primary" disabled><Sparkles />Generate with AI</button><small><ShieldCheck />Analysis status: {title(latestAnalysis.status)}</small></div>
-    </section>;
-  }
-
-  const candidates = readiness?.candidates ?? [];
-  return (
-    <section className="care-flow-banner care-card bottom-placement authoritative-generation-panel">
-      <div className="flow-orb"><WandSparkles /></div>
-      <div className="flow-copy">
-        <span>AI FOLLOW-UP ORCHESTRATION</span>
-        <h2>{generated ? "Follow-up plan ready" : "Generate follow-up plan"}</h2>
-        {readiness ? <>
-          <p>{readiness.ready ? `${readiness.candidate_count} pathological/red tooth${readiness.candidate_count === 1 ? "" : "s"} can enter the plan. Confidence affects priority and review guidance, not eligibility.` : "No pathological tooth findings with a resolved FDI are available in this completed OPG analysis."}</p>
-          <div className="flow-teeth">{candidates.slice(0, 16).map((candidate) => <span key={`${candidate.tooth_fdi}-${candidate.finding_id}`}>Tooth {candidate.tooth_fdi} · {title(candidate.finding_type)}{candidate.confidence == null ? "" : ` · ${Math.round(candidate.confidence * 100)}%`}{candidate.review_status === "CONFIRMED" ? " · reviewed" : ""}</span>)}</div>
-          {readiness.review_recommended_count > 0 && <div className="review-advice"><ShieldCheck />Review recommended for {readiness.review_recommended_count} tooth{readiness.review_recommended_count === 1 ? "" : "s"}, but generation is available now.</div>}
-        </> : <p>Checking pathological tooth eligibility with the care backend…</p>}
-        {done && <div className="flow-success"><Check />{done}</div>}
-        {error && <div className="care-inline-error">{error}</div>}
-      </div>
-      <div className="flow-actions">
-        {generated ? <button className="care-primary" onClick={openFollowUps}>Open follow-up plans <ChevronRight /></button> : <button className="care-primary" disabled={!readiness?.ready || busy} onClick={() => void generate()}><Sparkles />{busy ? "Generating…" : "Generate with AI"}</button>}
-        <small><ShieldCheck />Clinician review is recommended; doctor remains in control.</small>
-      </div>
-    </section>
-  );
+function GenerationPanel({patientId}:{patientId:string}){
+  const lang=useDashboardLanguage(); const c=COPY[lang];
+  const [profile,setProfile]=useState<PatientProfile|null>(null); const [plans,setPlans]=useState<CarePlan[]>([]); const [readiness,setReadiness]=useState<GenerationReadiness|null>(null); const [busy,setBusy]=useState(false); const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [done,setDone]=useState("");
+  const latestAnalysis=useMemo<AIAnalysis|null>(()=>!profile?.ai_analyses.length?null:[...profile.ai_analyses].sort((a,b)=>b.requested_at.localeCompare(a.requested_at))[0]??null,[profile]); const completedAnalysis=latestAnalysis?.status==="COMPLETED"?latestAnalysis:null;
+  const loadBase=useCallback(async(showLoader=true)=>{if(showLoader)setLoading(true);try{const [nextProfile,nextPlans]=await Promise.all([api.patientProfile(patientId),productApi.carePlans(patientId)]);setProfile(nextProfile);setPlans(nextPlans);setError("")}catch(reason){setError(errorMessage(reason))}finally{if(showLoader)setLoading(false)}},[patientId]);
+  useEffect(()=>{void loadBase()},[loadBase]);
+  useEffect(()=>{if(!latestAnalysis||latestAnalysis.status==="COMPLETED"||latestAnalysis.status==="FAILED")return;let stopped=false;const poll=async()=>{if(stopped)return;await loadBase(false);if(!stopped)window.setTimeout(()=>void poll(),1800)};const timer=window.setTimeout(()=>void poll(),1200);return()=>{stopped=true;window.clearTimeout(timer)}},[latestAnalysis?.id,latestAnalysis?.status,loadBase]);
+  useEffect(()=>{if(!completedAnalysis){setReadiness(null);return}let active=true;careGenerationApi.readiness(completedAnalysis.id).then((value)=>{if(active){setReadiness(value);setError("")}}).catch((reason:unknown)=>{if(!active)return;const status=(reason as {status?:number}).status;setError(status===404?c.backendMismatch:errorMessage(reason))});return()=>{active=false}},[completedAnalysis?.id,c.backendMismatch]);
+  const plan=completedAnalysis?plans.find((item)=>item.analysis_id===completedAnalysis.id):undefined; const generated=Boolean(plan&&["PENDING_APPROVAL","ACTIVE","PAUSED","COMPLETED"].includes(plan.status));
+  async function generate(){if(!completedAnalysis||!readiness?.ready)return;setBusy(true);setError("");setDone("");try{const next=await careGenerationApi.generate(completedAnalysis.id);setPlans((items)=>[next,...items.filter((item)=>item.id!==next.id)]);setDone(c.generated(next.items.length));setReadiness(await careGenerationApi.readiness(completedAnalysis.id))}catch(reason){setError(errorMessage(reason))}finally{setBusy(false)}}
+  function openFollowUps(){const buttons=Array.from(document.querySelectorAll(".care-sidebar nav button")) as HTMLButtonElement[];buttons.find((button)=>["Follow-up plans","Հետագա հսկողության պլաններ","Планы наблюдения"].includes(button.getAttribute("aria-label")??""))?.click()}
+  if(loading||!latestAnalysis)return null;
+  if(!completedAnalysis)return <section className="care-flow-banner care-card bottom-placement authoritative-generation-panel"><div className="flow-orb"><LoaderCircle className="spin"/></div><div className="flow-copy"><span>{c.orchestration}</span><h2>{c.waiting}</h2><p>{c.waitingBody}</p></div><div className="flow-actions"><button className="care-primary" disabled><Sparkles/>{c.generate}</button><small><ShieldCheck/>{c.status}: {dashboardStatus(latestAnalysis.status,lang)}</small></div></section>;
+  const candidates=readiness?.candidates??[];
+  return <section className="care-flow-banner care-card bottom-placement authoritative-generation-panel"><div className="flow-orb"><WandSparkles/></div><div className="flow-copy"><span>{c.orchestration}</span><h2>{generated?c.ready:c.generatePlan}</h2>{readiness?<><p>{readiness.ready?c.candidate(readiness.candidate_count):c.noEligible}</p><div className="flow-teeth">{candidates.slice(0,16).map((candidate)=><span key={`${candidate.tooth_fdi}-${candidate.finding_id}`}>{c.tooth} {candidate.tooth_fdi} · {dashboardFinding(candidate.finding_type,lang)}{candidate.confidence==null?"":` · ${Math.round(candidate.confidence*100)}%`}{candidate.review_status==="CONFIRMED"?` · ${c.reviewed}`:""}</span>)}</div>{readiness.review_recommended_count>0&&<div className="review-advice"><ShieldCheck/>{c.reviewRecommended(readiness.review_recommended_count)}</div>}</>:<p>{c.checking}</p>}{done&&<div className="flow-success"><Check/>{done}</div>}{error&&<div className="care-inline-error">{error}</div>}</div><div className="flow-actions">{generated?<button className="care-primary" onClick={openFollowUps}>{c.openPlans}<ChevronRight/></button>:<button className="care-primary" disabled={!readiness?.ready||busy} onClick={()=>void generate()}><Sparkles/>{busy?c.generating:c.generate}</button>}<small><ShieldCheck/>{c.doctorControl}</small></div></section>;
 }
