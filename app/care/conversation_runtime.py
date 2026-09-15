@@ -291,7 +291,9 @@ async def process_staged_inbound_message(
     stage = str(context.get("stage") or WAITING_PATIENT_REPLY)
     if stage == APPOINTMENT_CONFIRMED:
         conversation.status = "WAITING_NEXT_TOOTH"
-        conversation.summary = "Appointment confirmed; AI is inactive until the next tooth follow-up."
+        conversation.summary = (
+            "Appointment confirmed; AI is inactive until the next tooth follow-up."
+        )
         return {"handled": False, "reason": "conversation_completed"}
 
     context.update({"stage": stage, "active_item_id": active_item_id})
@@ -685,9 +687,7 @@ async def process_staged_inbound_message(
         },
     )
     conversation.booking_context = context
-    conversation.summary = (
-        f"Patient confirmed {_slot_label(selected, settings.timezone)}; waiting for doctor approval."
-    )
+    conversation.summary = f"Patient confirmed {_slot_label(selected, settings.timezone)}; waiting for doctor approval."
     return {
         "handled": True,
         "intent": "BOOKING",
