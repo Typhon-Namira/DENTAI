@@ -12,35 +12,23 @@ function reactButtonProps(button: HTMLButtonElement): ReactButtonProps | null {
 }
 
 /**
- * Compatibility bridge for the legacy Doctor-only disabled prop that still
- * exists in ClinicalCareApp. Keep this deliberately passive: the previous
- * MutationObserver watched `disabled` and then wrote `disabled` from inside its
- * own callback, which could create a self-triggering mutation loop as soon as
- * the OPG page mounted and freeze the UI.
+ * Compatibility bridge for the legacy role-gated AI action.
+ * It deliberately avoids reading localized role labels so language changes can
+ * never alter permissions or button availability.
  */
 export function AllRolesAiRunAccess() {
   useEffect(() => {
     const controls = () => document.querySelector<HTMLElement>(".ai-control");
-    const actionButton = () =>
-      controls()?.querySelector<HTMLButtonElement>("button.ai-action") ?? null;
-    const xraySelect = () =>
-      controls()?.querySelectorAll<HTMLSelectElement>("select")?.[1] ?? null;
-    const currentRole = () =>
-      document
-        .querySelector<HTMLElement>(".care-doctor small")
-        ?.textContent?.trim()
-        .toUpperCase() ?? "";
+    const actionButton = () => controls()?.querySelector<HTMLButtonElement>("button.ai-action") ?? null;
+    const xraySelect = () => controls()?.querySelectorAll<HTMLSelectElement>("select")?.[1] ?? null;
 
     const sync = () => {
       const button = actionButton();
       const xray = xraySelect();
-      if (!button || !xray || currentRole() === "DOCTOR") return;
+      if (!button || !xray) return;
 
-      const running = /AI running|…/i.test(button.textContent ?? "");
+      const running = /running|ընթացքի մեջ|выполняется|…/i.test(button.textContent ?? "");
       const shouldDisable = !xray.value || running;
-
-      // Never write the DOM state unless it actually changed. More importantly,
-      // do not observe attributes that this bridge itself changes.
       if (button.disabled !== shouldDisable) button.disabled = shouldDisable;
 
       const props = reactButtonProps(button);
@@ -48,30 +36,23 @@ export function AllRolesAiRunAccess() {
     };
 
     const handleClick = (event: MouseEvent) => {
-      const target =
-        event.target instanceof Element
-          ? event.target.closest<HTMLButtonElement>("button.ai-action")
-          : null;
-      if (!target || currentRole() === "DOCTOR") return;
-
+      const target = event.target instanceof Element
+        ? event.target.closest<HTMLButtonElement>("button.ai-action")
+        : null;
+      if (!target) return;
       const xray = xraySelect();
       if (!xray?.value) return;
-
       const props = reactButtonProps(target);
       if (!props?.onClick) return;
 
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-
       if (target.disabled) target.disabled = false;
       if (props.disabled) props.disabled = false;
       props.onClick(event);
     };
 
-    // React updates select values and props without necessarily creating DOM
-    // child mutations. A small passive sync interval is safer than observing
-    // every class/disabled mutation across the whole dashboard.
     sync();
     const timer = window.setInterval(sync, 300);
     document.addEventListener("change", sync, true);
