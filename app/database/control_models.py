@@ -18,12 +18,15 @@ class ClinicRegistry(Base):
     feature_flags: Mapped[dict] = mapped_column(JSON, default=dict)
     subscription_plan: Mapped[str | None] = mapped_column(String(40), nullable=True)
     subscription_state: Mapped[str] = mapped_column(String(40), default="ACTIVE", index=True)
+    subscription_source: Mapped[str] = mapped_column(String(24), default="LEGACY", index=True)
     subscription_starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     subscription_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True
     )
     free_trial_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     upgrade_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    gift_granted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    gift_note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
@@ -47,8 +50,10 @@ class AccessRequest(Base):
     admin_note: Mapped[str | None] = mapped_column(Text)
     payment_reference: Mapped[str | None] = mapped_column(String(200))
     payment_proof_note: Mapped[str | None] = mapped_column(Text)
+    payment_amount: Mapped[int | None] = mapped_column(Integer)
+    payment_currency: Mapped[str | None] = mapped_column(String(12))
     payment_instructions_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    payment_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    payment_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     activated_clinic_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, index=True
@@ -112,6 +117,18 @@ class PlatformVisit(Base):
     status_code: Mapped[int] = mapped_column(Integer)
     visitor_hash: Mapped[str | None] = mapped_column(String(80), index=True)
     user_agent: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
+
+
+class PlatformAdminAudit(Base):
+    __tablename__ = "platform_admin_audit"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    action: Mapped[str] = mapped_column(String(100), index=True)
+    target_type: Mapped[str] = mapped_column(String(60), index=True)
+    target_id: Mapped[str | None] = mapped_column(String(100), index=True)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, index=True
     )
