@@ -12,7 +12,11 @@ from app.clinic_resolution.service import ResolvedClinic, resolver
 from app.core.errors import AppError
 from app.database.models import Patient, PatientDoctorAssignment, Role, User, UserBranchScope
 from app.database.sessions import control_session
-from app.platform.entitlements import require_product_access
+from app.platform.entitlements import (
+    enforce_free_opg_limit,
+    enforce_free_patient_limit,
+    require_product_access,
+)
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -55,6 +59,18 @@ async def current_context(
                 )
             ).all()
         )
+
+        if request.method == "POST" and request.url.path == "/api/v1/patients":
+            await enforce_free_patient_limit(db, clinic)
+        xray_prefix = "/api/v1/xrays/patients/"
+        if request.method == "POST" and request.url.path.startswith(xray_prefix):
+            raw_patient_id = request.url.path.removeprefix(xray_prefix).split("/", 1)[0]
+            try:
+                patient_id = uuid.UUID(raw_patient_id)
+            except ValueError as exc:
+                raise AppError("PATIENT_ID_INVALID", "Patient ID is invalid.", 422) from exc
+            await enforce_free_opg_limit(db, clinic, patient_id)
+
         yield AuthContext(clinic, user, branches, db)
 
 
