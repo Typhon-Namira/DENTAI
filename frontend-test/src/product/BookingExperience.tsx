@@ -223,14 +223,7 @@ function ClinicBookingEnhancer() {
     if(!hasSession()) return;
     let lastSaved: Element | null = null;
     const reconcile=()=>{
-      document.querySelectorAll(".care-sidebar nav button").forEach(node=>{
-        const value=(node.textContent||"").toLowerCase();
-        if(value.includes("ai conversations")||value.includes("ai զրույց")||value.includes("ии-диалог")) node.remove();
-      });
-      document.querySelectorAll(".care-metric").forEach(node=>{
-        const value=(node.textContent||"").toLowerCase();
-        if(value.includes("active ai conversations")||value.includes("ակտիվ ai")||value.includes("активные диалоги")) node.remove();
-      });
+      // Booking integration must not mutate global clinical navigation or dashboard metrics.
       const board=document.querySelector<HTMLElement>(".appointment-board");
       if(board){
         board.style.display="none";
