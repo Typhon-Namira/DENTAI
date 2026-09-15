@@ -112,6 +112,4 @@ class PlatformVisit(Base):
     status_code: Mapped[int] = mapped_column(Integer)
     visitor_hash: Mapped[str | None] = mapped_column(String(80), index=True)
     user_agent: Mapped[str | None] = mapped_column(String(500))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, index=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
