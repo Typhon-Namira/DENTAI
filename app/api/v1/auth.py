@@ -174,8 +174,8 @@ async def me(ctx: Annotated[AuthContext, Depends(current_context)]):
         subscription_expires_at=expires_at,
         subscription_days_remaining=days_remaining,
         subscription_seconds_remaining=remaining_seconds,
-        free_trial_started_at=ctx.clinic.free_trial_started_at,
-        upgrade_requested_at=ctx.clinic.upgrade_requested_at,
+        free_trial_started_at=getattr(ctx.clinic, "free_trial_started_at", None),
+        upgrade_requested_at=getattr(ctx.clinic, "upgrade_requested_at", None),
         entitlements=entitlement_payload(ctx.clinic),
     )
 
