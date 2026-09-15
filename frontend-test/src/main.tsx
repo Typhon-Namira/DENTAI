@@ -7,6 +7,7 @@ import { CareCommandCenter } from "./product/CareCommandCenterCurrentShell";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
+import { FreemiumCountryField } from "./product/FreemiumCountryField";
 import { FrontendLocaleQuality } from "./product/FrontendLocaleQuality";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
@@ -65,6 +66,7 @@ createRoot(document.getElementById("root")!).render(
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
       <PlatformAccessExperienceV2 />
+      <FreemiumCountryField />
       <FreemiumPublicExperience />
       <SubscriptionExperience />
       <AllRolesAiRunAccess />
