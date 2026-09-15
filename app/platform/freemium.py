@@ -149,7 +149,9 @@ async def request_premium_upgrade(
         .limit(1)
     )
     if not request:
-        raise AppError("ACCESS_REQUEST_NOT_FOUND", "The original clinic application was not found.", 404)
+        raise AppError(
+            "ACCESS_REQUEST_NOT_FOUND", "The original clinic application was not found.", 404
+        )
     if clinic.subscription_state == "PAYMENT_REVIEW" or request.status == "PAYMENT_REVIEW":
         return request
     if not settings.payment_card.strip() and not settings.payment_bank_details.strip():
@@ -213,7 +215,6 @@ async def activate_existing_premium(
     clinic.upgrade_requested_at = None
     clinic.is_active = True
     clinic.updated_at = now
-    # Explicit invariant: upgrades never replace/recreate the tenant database.
     clinic.encrypted_database_url = original_database
     request.status = "ACTIVE"
     request.payment_reference = reference or request.payment_reference
