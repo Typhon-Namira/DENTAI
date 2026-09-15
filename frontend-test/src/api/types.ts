@@ -186,35 +186,38 @@ export interface FindingProvenance {
   resolved_quadrant?: string | null;
   side_constraint_applied?: boolean;
   side_constraint_overrode_raw_quadrant?: boolean;
-  bbox_xyxy?: [number, number, number, number];
 }
 
 export interface DentalFinding {
   id: string;
-  analysis_id: string;
+  patient_id: string;
+  analysis_id: string | null;
   tooth_code: string | null;
   finding_type: string;
+  description: string;
+  source: string;
   confidence: number | null;
   provenance: FindingProvenance | null;
   review_status: FindingReview;
-  reviewed_by: string | null;
-  reviewed_at: string | null;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
   created_at: string;
 }
 
 export interface PatientProfile {
   patient: Patient;
-  assignments: Record<string, unknown>[];
-  visits: Record<string, unknown>[];
+  assignments: Array<Record<string, unknown>>;
+  visits: Array<Record<string, unknown>>;
   xrays: XRay[];
   ai_analyses: AIAnalysis[];
   findings: DentalFinding[];
-  future_risk: Record<string, unknown>[];
-  future_care: Record<string, unknown>[];
-  followups: Record<string, unknown>[];
-  care_plans?: Record<string, unknown>[];
-  conversations?: Record<string, unknown>[];
-  appointments?: Record<string, unknown>[];
+  future_risk: Array<Record<string, unknown>>;
+  future_care: Array<Record<string, unknown>>;
+  followups: Array<Record<string, unknown>>;
+  care_plans?: Array<Record<string, unknown>>;
+  conversations?: Array<Record<string, unknown>>;
+  appointments?: Array<Record<string, unknown>>;
+  audit_history?: Array<Record<string, unknown>>;
 }
 
 export interface XRayDownloadResponse {
@@ -222,13 +225,11 @@ export interface XRayDownloadResponse {
   expires_in: number;
 }
 
-export interface ApiErrorBody {
-  detail?: string;
-  error?: { code?: string; message?: string; request_id?: string };
-}
-
 export interface ReviewPayload {
-  decision: ReviewDecision;
+  decisions: Array<{
+    finding_id: string;
+    decision: ReviewDecision;
+  }>;
 }
 
 export interface WhatsAppConnection {
@@ -238,26 +239,163 @@ export interface WhatsAppConnection {
   qr?: string | null;
 }
 
+export type WhatsAppOutreachStatus =
+  | "QUEUED"
+  | "SCHEDULED"
+  | "CLAIMED"
+  | "SENDING"
+  | "SEND_UNKNOWN"
+  | "SENT"
+  | "FAILED"
+  | "CANCELLED";
+
 export interface WhatsAppOutreach {
   id: string;
   patient_id: string;
-  finding_id?: string | null;
-  status: string;
+  analysis_id: string;
+  finding_id: string | null;
+  source_finding_ids: string[];
+  tooth_fdi: string;
+  finding_type: string;
+  recommended_window: string;
+  target_followup_at: string;
+  scheduled_send_at: string;
   message: string;
-  scheduled_send_at?: string | null;
-  sent_at?: string | null;
-  failed_at?: string | null;
-  attempt_count?: number;
-  provider_message_id?: string | null;
-  image_storage_key?: string | null;
-  last_error?: string | null;
-  created_at?: string;
-  updated_at?: string;
+  language: string;
+  status: WhatsAppOutreachStatus;
+  provider_message_id: string | null;
+  attempt_count: number;
+  retry_at: string | null;
+  timing_reason: string;
+  timing_policy_version: string;
+  created_at: string;
+  sent_at: string | null;
+  failed_at: string | null;
+  safe_error: string | null;
 }
 
-export interface RadarDashboard { [key: string]: unknown; }
-export interface RadarOpportunity { id: string; [key: string]: unknown; }
-export interface RadarOpportunityDetail extends RadarOpportunity { [key: string]: unknown; }
-export interface RadarOpportunityFilters { tier?: string; platform?: string; language?: string; location?: string; treatment?: string; status?: string; minScore?: number; }
-export interface RadarOpportunityPage { items: RadarOpportunity[]; [key: string]: unknown; }
-export interface RadarSource { id: string; [key: string]: unknown; }
+export type RadarPlatform = "INSTAGRAM" | "FACEBOOK" | "TELEGRAM" | "WEB";
+export type RadarTier = "HOT" | "WARM" | "RESEARCH" | "IGNORE";
+export type RadarOpportunityStatus = "NEW" | "REVIEWED" | "ARCHIVED";
+
+export interface RadarDashboard {
+  hot: number;
+  warm: number;
+  research: number;
+  ignored: number;
+  sources_monitored: number;
+  new_signals_24h: number;
+  new_opportunities_24h: number;
+  generated_at: string;
+}
+
+export interface RadarSource {
+  id: string;
+  platform: RadarPlatform;
+  external_source_id: string;
+  source_type: string;
+  name: string;
+  handle: string | null;
+  source_url: string;
+  language_hints: string[];
+  location_hint: string | null;
+  armenia_relevance: number;
+  engagement_score: number;
+  dental_signal_probability: number;
+  source_score: number;
+  priority: "HIGH" | "MEDIUM" | "LOW" | "INACTIVE";
+  monitoring_interval_minutes: number;
+  is_active: boolean;
+  last_polled_at: string | null;
+  last_content_at: string | null;
+  next_check_at: string | null;
+  source_metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RadarOpportunity {
+  id: string;
+  platform: RadarPlatform;
+  author_display: string | null;
+  author_profile_url: string | null;
+  language: string;
+  location: string | null;
+  treatment: string | null;
+  intent: string;
+  urgency: string;
+  opportunity_score: number;
+  tier: RadarTier;
+  status: RadarOpportunityStatus;
+  first_seen_at: string;
+  last_seen_at: string;
+  signal_count: number;
+  explanation: string;
+  evidence_summary: Record<string, unknown>;
+  scoring_rule_set: string;
+  scoring_rule_version: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RadarOpportunityPage {
+  items: RadarOpportunity[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RadarSignal {
+  id: string;
+  source_id: string;
+  opportunity_id: string | null;
+  platform: RadarPlatform;
+  external_signal_id: string | null;
+  signal_type: string;
+  text: string;
+  context_text: string | null;
+  source_url: string;
+  author_display: string | null;
+  language: string;
+  location: string | null;
+  treatment: string | null;
+  intent: string;
+  urgency_label: string;
+  dental_relevance: number;
+  treatment_intent: number;
+  location_match: number;
+  urgency_score: number;
+  recency_score: number;
+  recommendation_intent: number;
+  classifier_confidence: number;
+  opportunity_score: number;
+  tier: RadarTier;
+  is_candidate: boolean;
+  evidence: Record<string, unknown>;
+  observed_at: string;
+  published_at: string | null;
+}
+
+export interface RadarOpportunityDetail {
+  opportunity: RadarOpportunity;
+  signals: RadarSignal[];
+}
+
+export interface RadarOpportunityFilters {
+  tier?: string;
+  platform?: string;
+  language?: string;
+  location?: string;
+  treatment?: string;
+  status?: string;
+  minScore?: number;
+}
+
+export interface ApiErrorBody {
+  error?: {
+    code?: string;
+    message?: string;
+    request_id?: string;
+  };
+  detail?: string;
+}
