@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import select
@@ -20,8 +20,11 @@ class ResolvedClinic:
     database_url: str
     allowed_origins: list[str]
     subscription_plan: str | None
+    subscription_state: str
     subscription_starts_at: datetime | None
     subscription_expires_at: datetime | None
+    free_trial_started_at: datetime | None
+    upgrade_requested_at: datetime | None
 
 
 class ClinicResolver:
@@ -44,52 +47,40 @@ class ClinicResolver:
             raise AppError("CLINIC_CONFIGURATION_INVALID", "Clinic is unavailable.", 503) from exc
 
     @staticmethod
-    def _ensure_subscription(row: ClinicRegistry) -> None:
+    def _ensure_registry_active(row: ClinicRegistry) -> None:
+        # Subscription expiry no longer makes the tenant unresolvable. Expired
+        # clinics must still be able to authenticate and open the dashboard
+        # shell so they can upgrade the same tenant without losing any data.
         if not row.is_active:
             raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 404)
-        expires_at = row.subscription_expires_at
-        if expires_at is None:
-            return
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=UTC)
-        if expires_at <= datetime.now(UTC):
-            raise AppError(
-                "SUBSCRIPTION_EXPIRED",
-                "This Teta2 Care subscription has expired. Renew the clinic subscription to restore access; existing clinic data is preserved.",
-                403,
-            )
+
+    def _resolved(self, row: ClinicRegistry) -> ResolvedClinic:
+        self._ensure_registry_active(row)
+        return ResolvedClinic(
+            id=row.id,
+            slug=row.slug,
+            name=row.name,
+            database_url=self._decrypt(row.encrypted_database_url),
+            allowed_origins=row.allowed_origins,
+            subscription_plan=row.subscription_plan,
+            subscription_state=row.subscription_state or "ACTIVE",
+            subscription_starts_at=row.subscription_starts_at,
+            subscription_expires_at=row.subscription_expires_at,
+            free_trial_started_at=row.free_trial_started_at,
+            upgrade_requested_at=row.upgrade_requested_at,
+        )
 
     async def by_slug(self, db: AsyncSession, slug: str) -> ResolvedClinic:
         row = await db.scalar(select(ClinicRegistry).where(ClinicRegistry.slug == slug.lower()))
         if not row:
             raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 404)
-        self._ensure_subscription(row)
-        return ResolvedClinic(
-            row.id,
-            row.slug,
-            row.name,
-            self._decrypt(row.encrypted_database_url),
-            row.allowed_origins,
-            row.subscription_plan,
-            row.subscription_starts_at,
-            row.subscription_expires_at,
-        )
+        return self._resolved(row)
 
     async def by_id(self, db: AsyncSession, clinic_id: uuid.UUID) -> ResolvedClinic:
         row = await db.get(ClinicRegistry, clinic_id)
         if not row:
             raise AppError("CLINIC_NOT_FOUND", "Clinic is unavailable.", 401)
-        self._ensure_subscription(row)
-        return ResolvedClinic(
-            row.id,
-            row.slug,
-            row.name,
-            self._decrypt(row.encrypted_database_url),
-            row.allowed_origins,
-            row.subscription_plan,
-            row.subscription_starts_at,
-            row.subscription_expires_at,
-        )
+        return self._resolved(row)
 
     def session_factory(self, clinic: ResolvedClinic) -> async_sessionmaker[AsyncSession]:
         engine = self._engines.get(clinic.id)
