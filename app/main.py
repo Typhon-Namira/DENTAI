@@ -33,6 +33,8 @@ from app.core.errors import AppError, app_error_handler, unexpected_error_handle
 from app.core.logging import configure_logging, request_logging, security_headers
 from app.database.sessions import ControlSession, dispose_control_engine
 from app.outreach import api as outreach
+from app.platform import admin_control_api as platform_admin_control
+from app.platform import admin_payment_api as platform_admin_payment
 from app.platform import api as platform
 from app.platform import freemium_api as platform_freemium
 from app.platform import market_api as platform_market
@@ -76,6 +78,8 @@ for router in (
     platform_freemium.router,
     platform.router,
     platform_market.router,
+    platform_admin_control.router,
+    platform_admin_payment.router,
     auth.router,
     branches.router,
     patients.router,
