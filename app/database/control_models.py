@@ -53,7 +53,9 @@ class AccessRequest(Base):
     payment_amount: Mapped[int | None] = mapped_column(Integer)
     payment_currency: Mapped[str | None] = mapped_column(String(12))
     payment_instructions_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    payment_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    payment_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), index=True
+    )
     activated_clinic_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, index=True
