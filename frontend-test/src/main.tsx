@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { AllRolesAiRunAccess } from "./product/AllRolesAiRunAccess";
+import { ArevikCofounder } from "./product/ArevikCofounder";
 import { BookingExperience } from "./product/BookingExperience";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
@@ -60,6 +61,7 @@ createRoot(document.getElementById("root")!).render(
       <HomepageHeroFollowupAsset />
       <HomepageEvidenceSections />
       <PageDeckSectionsV2 />
+      <ArevikCofounder />
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
