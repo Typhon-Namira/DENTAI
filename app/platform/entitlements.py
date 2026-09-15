@@ -21,21 +21,22 @@ def _utc(value: datetime | None) -> datetime | None:
 
 def subscription_state(clinic: ResolvedClinic, *, now: datetime | None = None) -> str:
     current = now or datetime.now(UTC)
-    configured = (clinic.subscription_state or "ACTIVE").upper()
+    configured = (getattr(clinic, "subscription_state", None) or "ACTIVE").upper()
     if configured in {"PAYMENT_REVIEW", "UPGRADE_PENDING"}:
         return "PAYMENT_REVIEW"
-    expires = _utc(clinic.subscription_expires_at)
+    expires = _utc(getattr(clinic, "subscription_expires_at", None))
+    plan = (getattr(clinic, "subscription_plan", None) or "").upper()
     if expires is not None and expires <= current:
-        return "FREE_EXPIRED" if (clinic.subscription_plan or "").upper() == "FREE" else "EXPIRED"
+        return "FREE_EXPIRED" if plan == "FREE" else "EXPIRED"
     return "ACTIVE"
 
 
 def is_free(clinic: ResolvedClinic) -> bool:
-    return (clinic.subscription_plan or "").upper() == "FREE"
+    return (getattr(clinic, "subscription_plan", None) or "").upper() == "FREE"
 
 
 def seconds_remaining(clinic: ResolvedClinic, *, now: datetime | None = None) -> int | None:
-    expires = _utc(clinic.subscription_expires_at)
+    expires = _utc(getattr(clinic, "subscription_expires_at", None))
     if expires is None:
         return None
     return max(0, int((expires - (now or datetime.now(UTC))).total_seconds()))
