@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from app.database.control_models import ClinicRegistry
-from app.platform.admin_control_api import _clinic_category, _clinic_operational_state
+from app.platform.admin_control_service import clinic_category, clinic_operational_state
 
 
 def clinic(**overrides):
@@ -25,30 +25,23 @@ def clinic(**overrides):
 
 
 def test_free_paid_and_gift_accounts_are_separate():
-    assert _clinic_category(clinic()) == "FREE"
+    assert clinic_category(clinic()) == "FREE"
     assert (
-        _clinic_category(
-            clinic(subscription_plan="PREMIUM", subscription_source="FREE")
-        )
+        clinic_category(clinic(subscription_plan="PREMIUM", subscription_source="FREE"))
         == "PAID"
     )
     assert (
-        _clinic_category(
-            clinic(subscription_plan="PREMIUM", subscription_source="GIFT")
-        )
+        clinic_category(clinic(subscription_plan="PREMIUM", subscription_source="GIFT"))
         == "GIFT"
     )
 
 
 def test_archived_and_expired_states_are_operationally_distinct():
-    assert _clinic_operational_state(clinic(is_active=False)) == "ARCHIVED"
+    assert clinic_operational_state(clinic(is_active=False)) == "ARCHIVED"
     assert (
-        _clinic_operational_state(
+        clinic_operational_state(
             clinic(subscription_expires_at=datetime.now(UTC) - timedelta(minutes=1))
         )
         == "EXPIRED"
     )
-    assert (
-        _clinic_operational_state(clinic(subscription_state="PAYMENT_REVIEW"))
-        == "PAYMENT_REVIEW"
-    )
+    assert clinic_operational_state(clinic(subscription_state="PAYMENT_REVIEW")) == "PAYMENT_REVIEW"
