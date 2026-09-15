@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -10,6 +10,10 @@ from app.platform.service import provision_clinic, send_logged_email
 
 FREE_TRIAL_HOURS = 24
 PREMIUM_DAYS = 30
+
+
+def _identity(value: str | None) -> str:
+    return " ".join((value or "").casefold().strip().split())
 
 
 def free_credentials_email_body(
@@ -64,40 +68,40 @@ def premium_activated_email_body(request: AccessRequest, expires_at: datetime) -
 
 
 async def reject_reused_free_trial(session: AsyncSession, request: AccessRequest) -> None:
-    normalized_email = request.email.casefold().strip()
-    normalized_phone = request.phone.strip()
-    prior = await session.scalar(
-        select(AccessRequest.id).where(
-            AccessRequest.id != request.id,
-            AccessRequest.activated_clinic_id.is_not(None),
-            or_(
-                AccessRequest.email == normalized_email,
-                AccessRequest.phone == normalized_phone,
-            ),
+    """Enforce one Free trial per clinic, not one trial per contact person."""
+    rows = (
+        await session.scalars(
+            select(AccessRequest).where(
+                AccessRequest.id != request.id,
+                AccessRequest.activated_clinic_id.is_not(None),
+            )
         )
-    )
-    if prior:
-        raise AppError(
-            "FREE_TRIAL_ALREADY_USED",
-            "This clinic/contact has already used the one-time Free plan. Sign in to the existing clinic and upgrade to Premium.",
-            409,
-        )
+    ).all()
+    request_name = _identity(request.clinic_name)
+    request_country = _identity(request.country)
+    request_city = _identity(request.city)
+    request_website = _identity(request.website).rstrip("/")
+    request_phone = _identity(request.phone)
 
-    same_clinic = await session.scalar(
-        select(AccessRequest.id).where(
-            AccessRequest.id != request.id,
-            AccessRequest.activated_clinic_id.is_not(None),
-            AccessRequest.clinic_name == request.clinic_name,
-            AccessRequest.country == request.country,
-            AccessRequest.city == request.city,
+    for prior in rows:
+        same_named_location = (
+            _identity(prior.clinic_name) == request_name
+            and _identity(prior.country) == request_country
+            and _identity(prior.city) == request_city
         )
-    )
-    if same_clinic:
-        raise AppError(
-            "FREE_TRIAL_ALREADY_USED",
-            "This clinic has already used its one-time Free plan. Use the existing dashboard to upgrade.",
-            409,
+        prior_website = _identity(prior.website).rstrip("/")
+        same_website = bool(request_website and prior_website == request_website)
+        same_clinic_phone = bool(
+            request_phone
+            and _identity(prior.phone) == request_phone
+            and _identity(prior.clinic_name) == request_name
         )
+        if same_named_location or same_website or same_clinic_phone:
+            raise AppError(
+                "FREE_TRIAL_ALREADY_USED",
+                "This clinic has already used its one-time Free plan. Sign in to the existing dashboard and upgrade to Premium.",
+                409,
+            )
 
 
 async def provision_free_trial(
