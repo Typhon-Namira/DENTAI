@@ -37,7 +37,7 @@ type ClinicLink = {
   stable: boolean;
 };
 
-const text = {
+export const bookingText = {
   en: {
     title: "Book your dental check-up",
     intro: "Choose an available time from the clinic's live schedule. Your request is sent to the doctor for final confirmation.",
@@ -47,8 +47,12 @@ const text = {
     unavailable: "No bookable times are available right now.", schedule: "Clinic working hours", duration: "Check-up duration",
     doctorApproval: "Doctor confirmation required", back: "Close", appointments: "Appointment requests",
     permanent: "Permanent clinic booking link", permanentLead: "This link stays the same. Available times inside it always follow the current working-hours rules.",
-    copy: "Copy link", open: "Open form", pending: "Waiting for doctor", confirmed: "Confirmed & upcoming", approve: "Confirm",
+    copy: "Copy link", open: "Open form", pending: "Waiting for doctor approval", confirmed: "Confirmed & upcoming", approve: "Confirm",
     alternative: "Suggest another range", from: "From", until: "Until", note: "Optional message to patient", sendRange: "Send suggested range",
+    liveAvailability: "LIVE AVAILABILITY", loadingAvailability: "Loading live availability…", refresh: "Refresh",
+    bookingPortal: "BOOKING PORTAL", branch: "Branch", minuteShort: "min", doctorApprovalAdmin: "DOCTOR APPROVAL", calendar: "CALENDAR",
+    noPending: "No appointment requests are waiting.", noUpcoming: "No upcoming appointments yet.",
+    linkUnavailable: "Booking link unavailable", requestFailed: "Could not request appointment",
   },
   hy: {
     title: "Ամրագրեք ատամնաբուժական ստուգումը",
@@ -59,8 +63,12 @@ const text = {
     unavailable: "Այս պահին ամրագրման ազատ ժամ չկա։", schedule: "Կլինիկայի աշխատանքային ժամեր", duration: "Ստուգման տևողություն",
     doctorApproval: "Պահանջվում է բժշկի հաստատում", back: "Փակել", appointments: "Այցի հարցումներ",
     permanent: "Կլինիկայի մշտական ամրագրման հղում", permanentLead: "Այս հղումը չի փոխվում։ Դրա ազատ ժամերը միշտ հաշվարկվում են ընթացիկ աշխատանքային ժամերից։",
-    copy: "Պատճենել", open: "Բացել ձևը", pending: "Սպասում է բժշկին", confirmed: "Հաստատված և առաջիկա", approve: "Հաստատել",
-    alternative: "Առաջարկել այլ միջակայք", from: "Սկիզբ", until: "Մինչև", note: "Լրացուցիչ հաղորդագրություն", sendRange: "Ուղարկել միջակայքը",
+    copy: "Պատճենել", open: "Բացել ձևը", pending: "Սպասում է բժշկի հաստատմանը", confirmed: "Հաստատված և առաջիկա այցեր", approve: "Հաստատել",
+    alternative: "Առաջարկել այլ ժամանակահատված", from: "Սկիզբ", until: "Մինչև", note: "Լրացուցիչ հաղորդագրություն պացիենտին", sendRange: "Ուղարկել առաջարկը",
+    liveAvailability: "ԱԶԱՏ ԺԱՄԵՐ", loadingAvailability: "Բեռնվում են հասանելի ժամերը…", refresh: "Թարմացնել",
+    bookingPortal: "ԱՄՐԱԳՐՄԱՆ ՀԱՄԱԿԱՐԳ", branch: "Մասնաճյուղ", minuteShort: "րոպե", doctorApprovalAdmin: "ԲԺՇԿԻ ՀԱՍՏԱՏՈՒՄ", calendar: "ՕՐԱՑՈՒՅՑ",
+    noPending: "Հաստատման սպասող այցի հարցումներ չկան։", noUpcoming: "Առաջիկա հաստատված այցեր դեռ չկան։",
+    linkUnavailable: "Ամրագրման հղումը հասանելի չէ", requestFailed: "Չհաջողվեց ուղարկել այցի հարցումը",
   },
   ru: {
     title: "Запись на стоматологический осмотр",
@@ -71,10 +79,32 @@ const text = {
     unavailable: "Сейчас нет доступного времени для записи.", schedule: "Рабочие часы клиники", duration: "Длительность осмотра",
     doctorApproval: "Требуется подтверждение врача", back: "Закрыть", appointments: "Запросы на прием",
     permanent: "Постоянная ссылка для записи", permanentLead: "Ссылка не меняется. Доступные часы в форме всегда рассчитываются по текущему расписанию врача.",
-    copy: "Копировать", open: "Открыть форму", pending: "Ожидает врача", confirmed: "Подтвержденные и предстоящие", approve: "Подтвердить",
+    copy: "Копировать", open: "Открыть форму", pending: "Ожидает подтверждения врача", confirmed: "Подтвержденные и предстоящие приемы", approve: "Подтвердить",
     alternative: "Предложить другой интервал", from: "С", until: "До", note: "Сообщение пациенту (необязательно)", sendRange: "Отправить интервал",
+    liveAvailability: "ДОСТУПНОЕ ВРЕМЯ", loadingAvailability: "Загружаем доступное время…", refresh: "Обновить",
+    bookingPortal: "ОНЛАЙН-ЗАПИСЬ", branch: "Филиал", minuteShort: "мин", doctorApprovalAdmin: "ПОДТВЕРЖДЕНИЕ ВРАЧА", calendar: "КАЛЕНДАРЬ",
+    noPending: "Нет запросов на прием, ожидающих подтверждения.", noUpcoming: "Предстоящих подтвержденных приемов пока нет.",
+    linkUnavailable: "Ссылка для записи недоступна", requestFailed: "Не удалось отправить запрос на прием",
   },
 } as const;
+
+const bookingStatuses: Record<string, Record<Lang, string>> = {
+  PROPOSED: { en: "Proposed", hy: "Առաջարկված", ru: "Предложено" },
+  APPROVED: { en: "Approved", hy: "Հաստատված", ru: "Подтверждено" },
+  CONFIRMED: { en: "Confirmed", hy: "Հաստատված", ru: "Подтверждено" },
+  CANCELLED: { en: "Cancelled", hy: "Չեղարկված", ru: "Отменено" },
+  COMPLETED: { en: "Completed", hy: "Ավարտված", ru: "Завершено" },
+  REJECTED: { en: "Rejected", hy: "Մերժված", ru: "Отклонено" },
+  RESCHEDULE_REQUESTED: { en: "Reschedule requested", hy: "Ժամի փոփոխություն է պահանջվել", ru: "Запрошен перенос" },
+  RESCHEDULED: { en: "Rescheduled", hy: "Ժամը փոխվել է", ru: "Перенесено" },
+  NO_SHOW: { en: "No-show", hy: "Չի ներկայացել", ru: "Не явился" },
+  TREATED: { en: "Treated", hy: "Բուժված", ru: "Лечение проведено" },
+};
+
+function readStoredLanguage(): Lang {
+  const stored = localStorage.getItem("teta2-product-language") ?? localStorage.getItem("teta2-v4-language");
+  return stored === "hy" || stored === "ru" ? stored : "en";
+}
 
 function locale(lang: Lang) { return lang === "hy" ? "hy-AM" : lang === "ru" ? "ru-RU" : "en-US"; }
 function formatSlot(value: string, lang: Lang) {
@@ -83,7 +113,10 @@ function formatSlot(value: string, lang: Lang) {
 function fullName(a: CareAppointment) {
   return a.patient ? `${a.patient.first_name} ${a.patient.last_name}`.trim() : a.reason;
 }
-function statusLabel(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (x) => x.toUpperCase()); }
+export function bookingStatusLabel(value: string, lang: Lang) {
+  const normalized = value.toUpperCase();
+  return bookingStatuses[normalized]?.[lang] ?? value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (x) => x.toUpperCase());
+}
 
 async function publicJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -96,9 +129,8 @@ async function publicJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 function PublicBookingPortal({ token }: { token: string }) {
-  const initial = localStorage.getItem("teta2-product-language");
-  const [lang, setLang] = useState<Lang>(initial === "hy" || initial === "ru" ? initial : "en");
-  const t = text[lang];
+  const [lang, setLang] = useState<Lang>(() => readStoredLanguage());
+  const t = bookingText[lang];
   const [data, setData] = useState<PublicBooking | null>(null);
   const [slot, setSlot] = useState("");
   const [busy, setBusy] = useState(false);
@@ -108,8 +140,8 @@ function PublicBookingPortal({ token }: { token: string }) {
   const load = useCallback(async () => {
     setError("");
     try { setData(await publicJson<PublicBooking>(`/api/v1/care/booking/public/${encodeURIComponent(token)}`)); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Booking link unavailable"); }
-  }, [token]);
+    catch (reason) { setError(reason instanceof Error ? reason.message : bookingText[lang].linkUnavailable); }
+  }, [lang, token]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { document.body.classList.add("booking-open"); return () => document.body.classList.remove("booking-open"); }, []);
 
@@ -140,7 +172,7 @@ function PublicBookingPortal({ token }: { token: string }) {
       });
       setDone(true);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not request appointment");
+      setError(reason instanceof Error ? reason.message : t.requestFailed);
       await load();
     } finally { setBusy(false); }
   }
@@ -149,12 +181,12 @@ function PublicBookingPortal({ token }: { token: string }) {
     <header className="booking-public-top"><strong>Teta2</strong><div>{(["en","hy","ru"] as Lang[]).map(x=><button key={x} className={lang===x?"active":""} onClick={()=>{localStorage.setItem("teta2-product-language",x);setLang(x)}}>{x.toUpperCase()}</button>)}</div></header>
     <main className="booking-public-main">
       {done ? <section className="booking-success"><span><Check/></span><h1>{t.success}</h1><p>{t.successBody}</p></section> : <>
-        <section className="booking-intro"><span className="booking-kicker"><CalendarCheck/>{t.doctorApproval}</span><h1>{t.title}</h1><p>{t.intro}</p>{data&&<div className="booking-clinic"><strong>{data.clinic_name}</strong><span>{data.branch_name}</span><small>{t.schedule}: {data.day_start}–{data.day_end} · {data.timezone}</small><small>{t.duration}: {data.appointment_minutes} min</small></div>}</section>
+        <section className="booking-intro"><span className="booking-kicker"><CalendarCheck/>{t.doctorApproval}</span><h1>{t.title}</h1><p>{t.intro}</p>{data&&<div className="booking-clinic"><strong>{data.clinic_name}</strong><span>{data.branch_name}</span><small>{t.schedule}: {data.day_start}–{data.day_end} · {data.timezone}</small><small>{t.duration}: {data.appointment_minutes} {t.minuteShort}</small></div>}</section>
         <form className="booking-form" onSubmit={submit}>
-          {!data ? <div className="booking-loader"><RefreshCw/>Loading live availability…</div> : <>
+          {!data ? <div className="booking-loader"><RefreshCw/>{t.loadingAvailability}</div> : <>
             {!data.prefilled&&<div className="booking-fields"><label>{t.first}<input name="first_name" required/></label><label>{t.last}<input name="last_name" required/></label><label>{t.phone}<input name="phone" required placeholder="+374…"/></label><label>{t.email}<input name="email" type="email"/></label></div>}
             {data.prefilled&&data.patient&&<div className="booking-person"><ShieldCheck/><div><small>{data.patient.first_name}</small><strong>{data.clinic_name}</strong></div></div>}
-            <div className="booking-slot-head"><div><small>LIVE AVAILABILITY</small><h2>{t.choose}</h2></div><button type="button" onClick={()=>void load()}><RefreshCw/>Refresh</button></div>
+            <div className="booking-slot-head"><div><small>{t.liveAvailability}</small><h2>{t.choose}</h2></div><button type="button" onClick={()=>void load()}><RefreshCw/>{t.refresh}</button></div>
             {days.length ? <div className="booking-days">{days.slice(0,14).map(([day,values])=><section key={day}><h3>{day}</h3><div>{values.map(value=><button type="button" key={value} className={slot===value?"selected":""} onClick={()=>setSlot(value)}>{new Intl.DateTimeFormat(locale(lang),{hour:"2-digit",minute:"2-digit"}).format(new Date(value))}</button>)}</div></section>)}</div> : <div className="booking-empty"><Clock3/><p>{t.unavailable}</p></div>}
             {error&&<div className="booking-error">{error}</div>}
             <button className="booking-submit" disabled={!slot||busy}>{busy?t.waiting:t.submit}</button>
@@ -166,9 +198,8 @@ function PublicBookingPortal({ token }: { token: string }) {
 }
 
 function AppointmentManager({ branches }: { branches: BranchSummary[] }) {
-  const stored = localStorage.getItem("teta2-product-language");
-  const lang: Lang = stored === "hy" || stored === "ru" ? stored : "en";
-  const t = text[lang];
+  const [lang, setLang] = useState<Lang>(() => readStoredLanguage());
+  const t = bookingText[lang];
   const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
   const [link, setLink] = useState<ClinicLink | null>(null);
   const [appointments, setAppointments] = useState<CareAppointment[]>([]);
@@ -178,6 +209,16 @@ function AppointmentManager({ branches }: { branches: BranchSummary[] }) {
   const [rangeEnd, setRangeEnd] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const syncLanguage = () => setLang(readStoredLanguage());
+    window.addEventListener("teta2-language-change", syncLanguage);
+    window.addEventListener("storage", syncLanguage);
+    return () => {
+      window.removeEventListener("teta2-language-change", syncLanguage);
+      window.removeEventListener("storage", syncLanguage);
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!branchId) return;
@@ -200,13 +241,13 @@ function AppointmentManager({ branches }: { branches: BranchSummary[] }) {
   const confirmed=appointments.filter(x=>x.status!=="PROPOSED"&&x.status!=="RESCHEDULED").sort((a,b)=>a.starts_at.localeCompare(b.starts_at));
   return <div className="booking-admin-stack">
     <section className="booking-admin-link">
-      <div className="booking-admin-link-head"><span><Link2/></span><div><small>BOOKING PORTAL</small><h2>{t.permanent}</h2><p>{t.permanentLead}</p></div></div>
-      {branches.length>1&&<label>Branch<select value={branchId} onChange={e=>setBranchId(e.target.value)}>{branches.map(b=><option value={b.id} key={b.id}>{b.name}</option>)}</select></label>}
-      {link&&<><div className="booking-link-value"><code>{link.url}</code><button onClick={()=>void navigator.clipboard.writeText(link.url)}><Copy/>{t.copy}</button><a href={link.url} target="_blank" rel="noreferrer"><ExternalLink/>{t.open}</a></div><div className="booking-link-rules"><span><Clock3/>{link.day_start}–{link.day_end}</span><span>{link.appointment_minutes} min</span><span>{link.timezone}</span><span>EN · HY · RU</span></div></>}
+      <div className="booking-admin-link-head"><span><Link2/></span><div><small>{t.bookingPortal}</small><h2>{t.permanent}</h2><p>{t.permanentLead}</p></div></div>
+      {branches.length>1&&<label>{t.branch}<select value={branchId} onChange={e=>setBranchId(e.target.value)}>{branches.map(b=><option value={b.id} key={b.id}>{b.name}</option>)}</select></label>}
+      {link&&<><div className="booking-link-value"><code>{link.url}</code><button onClick={()=>void navigator.clipboard.writeText(link.url)}><Copy/>{t.copy}</button><a href={link.url} target="_blank" rel="noreferrer"><ExternalLink/>{t.open}</a></div><div className="booking-link-rules"><span><Clock3/>{link.day_start}–{link.day_end}</span><span>{link.appointment_minutes} {t.minuteShort}</span><span>{link.timezone}</span><span>EN · HY · RU</span></div></>}
     </section>
     {error&&<div className="booking-admin-error">{error}<button onClick={()=>setError("")}><X/></button></div>}
-    <section className="booking-admin-board"><header><div><small>DOCTOR APPROVAL</small><h2>{t.pending}</h2></div><button onClick={()=>void refresh()}><RefreshCw/>Refresh</button></header>{pending.length?pending.map(a=><article key={a.id}><time><b>{new Date(a.starts_at).getDate()}</b><span>{new Intl.DateTimeFormat(locale(lang),{month:"short"}).format(new Date(a.starts_at))}</span></time><div className="booking-request-main"><strong>{fullName(a)}</strong><small>{formatSlot(a.starts_at,lang)} · {a.timezone}</small><small>{a.reason}</small></div><span className="booking-pending-pill">{t.doctorApproval}</span><div className="booking-request-actions"><button disabled={!!busy} onClick={()=>setRangeFor(rangeFor===a.id?"":a.id)}>{t.alternative}</button><button className="confirm" disabled={!!busy} onClick={()=>void approve(a.id)}><Check/>{busy===a.id?"…":t.approve}</button></div>{rangeFor===a.id&&<div className="booking-range-form"><label>{t.from}<input type="datetime-local" value={rangeStart} onChange={e=>setRangeStart(e.target.value)}/></label><label>{t.until}<input type="datetime-local" value={rangeEnd} onChange={e=>setRangeEnd(e.target.value)}/></label><label className="wide">{t.note}<input value={note} onChange={e=>setNote(e.target.value)}/></label><button className="wide" disabled={!rangeStart||!rangeEnd||!!busy} onClick={()=>void suggest(a.id)}>{t.sendRange}</button></div>}</article>):<div className="booking-admin-empty"><Check/>No appointment requests are waiting.</div>}</section>
-    <section className="booking-admin-board"><header><div><small>CALENDAR</small><h2>{t.confirmed}</h2></div></header>{confirmed.length?confirmed.map(a=><article key={a.id}><time><b>{new Date(a.starts_at).getDate()}</b><span>{new Intl.DateTimeFormat(locale(lang),{month:"short"}).format(new Date(a.starts_at))}</span></time><div className="booking-request-main"><strong>{fullName(a)}</strong><small>{formatSlot(a.starts_at,lang)} · {a.timezone}</small></div><span className={`booking-status ${a.status.toLowerCase()}`}>{statusLabel(a.status)}</span></article>):<div className="booking-admin-empty"><CalendarCheck/>No upcoming appointments yet.</div>}</section>
+    <section className="booking-admin-board"><header><div><small>{t.doctorApprovalAdmin}</small><h2>{t.pending}</h2></div><button onClick={()=>void refresh()}><RefreshCw/>{t.refresh}</button></header>{pending.length?pending.map(a=><article key={a.id}><time><b>{new Date(a.starts_at).getDate()}</b><span>{new Intl.DateTimeFormat(locale(lang),{month:"short"}).format(new Date(a.starts_at))}</span></time><div className="booking-request-main"><strong>{fullName(a)}</strong><small>{formatSlot(a.starts_at,lang)} · {a.timezone}</small><small>{a.reason}</small></div><span className="booking-pending-pill">{t.doctorApproval}</span><div className="booking-request-actions"><button disabled={!!busy} onClick={()=>setRangeFor(rangeFor===a.id?"":a.id)}>{t.alternative}</button><button className="confirm" disabled={!!busy} onClick={()=>void approve(a.id)}><Check/>{busy===a.id?"…":t.approve}</button></div>{rangeFor===a.id&&<div className="booking-range-form"><label>{t.from}<input type="datetime-local" value={rangeStart} onChange={e=>setRangeStart(e.target.value)}/></label><label>{t.until}<input type="datetime-local" value={rangeEnd} onChange={e=>setRangeEnd(e.target.value)}/></label><label className="wide">{t.note}<input value={note} onChange={e=>setNote(e.target.value)}/></label><button className="wide" disabled={!rangeStart||!rangeEnd||!!busy} onClick={()=>void suggest(a.id)}>{t.sendRange}</button></div>}</article>):<div className="booking-admin-empty"><Check/>{t.noPending}</div>}</section>
+    <section className="booking-admin-board"><header><div><small>{t.calendar}</small><h2>{t.confirmed}</h2></div></header>{confirmed.length?confirmed.map(a=><article key={a.id}><time><b>{new Date(a.starts_at).getDate()}</b><span>{new Intl.DateTimeFormat(locale(lang),{month:"short"}).format(new Date(a.starts_at))}</span></time><div className="booking-request-main"><strong>{fullName(a)}</strong><small>{formatSlot(a.starts_at,lang)} · {a.timezone}</small></div><span className={`booking-status ${a.status.toLowerCase()}`}>{bookingStatusLabel(a.status,lang)}</span></article>):<div className="booking-admin-empty"><CalendarCheck/>{t.noUpcoming}</div>}</section>
   </div>;
 }
 
