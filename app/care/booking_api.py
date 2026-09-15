@@ -608,9 +608,7 @@ async def approve_booking_appointment(
         context["stage"] = "APPOINTMENT_CONFIRMED"
         conversation.booking_context = context
         conversation.status = "WAITING_NEXT_TOOTH"
-        conversation.summary = (
-            "Appointment confirmed by the clinician. AI is inactive until the next tooth outreach is actually sent."
-        )
+        conversation.summary = "Appointment confirmed by the clinician. AI is inactive until the next tooth outreach is actually sent."
     await audit(
         ctx.session,
         ctx.user,
