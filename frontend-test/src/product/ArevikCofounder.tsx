@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Globe2, Landmark, TrendingUp } from "lucide-react";
+import { Globe2 } from "lucide-react";
 
 import "./arevik-cofounder.css";
 
@@ -8,31 +8,22 @@ type Lang = "en" | "hy" | "ru";
 
 const COPY = {
   en: {
-    role: "Co-Founder · Growth, International Relations & Public-Sector Partnerships",
+    role: "Co-Founder · Growth / International Relations",
+    focus: "Growth & international partnerships",
     body:
-      "Arevik Arzoyan leads Teta2's growth strategy, international partnerships, and engagement with public institutions and government stakeholders as the company expands across markets.",
-    growth: "Growth strategy",
-    international: "International partnerships",
-    publicSector: "Public-sector relations",
-    alt: "Arevik Arzoyan, Co-Founder of Teta2",
+      "Arevik Arzoyan leads Teta2's growth strategy, international partnerships, and engagement with public-sector and government stakeholders.",
   },
   hy: {
-    role: "Համահիմնադիր · աճի ռազմավարություն, միջազգային կապեր և պետական հատվածի գործընկերություններ",
+    role: "Համահիմնադիր · աճ / միջազգային կապեր",
+    focus: "Աճ և միջազգային գործընկերություններ",
     body:
-      "Arevik Arzoyan-ը ղեկավարում է Teta2-ի աճի ռազմավարությունը, միջազգային գործընկերությունների զարգացումը և պետական ու ինստիտուցիոնալ կառույցների հետ հարաբերությունները՝ նոր շուկաներում ընդլայնման համար։",
-    growth: "Աճի ռազմավարություն",
-    international: "Միջազգային գործընկերություններ",
-    publicSector: "Պետական հատվածի կապեր",
-    alt: "Arevik Arzoyan՝ Teta2-ի համահիմնադիր",
+      "Arevik Arzoyan-ը ղեկավարում է Teta2-ի աճի ռազմավարությունը, միջազգային գործընկերությունները և պետական ու հանրային կառույցների հետ հարաբերությունները։",
   },
   ru: {
-    role: "Сооснователь · стратегия роста, международные связи и партнерства с государственным сектором",
+    role: "Сооснователь · рост / международные связи",
+    focus: "Рост и международные партнерства",
     body:
-      "Arevik Arzoyan отвечает за стратегию роста Teta2, развитие международных партнерств и взаимодействие с государственными и институциональными организациями при выходе на новые рынки.",
-    growth: "Стратегия роста",
-    international: "Международные партнерства",
-    publicSector: "Связи с государственным сектором",
-    alt: "Arevik Arzoyan, сооснователь Teta2",
+      "Arevik Arzoyan отвечает за стратегию роста Teta2, международные партнерства и взаимодействие с государственными и общественными организациями.",
   },
 } as const;
 
@@ -101,28 +92,17 @@ export function ArevikCofounder() {
 
   return createPortal(
     <article id="arevik-arzoyan" className="teta2-arevik-card">
-      <div className="teta2-arevik-photo">
-        <img
-          src="/images/IMG_8898.jpg"
-          alt={copy.alt}
-          loading="lazy"
-          decoding="async"
-        />
+      <div className="deck2-person-head">
+        <span>AA</span>
+        <div>
+          <small>{copy.role}</small>
+          <h3>Arevik Arzoyan</h3>
+        </div>
       </div>
-      <div className="teta2-arevik-content">
-        <div className="deck2-person-head teta2-arevik-head">
-          <span>AA</span>
-          <div>
-            <small>{copy.role}</small>
-            <h3>Arevik Arzoyan</h3>
-          </div>
-        </div>
-        <p className="teta2-arevik-body">{copy.body}</p>
-        <div className="teta2-arevik-focus" aria-label={copy.role}>
-          <span><TrendingUp />{copy.growth}</span>
-          <span><Globe2 />{copy.international}</span>
-          <span><Landmark />{copy.publicSector}</span>
-        </div>
+      <div className="deck2-tech-focus teta2-arevik-focus">
+        <Globe2 />
+        <strong>{copy.focus}</strong>
+        <p>{copy.body}</p>
       </div>
     </article>,
     host,
