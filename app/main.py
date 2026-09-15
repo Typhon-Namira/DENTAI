@@ -34,6 +34,7 @@ from app.core.logging import configure_logging, request_logging, security_header
 from app.database.sessions import ControlSession, dispose_control_engine
 from app.outreach import api as outreach
 from app.platform import api as platform
+from app.platform import freemium_api as platform_freemium
 from app.platform import market_api as platform_market
 from app.platform.api import record_platform_visit
 
@@ -72,6 +73,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
 for router in (
+    platform_freemium.router,
     platform.router,
     platform_market.router,
     auth.router,
