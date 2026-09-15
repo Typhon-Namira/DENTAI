@@ -170,28 +170,44 @@ export function SubscriptionExperience() {
   </>;
 }
 
+function setTextIfChanged(node: Element | null, value: string) {
+  if (node && node.textContent !== value) node.textContent = value;
+}
+
 export function FreemiumPublicExperience() {
   useEffect(() => {
     const update = () => {
-      if (!['/register', '/request-access'].includes(window.location.pathname)) return;
-      const story = document.querySelector('.pav2-access-story');
-      const heading = story?.querySelector('h1');
-      const lead = story?.querySelector(':scope > p');
-      if (heading) heading.textContent = 'Start Teta2 free for 24 hours.';
-      if (lead) lead.textContent = 'Submit your clinic details once and receive login credentials by email immediately. The one-time Free plan includes 3 patients, 1 OPG per patient and 1 tooth follow-up per OPG.';
-      document.querySelectorAll('.pav2-market-preview, .pav2-live-price').forEach((node) => (node as HTMLElement).style.display = 'none');
-      const footer = document.querySelector('.pav2-form-footer p');
-      if (footer) footer.textContent = 'No payment is required for the one-time 24-hour Free plan. Upgrade to Premium from the dashboard when you are ready to continue.';
-      const success = document.querySelector('.pav2-success');
-      const successTitle = success?.querySelector('h2');
-      const successText = success?.querySelector('p');
-      if (successTitle) successTitle.textContent = 'Free access activated';
-      if (successText) successText.textContent = 'Your Teta2 Free dashboard is ready. Login credentials have been sent to your email.';
+      if (!["/register", "/request-access"].includes(window.location.pathname)) return;
+      const story = document.querySelector(".pav2-access-story");
+      setTextIfChanged(story?.querySelector("h1") ?? null, "Start Teta2 free for 24 hours.");
+      setTextIfChanged(
+        story?.querySelector(":scope > p") ?? null,
+        "Submit your clinic details once and receive login credentials by email immediately. The one-time Free plan includes 3 patients, 1 OPG per patient and 1 tooth follow-up per OPG."
+      );
+      document.querySelectorAll(".pav2-market-preview, .pav2-live-price").forEach((node) => {
+        const element = node as HTMLElement;
+        if (element.style.display !== "none") element.style.display = "none";
+      });
+      setTextIfChanged(
+        document.querySelector(".pav2-form-footer p"),
+        "No payment is required for the one-time 24-hour Free plan. Upgrade to Premium from the dashboard when you are ready to continue."
+      );
+      const success = document.querySelector(".pav2-success");
+      setTextIfChanged(success?.querySelector("h2") ?? null, "Free access activated");
+      setTextIfChanged(
+        success?.querySelector("p") ?? null,
+        "Your Teta2 Free dashboard is ready. Login credentials have been sent to your email."
+      );
     };
+
     update();
+    window.addEventListener("popstate", update);
     const observer = new MutationObserver(update);
     observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    return () => {
+      window.removeEventListener("popstate", update);
+      observer.disconnect();
+    };
   }, []);
   return null;
 }
