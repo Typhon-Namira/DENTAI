@@ -111,9 +111,7 @@ async def admin_control_dashboard(
     recent_audit = list(
         (
             await session.scalars(
-                select(PlatformAdminAudit)
-                .order_by(PlatformAdminAudit.created_at.desc())
-                .limit(40)
+                select(PlatformAdminAudit).order_by(PlatformAdminAudit.created_at.desc()).limit(40)
             )
         ).all()
     )
