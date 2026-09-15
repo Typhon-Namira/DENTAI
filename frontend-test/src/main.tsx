@@ -14,6 +14,7 @@ import { LegalLocaleQuality } from "./product/LegalLocaleQuality";
 import { LocalizedPublicRouteBridge, prepareLocalizedPublicRoute } from "./product/publicLocaleRouting";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
+import { PlatformAdminControlCenter } from "./product/PlatformAdminControlCenter";
 import ProductApp from "./product/ProductApp";
 import { PublicLocaleQualityGate } from "./product/PublicLocaleQualityGate";
 import { PublicSeo } from "./product/PublicSeo";
@@ -66,6 +67,7 @@ createRoot(document.getElementById("root")!).render(
       <CareGenerationContractPanel />
       <FollowupCaseWorkspace />
       <PlatformAccessExperienceV2 />
+      <PlatformAdminControlCenter />
       <FreemiumCountryField />
       <FreemiumPublicExperience />
       <SubscriptionExperience />
