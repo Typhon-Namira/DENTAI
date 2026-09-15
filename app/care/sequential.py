@@ -137,9 +137,9 @@ async def _conversation_for_plan(
         branch_id=plan.branch_id,
         whatsapp_phone=phone,
         language=plan.language,
-        status="ACTIVE",
+        status="WAITING_NEXT_TOOTH",
         booking_context={"sequence_mode": True},
-        summary="Sequential tooth follow-up prepared. Waiting for the first scheduled contact.",
+        summary="Sequential tooth follow-up prepared. AI remains inactive until the first scheduled outreach is actually sent.",
     )
     session.add(conversation)
     await session.flush()
