@@ -10,11 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.service import audit
 from app.auth.dependencies import AuthContext, authorized_patient, roles
-from app.care.conversation_flow import (
-    APPOINTMENT_CONFIRMED,
-    appointment_confirmed_message,
-    process_staged_inbound_message,
-)
+from app.care.conversation_flow import APPOINTMENT_CONFIRMED, appointment_confirmed_message
+from app.care.conversation_runtime import process_staged_inbound_message
+from app.care.groq import care_conversation_message
 from app.care.models import CareAppointment, CareConversation, CareConversationMessage, CarePlanItem
 from app.clinic_resolution.service import resolver
 from app.common.serialization import model_dict
@@ -121,12 +119,49 @@ async def approve_staged_appointment(
         else None
     )
     language = conversation.language if conversation else "en"
-    message = appointment_confirmed_message(
+    fallback_message = appointment_confirmed_message(
         language,
         row.starts_at,
         row.timezone,
         ctx.clinic.name,
     )
+    message = fallback_message
+    generated_provider = "fallback"
+    generated_model = None
+    if conversation:
+        history_rows = (
+            await ctx.session.scalars(
+                select(CareConversationMessage)
+                .where(CareConversationMessage.conversation_id == conversation.id)
+                .order_by(CareConversationMessage.created_at.asc())
+            )
+        ).all()
+        generated = await care_conversation_message(
+            language=language,
+            patient_name=f"{patient.first_name} {patient.last_name}".strip(),
+            history=[
+                {
+                    "role": "assistant" if item.direction == "OUT" else "user",
+                    "content": item.body,
+                }
+                for item in history_rows
+            ],
+            latest_patient_message=None,
+            event="APPOINTMENT_FINAL_CONFIRMATION",
+            required_facts={
+                "appointment_status": "APPROVED",
+                "confirmed_slot": row.starts_at.isoformat(),
+                "timezone": row.timezone,
+                "clinic_name": ctx.clinic.name,
+                "this_is_final_confirmation": True,
+                "ai_conversation_stops_after_this_message": True,
+            },
+            fallback_message=fallback_message,
+        )
+        message = generated.reply
+        generated_provider = generated.provider
+        generated_model = generated.model
+
     phone = patient.whatsapp_phone or patient.phone
     if phone is None:
         raise AppError("PATIENT_PHONE_REQUIRED", "Patient WhatsApp number is required.", 422)
@@ -173,10 +208,9 @@ async def approve_staged_appointment(
             }
         )
         conversation.booking_context = context
+        conversation.status = "WAITING_NEXT_TOOTH"
         conversation.last_message_at = now
-        conversation.summary = (
-            "Appointment confirmed by patient and doctor; final WhatsApp confirmation sent."
-        )
+        conversation.summary = "Appointment confirmed by patient and doctor; AI is inactive until the next tooth follow-up."
         ctx.session.add(
             CareConversationMessage(
                 conversation_id=conversation.id,
@@ -194,6 +228,10 @@ async def approve_staged_appointment(
                     "appointment_id": str(row.id),
                     "confirmed_slot": row.starts_at.isoformat(),
                     "timezone": row.timezone,
+                    "ai_provider": generated_provider,
+                    "ai_model": generated_model,
+                    "ai_generated": generated_provider == "groq",
+                    "conversation_deactivated": True,
                 },
             )
         )
