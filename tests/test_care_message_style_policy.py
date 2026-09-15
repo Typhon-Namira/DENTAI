@@ -30,7 +30,10 @@ async def test_professional_policy_is_added_without_changing_call_shape(monkeypa
     assert "Existing clinic instruction" in instructions
     assert "Never call them a customer" in instructions
     assert "An empty AVAILABLE_SLOTS array by itself is NOT evidence" in instructions
-    assert "If the patient is not asking to book or reschedule, do not mention appointment availability" in instructions
+    assert (
+        "If the patient is not asking to book or reschedule, do not mention appointment availability"
+        in instructions
+    )
 
 
 def test_policy_does_not_claim_empty_slots_mean_no_availability():
