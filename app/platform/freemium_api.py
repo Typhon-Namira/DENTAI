@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -6,6 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import AuthContext, current_context
+from app.clinic_resolution.service import ResolvedClinic
+from app.core.errors import AppError
 from app.core.rate_limit import sensitive_limit
 from app.database.control_models import AccessRequest, ClinicRegistry
 from app.database.sessions import control_session
@@ -91,13 +94,11 @@ async def create_free_access_request(
 
 
 def _subscription_payload(clinic: ClinicRegistry) -> dict:
-    from app.clinic_resolution.service import ResolvedClinic, resolver
-
     resolved = ResolvedClinic(
         id=clinic.id,
         slug=clinic.slug,
         name=clinic.name,
-        database_url=resolver._decrypt(clinic.encrypted_database_url),
+        database_url="",
         allowed_origins=clinic.allowed_origins,
         subscription_plan=clinic.subscription_plan,
         subscription_state=clinic.subscription_state,
@@ -138,8 +139,6 @@ async def request_upgrade(
 ):
     clinic = await control.get(ClinicRegistry, ctx.clinic.id)
     if not clinic:
-        from app.core.errors import AppError
-
         raise AppError("CLINIC_NOT_FOUND", "Clinic was not found.", 404)
     settings = await platform_settings(control)
     request = await request_premium_upgrade(control, clinic=clinic, settings=settings)
@@ -156,14 +155,12 @@ async def request_upgrade(
     dependencies=[Depends(require_platform_admin)],
 )
 async def activate_free_upgrade_or_legacy(
-    request_id,
+    request_id: uuid.UUID,
     body: PaymentVerification,
     session: Annotated[AsyncSession, Depends(control_session)],
 ):
     request = await session.get(AccessRequest, request_id)
     if not request:
-        from app.core.errors import AppError
-
         raise AppError("ACCESS_REQUEST_NOT_FOUND", "Access request was not found.", 404)
     if request.activated_clinic_id:
         settings = await platform_settings(session)
