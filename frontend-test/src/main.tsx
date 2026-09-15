@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { AllRolesAiRunAccess } from "./product/AllRolesAiRunAccess";
 import { BookingExperience } from "./product/BookingExperience";
-import { CareCommandCenter } from "./product/CareCommandCenter";
+import { CareCommandCenter } from "./product/CareCommandCenterCurrentShell";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
