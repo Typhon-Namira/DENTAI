@@ -313,6 +313,20 @@ async def record_scheduled_outreach_sent(
             )
         )
     item.status = "CONTACTED"
+    preserved_context = {
+        key: value
+        for key, value in dict(conversation.booking_context or {}).items()
+        if key.startswith("last_visit_") or key == "sequence_mode"
+    }
+    preserved_context.update(
+        {
+            "sequence_mode": True,
+            "stage": "WAITING_PATIENT_REPLY",
+            "active_item_id": str(item.id),
+        }
+    )
+    conversation.booking_context = preserved_context
+    conversation.status = "ACTIVE"
     conversation.last_message_at = outreach.sent_at or datetime.now(UTC)
     conversation.summary = (
         f"AI follow-up active for tooth {item.tooth_fdi} (priority {item.sequence_order})."
@@ -348,9 +362,6 @@ async def record_visit_outcome(
     if not plan or not patient:
         return appointment
 
-    # A recorded appointment outcome is terminal for this tooth's sequential
-    # follow-up step. The exact visit result is preserved in `outcome`, while
-    # the workflow status becomes COMPLETED so the next tooth can unlock.
     item.outcome = normalized
     item.outcome_at = now
     item.status = "COMPLETED"
@@ -413,7 +424,8 @@ async def record_visit_outcome(
         if conversation:
             conversation.summary = (
                 f"Tooth {item.tooth_fdi} completed with visit outcome "
-                f"{normalized.replace('_', ' ').title()}. Next: tooth {next_item.tooth_fdi}."
+                f"{normalized.replace('_', ' ').title()}. AI remains inactive until tooth "
+                f"{next_item.tooth_fdi} outreach is actually sent."
             )
     else:
         remaining = await session.scalar(
