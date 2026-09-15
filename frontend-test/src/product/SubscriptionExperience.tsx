@@ -7,6 +7,7 @@ import {
   Crown,
   LoaderCircle,
   LockKeyhole,
+  Mail,
   RefreshCw,
   Sparkles,
   X,
@@ -33,12 +34,12 @@ const COPY = {
     freeEnded: "Free ended",
     premium: "Premium",
     daysLeft: (days: number) => `Premium · ${days} days left`,
-    pendingShort: "Premium · approval pending",
+    pendingShort: "Premium · payment review",
     premiumLabel: "TETA2 PREMIUM",
     unlock: "Unlock the full clinic workspace for 30 days",
     unlimited:
       "Unlimited patients, OPGs and tooth follow-up with your existing clinic history preserved.",
-    waiting: "Waiting for approval",
+    waiting: "Waiting for payment approval",
     upgrade: "Upgrade to Premium",
     active: "Premium is active",
     activeHelp: "Your existing clinic workspace and history stay continuous.",
@@ -50,29 +51,32 @@ const COPY = {
     sameData: "Same clinic data",
     unlimitedPremium: "Unlimited Premium usage",
     goSettings: "Go to Settings & activate Premium",
-    reviewKicker: "PAYMENT REVIEW",
-    reviewTitle: "Premium activation is being confirmed.",
-    reviewBodyA:
-      "Your request has been sent to the Teta2 administration panel. Approval normally takes between",
-    reviewBodyB: "1 and 6 hours",
+    reviewKicker: "PAYMENT INSTRUCTIONS SENT",
+    reviewTitle: "Check your email and complete the payment.",
+    reviewIntroBefore: "We sent the Premium payment instructions to",
+    reviewIntroAfter:
+      "Open that email and complete the payment using the payment details provided there.",
+    reviewReceipt:
+      "After payment, reply to the same email with your payment receipt. An administrator will verify it and activate Premium, usually within 1–6 hours.",
     reviewWait:
-      "You do not need to keep this page open. We will unlock the dashboard automatically after approval.",
+      "You do not need to keep this page open. The dashboard will unlock automatically after payment verification.",
     reviewContinues:
-      "Payment review continues securely even if you leave this page or sign in again later.",
+      "Your payment-review request remains active even if you leave this page or sign in again later.",
     checkStatus: "Check status now",
     checking: "Checking…",
     backWebsite: "Back to website",
-    confirmKicker: "CONFIRM UPGRADE",
-    confirmTitle: "Activate Teta2 Premium",
+    confirmKicker: "CONFIRM PREMIUM REQUEST",
+    confirmTitle: "Request Premium payment instructions",
     confirmBodyA:
-      "We already have your clinic details. Confirm once and we’ll send the payment instructions to",
-    confirmBodyB: "and place your account into payment review.",
-    benefit1: "30 days of Premium access after admin approval",
-    benefit2: "No patient or OPG limits from the Free plan",
-    benefit3: "Your existing dashboard and all clinic history remain unchanged",
+      "After you confirm, we will email the payment instructions to",
+    confirmBodyB:
+      "Complete the payment and reply to that email with your receipt. Your dashboard will unlock after administrator verification.",
+    benefit1: "Payment instructions are sent immediately by email",
+    benefit2: "Complete payment and reply to the email with your receipt",
+    benefit3: "Premium activates after verification, usually within 1–6 hours",
     cancel: "Cancel",
-    submitting: "Submitting…",
-    continue: "Confirm & continue",
+    submitting: "Sending instructions…",
+    continue: "Confirm & send payment instructions",
   },
   hy: {
     free: "Անվճար",
@@ -80,12 +84,12 @@ const COPY = {
     freeEnded: "Անվճար շրջանն ավարտվել է",
     premium: "Պրեմիում",
     daysLeft: (days: number) => `Պրեմիում · մնացել է ${days} օր`,
-    pendingShort: "Պրեմիում · սպասում է հաստատման",
+    pendingShort: "Պրեմիում · վճարման ստուգում",
     premiumLabel: "TETA2 ՊՐԵՄԻՈՒՄ",
     unlock: "Բացեք կլինիկայի ամբողջ աշխատանքային միջավայրը 30 օրով",
     unlimited:
       "Անսահմանափակ պացիենտներ, OPG պատկերներ և ատամների հետագա հսկողություն՝ պահպանելով կլինիկայի ամբողջ պատմությունը։",
-    waiting: "Սպասում է հաստատման",
+    waiting: "Սպասում է վճարման հաստատմանը",
     upgrade: "Անցնել Պրեմիումի",
     active: "Պրեմիումն ակտիվ է",
     activeHelp: "Կլինիկայի նույն աշխատանքային միջավայրն ու ամբողջ պատմությունը պահպանվում են։",
@@ -97,29 +101,32 @@ const COPY = {
     sameData: "Նույն կլինիկայի տվյալները",
     unlimitedPremium: "Անսահմանափակ Պրեմիում օգտագործում",
     goSettings: "Գնալ Կարգավորումներ և ակտիվացնել Պրեմիումը",
-    reviewKicker: "ՎՃԱՐՄԱՆ ՍՏՈՒԳՈՒՄ",
-    reviewTitle: "Պրեմիումի ակտիվացումը հաստատման փուլում է։",
-    reviewBodyA:
-      "Ձեր հայտը ուղարկվել է Teta2-ի ադմինիստրատորի վահանակ։ Հաստատումը սովորաբար տևում է",
-    reviewBodyB: "1-ից 6 ժամ",
+    reviewKicker: "ՎՃԱՐՄԱՆ ՀՐԱՀԱՆԳՆԵՐՆ ՈՒՂԱՐԿՎԱԾ ԵՆ",
+    reviewTitle: "Ստուգեք ձեր էլ․ փոստը և կատարեք վճարումը։",
+    reviewIntroBefore: "Պրեմիումի վճարման հրահանգներն ուղարկել ենք",
+    reviewIntroAfter:
+      "Բացեք այդ նամակը և կատարեք վճարումը այնտեղ նշված վճարման տվյալներով։",
+    reviewReceipt:
+      "Վճարումից հետո պատասխանեք նույն նամակին և կցեք վճարման անդորրագիրը։ Ադմինիստրատորը կստուգի այն և սովորաբար 1–6 ժամվա ընթացքում կակտիվացնի Պրեմիումը։",
     reviewWait:
-      "Պետք չէ այս էջը բաց պահել։ Հաստատումից հետո վահանակն ինքնաբերաբար կբացվի։",
+      "Պետք չէ այս էջը բաց պահել։ Վճարման հաստատումից հետո վահանակն ինքնաբերաբար կբացվի։",
     reviewContinues:
-      "Վճարման ստուգումը անվտանգ շարունակվում է, նույնիսկ եթե դուրս գաք այս էջից և ավելի ուշ նորից մուտք գործեք։",
+      "Վճարման ստուգման հայտը շարունակում է գործել, նույնիսկ եթե դուրս գաք այս էջից կամ ավելի ուշ նորից մուտք գործեք։",
     checkStatus: "Ստուգել կարգավիճակը",
     checking: "Ստուգվում է…",
     backWebsite: "Վերադառնալ կայք",
-    confirmKicker: "ՀԱՍՏԱՏԵԼ ԹԱՐՄԱՑՈՒՄԸ",
-    confirmTitle: "Ակտիվացնել Teta2 Պրեմիումը",
+    confirmKicker: "ՀԱՍՏԱՏԵԼ ՊՐԵՄԻՈՒՄԻ ՀԱՅՏԸ",
+    confirmTitle: "Ստանալ Պրեմիումի վճարման հրահանգները",
     confirmBodyA:
-      "Ձեր կլինիկայի տվյալներն արդեն ունենք։ Հաստատեք մեկ անգամ, և վճարման հրահանգները կուղարկենք",
-    confirmBodyB: "հասցեին, ապա հաշիվը կանցնի վճարման ստուգման փուլ։",
-    benefit1: "Ադմինի հաստատումից հետո՝ 30 օր Պրեմիում մուտք",
-    benefit2: "Անվճար փաթեթի պացիենտների և OPG-ի սահմանափակումները հանվում են",
-    benefit3: "Վահանակն ու կլինիկայի ամբողջ պատմությունը մնում են անփոփոխ",
+      "Հաստատումից հետո վճարման հրահանգները կուղարկենք",
+    confirmBodyB:
+      "Կատարեք վճարումը և պատասխանեք այդ նամակին՝ կցելով անդորրագիրը։ Ադմինիստրատորի ստուգումից հետո վահանակը կբացվի։",
+    benefit1: "Վճարման հրահանգներն անմիջապես ուղարկվում են էլ․ փոստով",
+    benefit2: "Կատարեք վճարումը և նույն նամակին ուղարկեք անդորրագիրը",
+    benefit3: "Պրեմիումն ակտիվանում է ստուգումից հետո՝ սովորաբար 1–6 ժամում",
     cancel: "Չեղարկել",
-    submitting: "Ուղարկվում է…",
-    continue: "Հաստատել և շարունակել",
+    submitting: "Հրահանգներն ուղարկվում են…",
+    continue: "Հաստատել և ուղարկել վճարման հրահանգները",
   },
   ru: {
     free: "Бесплатно",
@@ -127,12 +134,12 @@ const COPY = {
     freeEnded: "Бесплатный период завершен",
     premium: "Премиум",
     daysLeft: (days: number) => `Премиум · осталось ${days} дн.`,
-    pendingShort: "Премиум · ожидает подтверждения",
+    pendingShort: "Премиум · проверка оплаты",
     premiumLabel: "TETA2 ПРЕМИУМ",
     unlock: "Откройте полный доступ к рабочему пространству клиники на 30 дней",
     unlimited:
       "Без ограничений по пациентам, ОПТГ и наблюдению за зубами — вся история клиники сохраняется.",
-    waiting: "Ожидает подтверждения",
+    waiting: "Ожидает подтверждения оплаты",
     upgrade: "Перейти на Премиум",
     active: "Премиум активен",
     activeHelp: "Рабочее пространство и вся история клиники сохраняются без изменений.",
@@ -144,29 +151,32 @@ const COPY = {
     sameData: "Все данные клиники сохранены",
     unlimitedPremium: "Без ограничений в Премиум",
     goSettings: "Перейти в Настройки и активировать Премиум",
-    reviewKicker: "ПРОВЕРКА ОПЛАТЫ",
-    reviewTitle: "Активация Премиума ожидает подтверждения.",
-    reviewBodyA:
-      "Запрос отправлен в административную панель Teta2. Подтверждение обычно занимает",
-    reviewBodyB: "от 1 до 6 часов",
+    reviewKicker: "ИНСТРУКЦИИ ПО ОПЛАТЕ ОТПРАВЛЕНЫ",
+    reviewTitle: "Проверьте почту и выполните оплату.",
+    reviewIntroBefore: "Инструкции по оплате Премиума отправлены на",
+    reviewIntroAfter:
+      "Откройте письмо и выполните оплату по указанным в нем реквизитам.",
+    reviewReceipt:
+      "После оплаты ответьте на это же письмо и приложите квитанцию. Администратор проверит платеж и активирует Премиум, обычно в течение 1–6 часов.",
     reviewWait:
-      "Эту страницу не нужно держать открытой. После подтверждения кабинет разблокируется автоматически.",
+      "Эту страницу не нужно держать открытой. После подтверждения оплаты кабинет разблокируется автоматически.",
     reviewContinues:
-      "Проверка оплаты безопасно продолжается, даже если вы покинете страницу и войдете снова позже.",
+      "Запрос на проверку оплаты остается активным, даже если вы покинете страницу или войдете снова позже.",
     checkStatus: "Проверить статус",
     checking: "Проверяем…",
     backWebsite: "Вернуться на сайт",
-    confirmKicker: "ПОДТВЕРЖДЕНИЕ ПЕРЕХОДА",
-    confirmTitle: "Активировать Teta2 Премиум",
+    confirmKicker: "ПОДТВЕРДИТЬ ЗАПРОС ПРЕМИУМА",
+    confirmTitle: "Получить инструкции по оплате Премиума",
     confirmBodyA:
-      "Данные вашей клиники уже сохранены. Подтвердите переход, и инструкции по оплате будут отправлены на",
-    confirmBodyB: "после чего аккаунт перейдет на проверку оплаты.",
-    benefit1: "30 дней Премиум-доступа после подтверждения администратором",
-    benefit2: "Без ограничений бесплатного тарифа по пациентам и ОПТГ",
-    benefit3: "Кабинет и вся история клиники остаются без изменений",
+      "После подтверждения инструкции по оплате будут отправлены на",
+    confirmBodyB:
+      "Выполните оплату и ответьте на письмо, приложив квитанцию. После проверки администратором кабинет будет разблокирован.",
+    benefit1: "Инструкции по оплате сразу отправляются по электронной почте",
+    benefit2: "Выполните оплату и отправьте квитанцию ответом на письмо",
+    benefit3: "Премиум активируется после проверки, обычно в течение 1–6 часов",
     cancel: "Отмена",
-    submitting: "Отправка…",
-    continue: "Подтвердить и продолжить",
+    submitting: "Отправляем инструкции…",
+    continue: "Подтвердить и отправить инструкции",
   },
 } as const;
 
@@ -393,8 +403,12 @@ export function SubscriptionExperience() {
           <small>{c.reviewKicker}</small>
           <h1>{c.reviewTitle}</h1>
           <p>
-            {c.reviewBodyA} <strong>{c.reviewBodyB}</strong>.
+            {c.reviewIntroBefore} <strong>{user.email}</strong>. {c.reviewIntroAfter}
           </p>
+          <div className="subscription-wait-line subscription-payment-instructions">
+            <Mail />
+            <span>{c.reviewReceipt}</span>
+          </div>
           <div className="subscription-wait-line">
             <Clock3 />
             <span>{c.reviewWait}</span>
@@ -502,7 +516,7 @@ export function SubscriptionExperience() {
             <small>{c.confirmKicker}</small>
             <h2>{c.confirmTitle}</h2>
             <p>
-              {c.confirmBodyA} <strong>{user.email}</strong> {c.confirmBodyB}
+              {c.confirmBodyA} <strong>{user.email}</strong>. {c.confirmBodyB}
             </p>
             <ul>
               <li>{c.benefit1}</li>
@@ -550,23 +564,23 @@ export function FreemiumPublicExperience() {
         en: {
           title: "Start Teta2 free for 24 hours.",
           body: "Submit your clinic details once and receive login credentials by email immediately. The one-time Free plan includes 3 patients, 1 OPG per patient and 1 tooth follow-up per OPG.",
-          footer: "No payment is required for the one-time 24-hour Free plan. Upgrade to Premium from the dashboard when you are ready to continue.",
-          success: "Free access activated",
-          successBody: "Your Teta2 Free dashboard is ready. Login credentials have been sent to your email.",
+          footer: "After you submit, check your email for the clinic login details. No payment is required for the one-time 24-hour Free plan.",
+          success: "Your Free dashboard is ready",
+          successBody: "Check your email now. We sent your clinic slug, username and temporary password to the email address you provided. Use those details to sign in and start your 24-hour Free access. If you do not see the email, check Spam or Junk.",
         },
         hy: {
           title: "Սկսեք Teta2-ը անվճար՝ 24 ժամով։",
           body: "Մեկ անգամ լրացրեք կլինիկայի տվյալները և մուտքի տվյալներն անմիջապես ստացեք էլ․ փոստով։ Մեկանգամյա անվճար փաթեթը ներառում է 3 պացիենտ, յուրաքանչյուր պացիենտի համար 1 OPG և յուրաքանչյուր OPG-ի համար 1 ատամի հետագա հսկողություն։",
-          footer: "Մեկանգամյա 24-ժամյա անվճար փաթեթի համար վճարում չի պահանջվում։ Շարունակելու համար վահանակից կարող եք անցնել Պրեմիումի։",
-          success: "Անվճար մուտքն ակտիվացված է",
-          successBody: "Ձեր Teta2 անվճար վահանակը պատրաստ է։ Մուտքի տվյալներն ուղարկվել են ձեր էլ․ փոստին։",
+          footer: "Հայտը ուղարկելուց հետո ստուգեք ձեր էլ․ փոստը՝ կլինիկայի մուտքի տվյալները ստանալու համար։ Մեկանգամյա 24-ժամյա անվճար փաթեթի համար վճարում չի պահանջվում։",
+          success: "Ձեր անվճար վահանակը պատրաստ է",
+          successBody: "Հիմա ստուգեք ձեր էլ․ փոստը։ Կլինիկայի slug-ը, օգտանունը և ժամանակավոր գաղտնաբառը ուղարկել ենք ձեր նշած հասցեին։ Այդ տվյալներով մուտք գործեք և սկսեք 24-ժամյա անվճար հասանելիությունը։ Եթե նամակը չեք տեսնում, ստուգեք Spam կամ Junk պանակները։",
         },
         ru: {
           title: "Начните пользоваться Teta2 бесплатно на 24 часа.",
           body: "Один раз заполните данные клиники и сразу получите данные для входа по электронной почте. Одноразовый бесплатный тариф включает 3 пациентов, 1 ОПТГ на пациента и наблюдение за 1 зубом на каждый ОПТГ.",
-          footer: "Для одноразового 24-часового бесплатного тарифа оплата не требуется. Чтобы продолжить работу, перейдите на Премиум из кабинета.",
-          success: "Бесплатный доступ активирован",
-          successBody: "Ваш бесплатный кабинет Teta2 готов. Данные для входа отправлены на электронную почту.",
+          footer: "После отправки заявки проверьте электронную почту — туда будут отправлены данные для входа. Оплата за одноразовый 24-часовой бесплатный тариф не требуется.",
+          success: "Ваш бесплатный кабинет готов",
+          successBody: "Проверьте электронную почту. Мы отправили на указанный адрес slug клиники, имя пользователя и временный пароль. Используйте эти данные для входа и начала 24-часового бесплатного доступа. Если письма нет во входящих, проверьте папки Спам или Нежелательная почта.",
         },
       }[lang] ?? null;
       if (!publicCopy) return;
