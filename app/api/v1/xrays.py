@@ -7,6 +7,7 @@ from fastapi.responses import Response
 
 from app.audit.service import audit
 from app.auth.dependencies import AuthContext, authorized_patient, current_context
+from app.care.outreach_invariants import supersede_patient_schedule_for_new_xray
 from app.common.serialization import model_dict
 from app.core.config import get_settings
 from app.core.errors import AppError
@@ -67,7 +68,20 @@ async def upload(
     ctx.session.add(xray)
     try:
         await ctx.session.flush()
-        await audit(ctx.session, ctx.user, "XRAY_UPLOADED", "XRay", xray.id, patient.branch_id)
+        superseded = await supersede_patient_schedule_for_new_xray(
+            ctx.session,
+            patient_id=patient.id,
+            new_xray_id=xray.id,
+        )
+        await audit(
+            ctx.session,
+            ctx.user,
+            "XRAY_UPLOADED",
+            "XRay",
+            xray.id,
+            patient.branch_id,
+            {"superseded_care_schedule": superseded},
+        )
         await ctx.session.commit()
     except Exception:
         await provider.delete(key)
