@@ -286,9 +286,9 @@ async def expire_patient_ai_inactivity(
     )
     expired = False
     for conversation in active:
-        expired = await expire_conversation_for_ai_inactivity(
-            session, conversation, now=now
-        ) or expired
+        expired = (
+            await expire_conversation_for_ai_inactivity(session, conversation, now=now) or expired
+        )
     return expired
 
 
