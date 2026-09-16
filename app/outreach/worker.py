@@ -12,6 +12,7 @@ from app.care.booking_links import booking_url
 from app.care.groq import care_outreach_drafts
 from app.care.language import language_for_phone
 from app.care.models import CarePlan, CarePlanItem
+from app.care.outreach_invariants import sweep_ai_inactivity, validate_outreach_before_dispatch
 from app.care.sequential import record_scheduled_outreach_sent
 from app.care.service import settings_for_branch
 from app.clinic_resolution.service import resolver
@@ -146,9 +147,20 @@ async def process_due(
     settings = get_settings()
     dispatch_started = False
     try:
-        patient = await session.get(Patient, row.patient_id)
+        # Patient-level lock serializes concurrent workers. Combined with the
+        # latest-OPG + patient/analysis/tooth check, this prevents two workers from
+        # sending duplicate tooth outreach at the same time.
+        patient = await session.scalar(
+            select(Patient).where(Patient.id == row.patient_id).with_for_update()
+        )
         if patient is None or not (patient.whatsapp_phone or patient.phone):
             raise WhatsAppServiceError("WHATSAPP_PHONE_REQUIRED", 409)
+
+        valid, _ = await validate_outreach_before_dispatch(session, outreach=row)
+        if not valid:
+            await session.commit()
+            return True
+
         phone = patient.whatsapp_phone or patient.phone
         connection = await service.status(clinic_id)
         if not connection.get("connected"):
@@ -222,7 +234,7 @@ async def process_due(
         row.safe_error = None
         row.message = message
         row.language = language
-        await session.commit()
+        await session.flush()
         dispatch_started = True
 
         result = await service.send_booking_message(
@@ -279,6 +291,10 @@ async def run() -> None:
                 if subscription_state(clinic) != "ACTIVE":
                     continue
                 async with resolver.session_factory(clinic)() as session:
+                    expired = await sweep_ai_inactivity(session)
+                    if expired:
+                        await session.commit()
+                        did_work = True
                     did_work = (
                         await process_due(
                             session,
