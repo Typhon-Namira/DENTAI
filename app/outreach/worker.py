@@ -161,9 +161,7 @@ async def process_due(
         # revalidate this exact row so stale-claim recovery cannot hand the same row
         # to another worker while this worker is waiting.
         current = await session.scalar(
-            select(WhatsAppOutreach)
-            .where(WhatsAppOutreach.id == claimed.id)
-            .with_for_update()
+            select(WhatsAppOutreach).where(WhatsAppOutreach.id == claimed.id).with_for_update()
         )
         if (
             current is None
