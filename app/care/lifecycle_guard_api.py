@@ -10,6 +10,7 @@ from app.auth.dependencies import AuthContext, roles
 from app.care.conversation_flow import APPOINTMENT_CONFIRMED, _find_patient
 from app.care.conversation_runtime import process_staged_inbound_message
 from app.care.models import CareAppointment, CareConversation, CareConversationMessage
+from app.care.outreach_invariants import expire_patient_ai_inactivity
 from app.care.staged_api import approve_staged_appointment
 from app.clinic_resolution.service import resolver
 from app.core.config import get_settings
@@ -191,6 +192,8 @@ async def guarded_staged_inbound_whatsapp(
     clinic = await resolver.by_id(control, clinic_id)
     require_product_access(clinic)
     async with resolver.session_factory(clinic)() as session:
+        # Preserve the existing final-confirmation lock first. The new timeout is
+        # additive and must never weaken the confirmed-appointment shutdown rule.
         locked = await _enforce_post_confirmation_patient_lock(session, phone=phone)
         if locked:
             await session.commit()
@@ -198,6 +201,16 @@ async def guarded_staged_inbound_whatsapp(
                 "handled": False,
                 "reason": "conversation_locked_after_confirmation",
             }
+
+        patient = await _find_patient(session, phone)
+        if patient and await expire_patient_ai_inactivity(session, patient_id=patient.id):
+            await session.commit()
+            return {
+                "handled": False,
+                "reason": "ai_inactivity_timeout",
+                "timeout_minutes": 10,
+            }
+
         result = await process_staged_inbound_message(
             session,
             clinic_id=clinic.id,
