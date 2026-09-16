@@ -140,21 +140,39 @@ async def process_due(
     worker_id: str,
     service: WhatsAppServiceClient | None = None,
 ) -> bool:
-    row = await claim_due(session, worker_id)
-    if row is None:
+    claimed = await claim_due(session, worker_id)
+    if claimed is None:
         return False
     service = service or WhatsAppServiceClient()
     settings = get_settings()
     dispatch_started = False
+    row = claimed
     try:
-        # Patient-level lock serializes concurrent workers. Combined with the
-        # latest-OPG + patient/analysis/tooth check, this prevents two workers from
-        # sending duplicate tooth outreach at the same time.
+        # Serialize every outbound dispatch for a patient. This makes a duplicate
+        # patient/tooth claim wait until the first worker has either committed SENT
+        # or released the lock.
         patient = await session.scalar(
-            select(Patient).where(Patient.id == row.patient_id).with_for_update()
+            select(Patient).where(Patient.id == claimed.patient_id).with_for_update()
         )
         if patient is None or not (patient.whatsapp_phone or patient.phone):
             raise WhatsAppServiceError("WHATSAPP_PHONE_REQUIRED", 409)
+
+        # Claims are committed before waiting on the patient lock. Re-lock and
+        # revalidate this exact row so stale-claim recovery cannot hand the same row
+        # to another worker while this worker is waiting.
+        current = await session.scalar(
+            select(WhatsAppOutreach)
+            .where(WhatsAppOutreach.id == claimed.id)
+            .with_for_update()
+        )
+        if (
+            current is None
+            or current.status != WhatsAppOutreachStatus.CLAIMED
+            or current.worker_id != worker_id
+        ):
+            await session.rollback()
+            return True
+        row = current
 
         valid, _ = await validate_outreach_before_dispatch(session, outreach=row)
         if not valid:
