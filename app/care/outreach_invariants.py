@@ -1,7 +1,7 @@
+import calendar
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +9,6 @@ from app.care.models import CareConversation, CareConversationMessage, CarePlan,
 from app.database.models import (
     AIAnalysis,
     FollowUp,
-    Patient,
     WhatsAppOutreach,
     WhatsAppOutreachStatus,
     XRay,
@@ -31,7 +30,11 @@ def utc(value: datetime | None) -> datetime | None:
 
 def add_calendar_months(value: datetime, months: int) -> datetime:
     """Advance by calendar months while preserving local wall-clock semantics."""
-    return value + relativedelta(months=months)
+    absolute_month = value.year * 12 + (value.month - 1) + months
+    year, month_zero = divmod(absolute_month, 12)
+    month = month_zero + 1
+    day = min(value.day, calendar.monthrange(year, month)[1])
+    return value.replace(year=year, month=month, day=day)
 
 
 async def supersede_patient_schedule_for_new_xray(
@@ -243,7 +246,7 @@ async def expire_conversation_for_ai_inactivity(
         return False
 
     last_in = await _latest_message(session, conversation.id, "IN")
-    in_at = (utc(last_in.created_at) if last_in else None)
+    in_at = utc(last_in.created_at) if last_in else None
     if in_at is not None and in_at > out_at:
         return False
 
