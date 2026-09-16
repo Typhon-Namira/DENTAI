@@ -62,9 +62,7 @@ async def start_or_continue_outreach_with_booking(
         seen_teeth.add(tooth)
         sequence += 1
         item.sequence_order = sequence
-        item.conversation_start_at = _monthly_contact(
-            first_start, settings.timezone, sequence - 1
-        )
+        item.conversation_start_at = _monthly_contact(first_start, settings.timezone, sequence - 1)
         item.status = "FOLLOWUP_READY" if sequence == 1 else "SCHEDULED_FUTURE_TOOTH"
         await schedule_item_outreach(
             session,
