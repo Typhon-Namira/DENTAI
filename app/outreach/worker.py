@@ -12,6 +12,7 @@ from app.care.booking_links import booking_url
 from app.care.groq import care_outreach_drafts
 from app.care.language import language_for_phone
 from app.care.models import CarePlan, CarePlanItem
+from app.care.outreach_invariants import sweep_ai_inactivity, validate_outreach_before_dispatch
 from app.care.sequential import record_scheduled_outreach_sent
 from app.care.service import settings_for_branch
 from app.clinic_resolution.service import resolver
@@ -139,16 +140,43 @@ async def process_due(
     worker_id: str,
     service: WhatsAppServiceClient | None = None,
 ) -> bool:
-    row = await claim_due(session, worker_id)
-    if row is None:
+    claimed = await claim_due(session, worker_id)
+    if claimed is None:
         return False
     service = service or WhatsAppServiceClient()
     settings = get_settings()
     dispatch_started = False
+    row = claimed
     try:
-        patient = await session.get(Patient, row.patient_id)
+        # Serialize every outbound dispatch for a patient. This makes a duplicate
+        # patient/tooth claim wait until the first worker has either committed SENT
+        # or released the lock.
+        patient = await session.scalar(
+            select(Patient).where(Patient.id == claimed.patient_id).with_for_update()
+        )
         if patient is None or not (patient.whatsapp_phone or patient.phone):
             raise WhatsAppServiceError("WHATSAPP_PHONE_REQUIRED", 409)
+
+        # Claims are committed before waiting on the patient lock. Re-lock and
+        # revalidate this exact row so stale-claim recovery cannot hand the same row
+        # to another worker while this worker is waiting.
+        current = await session.scalar(
+            select(WhatsAppOutreach).where(WhatsAppOutreach.id == claimed.id).with_for_update()
+        )
+        if (
+            current is None
+            or current.status != WhatsAppOutreachStatus.CLAIMED
+            or current.worker_id != worker_id
+        ):
+            await session.rollback()
+            return True
+        row = current
+
+        valid, _ = await validate_outreach_before_dispatch(session, outreach=row)
+        if not valid:
+            await session.commit()
+            return True
+
         phone = patient.whatsapp_phone or patient.phone
         connection = await service.status(clinic_id)
         if not connection.get("connected"):
@@ -222,7 +250,7 @@ async def process_due(
         row.safe_error = None
         row.message = message
         row.language = language
-        await session.commit()
+        await session.flush()
         dispatch_started = True
 
         result = await service.send_booking_message(
@@ -279,6 +307,10 @@ async def run() -> None:
                 if subscription_state(clinic) != "ACTIVE":
                     continue
                 async with resolver.session_factory(clinic)() as session:
+                    expired = await sweep_ai_inactivity(session)
+                    if expired:
+                        await session.commit()
+                        did_work = True
                     did_work = (
                         await process_due(
                             session,

@@ -24,6 +24,7 @@ from app.care import booking_api as care_booking
 from app.care import booking_bootstrap as _care_booking_bootstrap  # noqa: F401
 from app.care import generation_api as care_generation
 from app.care import lifecycle_guard_api as care_lifecycle_guard
+from app.care import outreach_guard_api as care_outreach_guard
 from app.care import sequential_api as care_sequential
 from app.care import sequential_manage_api as care_sequential_manage
 from app.care import staged_api as care_staged
@@ -90,6 +91,7 @@ for router in (
     clinical.router,
     administration.router,
     care_lifecycle_guard.router,
+    care_outreach_guard.router,
     care_staged.router,
     care_sequential_manage.router,
     care_sequential.router,

@@ -11,6 +11,7 @@ from app.care.models import (
     CarePlan,
     CarePlanItem,
 )
+from app.care.outreach_invariants import add_calendar_months
 from app.care.service import ensure_care_plan, settings_for_branch
 from app.database.models import (
     AIAnalysis,
@@ -48,6 +49,12 @@ def _next_local_contact(timezone_name: str, *, days: int) -> datetime:
     return datetime.combine(target_date, time(16, 0), tzinfo=zone).astimezone(UTC)
 
 
+def _monthly_contact(first_start: datetime, timezone_name: str, month_offset: int) -> datetime:
+    zone = ZoneInfo(timezone_name)
+    local_start = first_start.astimezone(zone)
+    return add_calendar_months(local_start, month_offset).astimezone(UTC)
+
+
 async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) -> CarePlan | None:
     plan = await ensure_care_plan(session, analysis)
     if not plan:
@@ -71,6 +78,7 @@ async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) 
     }
 
     eligible: list[tuple[CarePlanItem, DentalFinding]] = []
+    now = datetime.now(UTC)
     for item in items:
         finding = findings.get(item.finding_id)
         if not finding:
@@ -79,7 +87,7 @@ async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) 
         if finding.review_status == FindingReview.REJECTED:
             item.status = "REJECTED"
             item.outcome = "CLINICIAN_REJECTED"
-            item.outcome_at = datetime.now(UTC)
+            item.outcome_at = now
             continue
         eligible.append((item, finding))
 
@@ -88,7 +96,27 @@ async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) 
         plan.summary = "No pathological tooth findings remain eligible for follow-up."
         return plan
 
-    ranked = sorted(eligible, key=lambda pair: _priority(pair[1])[1], reverse=True)
+    # One tooth is one outreach unit. If the model produced multiple findings for
+    # the same tooth, only the highest-priority finding owns that tooth's message.
+    ranked_all = sorted(eligible, key=lambda pair: _priority(pair[1])[1], reverse=True)
+    ranked: list[tuple[CarePlanItem, DentalFinding]] = []
+    seen_teeth: set[str] = set()
+    for item, finding in ranked_all:
+        tooth = str(item.tooth_fdi).strip()
+        if tooth in seen_teeth:
+            item.status = "DUPLICATE_TOOTH_SUPPRESSED"
+            item.outcome = "DUPLICATE_TOOTH_SUPPRESSED"
+            item.outcome_at = now
+            item.conversation_start_at = None
+            continue
+        seen_teeth.add(tooth)
+        ranked.append((item, finding))
+
+    if not ranked:
+        plan.status = "REVIEWED_NO_ACTION"
+        plan.summary = "No unique pathological teeth remain eligible for follow-up."
+        return plan
+
     first_start = _next_local_contact(settings.timezone, days=1)
     unreviewed = 0
     for order, (item, finding) in enumerate(ranked, start=1):
@@ -98,19 +126,16 @@ async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) 
         item.priority_score = score
         item.outcome = None
         item.outcome_at = None
+        item.conversation_start_at = _monthly_contact(first_start, settings.timezone, order - 1)
         if finding.review_status == FindingReview.PENDING:
             unreviewed += 1
-        if order == 1:
-            item.status = "FOLLOWUP_READY"
-            item.conversation_start_at = first_start
-        else:
-            item.status = "WAITING_PREVIOUS_TOOTH"
-            item.conversation_start_at = None
+        item.status = "FOLLOWUP_READY" if order == 1 else "SCHEDULED_FUTURE_TOOTH"
 
     reviewed = len(ranked) - unreviewed
     plan.status = "PENDING_APPROVAL"
     plan.summary = (
-        f"Sequential AI follow-up for {len(ranked)} pathological tooth finding(s). "
+        f"Sequential AI follow-up for {len(ranked)} unique pathological tooth finding(s). "
+        "Each tooth has one exact outreach date and consecutive teeth are one calendar month apart. "
         f"{reviewed} reviewed, {unreviewed} not yet reviewed. Clinician review is recommended but not required."
     )
     await session.flush()
@@ -154,26 +179,31 @@ async def schedule_item_outreach(
     item: CarePlanItem,
     start_at: datetime,
 ) -> WhatsAppOutreach | None:
-    if not patient.whatsapp_phone:
+    if not (patient.whatsapp_phone or patient.phone):
         return None
+
+    # Idempotency is patient + OPG analysis + tooth, not finding_id. Multiple AI
+    # findings may refer to one tooth and must never produce duplicate first messages.
     existing = await session.scalar(
         select(WhatsAppOutreach)
         .where(
-            WhatsAppOutreach.finding_id == item.finding_id,
-            WhatsAppOutreach.status.in_(
-                [
-                    WhatsAppOutreachStatus.QUEUED,
-                    WhatsAppOutreachStatus.SCHEDULED,
-                    WhatsAppOutreachStatus.CLAIMED,
-                    WhatsAppOutreachStatus.SENDING,
-                ]
-            ),
+            WhatsAppOutreach.patient_id == patient.id,
+            WhatsAppOutreach.analysis_id == plan.analysis_id,
+            WhatsAppOutreach.tooth_fdi == item.tooth_fdi,
         )
         .order_by(WhatsAppOutreach.created_at.desc())
         .limit(1)
     )
     if existing:
-        existing.scheduled_send_at = start_at
+        if existing.status in {
+            WhatsAppOutreachStatus.QUEUED,
+            WhatsAppOutreachStatus.SCHEDULED,
+            WhatsAppOutreachStatus.CLAIMED,
+        }:
+            existing.scheduled_send_at = start_at
+            existing.finding_id = item.finding_id
+            existing.source_finding_ids = [str(item.finding_id)]
+            existing.safe_error = None
         return existing
 
     settings = await settings_for_branch(session, plan.branch_id)
@@ -192,8 +222,8 @@ async def schedule_item_outreach(
         language=plan.language,
         status=WhatsAppOutreachStatus.SCHEDULED,
         timing_reason=item.rationale,
-        timing_policy_rule_id="CARE_SEQUENCE",
-        timing_policy_version="1.0",
+        timing_policy_rule_id="CARE_SEQUENCE_MONTHLY",
+        timing_policy_version="2.0",
         clinic_timezone=settings.timezone,
         include_image=settings.attach_tooth_image and item.image_required,
     )
@@ -213,7 +243,10 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
     items = (
         await session.scalars(
             select(CarePlanItem)
-            .where(CarePlanItem.care_plan_id == plan.id, CarePlanItem.status != "REJECTED")
+            .where(
+                CarePlanItem.care_plan_id == plan.id,
+                CarePlanItem.status.in_(["FOLLOWUP_READY", "SCHEDULED_FUTURE_TOOTH"]),
+            )
             .order_by(CarePlanItem.sequence_order.asc())
         )
     ).all()
@@ -224,11 +257,19 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
     plan.activated_at = datetime.now(UTC)
     await _conversation_for_plan(session, plan=plan, patient=patient)
 
-    for item in items:
+    settings = await settings_for_branch(session, plan.branch_id)
+    first_start = items[0].conversation_start_at or _next_local_contact(settings.timezone, days=1)
+    for order, item in enumerate(items, start=1):
+        # Repair any legacy item without a date and enforce exact calendar-month spacing.
+        item.sequence_order = order
+        item.conversation_start_at = _monthly_contact(first_start, settings.timezone, order - 1)
+        item.status = "FOLLOWUP_READY" if order == 1 else "SCHEDULED_FUTURE_TOOTH"
+
         existing_followup = await session.scalar(
             select(FollowUp).where(
                 FollowUp.patient_id == patient.id,
                 FollowUp.reason.like(f"Teta2 Care · tooth {item.tooth_fdi}%"),
+                FollowUp.status == "SCHEDULED",
             )
         )
         if not existing_followup:
@@ -242,24 +283,21 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
                     status="SCHEDULED",
                     priority=item.priority_level,
                     notes=(
-                        f"Sequential AI follow-up priority {item.sequence_order}. {item.rationale}"
+                        f"Sequential AI follow-up priority {item.sequence_order}; outreach date "
+                        f"{item.conversation_start_at.isoformat()}. {item.rationale}"
                     ),
                     created_by=plan.doctor_id or analysis.requested_by,
                 )
             )
 
-    first = items[0]
-    if first.conversation_start_at is None:
-        settings = await settings_for_branch(session, plan.branch_id)
-        first.conversation_start_at = _next_local_contact(settings.timezone, days=1)
-    first.status = "FOLLOWUP_READY"
-    await schedule_item_outreach(
-        session,
-        plan=plan,
-        patient=patient,
-        item=first,
-        start_at=first.conversation_start_at,
-    )
+        await schedule_item_outreach(
+            session,
+            plan=plan,
+            patient=patient,
+            item=item,
+            start_at=item.conversation_start_at,
+        )
+
     await session.flush()
     return plan
 
@@ -309,6 +347,7 @@ async def record_scheduled_outreach_sent(
                     "tooth_fdi": item.tooth_fdi,
                     "sequence_order": item.sequence_order,
                     "priority_level": item.priority_level,
+                    "scheduled_for": outreach.scheduled_send_at.isoformat(),
                 },
             )
         )
@@ -323,6 +362,8 @@ async def record_scheduled_outreach_sent(
             "sequence_mode": True,
             "stage": "WAITING_PATIENT_REPLY",
             "active_item_id": str(item.id),
+            "active_tooth": item.tooth_fdi,
+            "scheduled_outreach_at": outreach.scheduled_send_at.isoformat(),
         }
     )
     conversation.booking_context = preserved_context
@@ -397,23 +438,35 @@ async def record_visit_outcome(
         conversation.booking_context = context
         conversation.summary = (
             f"Visit outcome for tooth {item.tooth_fdi}: {normalized.replace('_', ' ').title()}. "
-            "This tooth is complete; advancing the sequential follow-up."
+            "This tooth is complete; the next tooth keeps its preassigned monthly outreach date."
         )
 
-    settings = await settings_for_branch(session, plan.branch_id)
     next_item = await session.scalar(
         select(CarePlanItem)
         .where(
             CarePlanItem.care_plan_id == plan.id,
             CarePlanItem.sequence_order > item.sequence_order,
-            CarePlanItem.status == "WAITING_PREVIOUS_TOOTH",
+            CarePlanItem.status.in_(["SCHEDULED_FUTURE_TOOTH", "FOLLOWUP_READY"]),
         )
         .order_by(CarePlanItem.sequence_order.asc())
         .limit(1)
     )
     if next_item:
-        next_item.status = "FOLLOWUP_READY"
-        next_item.conversation_start_at = _next_local_contact(settings.timezone, days=1)
+        if next_item.conversation_start_at is None:
+            settings = await settings_for_branch(session, plan.branch_id)
+            first_item = await session.scalar(
+                select(CarePlanItem)
+                .where(CarePlanItem.care_plan_id == plan.id, CarePlanItem.sequence_order == 1)
+                .limit(1)
+            )
+            first_start = (
+                first_item.conversation_start_at
+                if first_item and first_item.conversation_start_at
+                else _next_local_contact(settings.timezone, days=1)
+            )
+            next_item.conversation_start_at = _monthly_contact(
+                first_start, settings.timezone, max(0, next_item.sequence_order - 1)
+            )
         await schedule_item_outreach(
             session,
             plan=plan,
@@ -425,7 +478,8 @@ async def record_visit_outcome(
             conversation.summary = (
                 f"Tooth {item.tooth_fdi} completed with visit outcome "
                 f"{normalized.replace('_', ' ').title()}. AI remains inactive until tooth "
-                f"{next_item.tooth_fdi} outreach is actually sent."
+                f"{next_item.tooth_fdi} outreach is sent on its scheduled date "
+                f"{next_item.conversation_start_at.isoformat()}."
             )
     else:
         remaining = await session.scalar(
@@ -433,7 +487,7 @@ async def record_visit_outcome(
             .where(
                 CarePlanItem.care_plan_id == plan.id,
                 CarePlanItem.status.in_(
-                    ["WAITING_PREVIOUS_TOOTH", "FOLLOWUP_READY", "CONTACTED", "BOOKED"]
+                    ["SCHEDULED_FUTURE_TOOTH", "FOLLOWUP_READY", "CONTACTED", "BOOKED"]
                 ),
             )
             .limit(1)
