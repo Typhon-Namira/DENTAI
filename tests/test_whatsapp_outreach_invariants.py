@@ -91,9 +91,7 @@ async def test_ai_conversation_closes_after_ten_minutes_without_patient_reply():
             )
             await session.flush()
 
-            expired = await expire_conversation_for_ai_inactivity(
-                session, conversation, now=now
-            )
+            expired = await expire_conversation_for_ai_inactivity(session, conversation, now=now)
 
             assert expired is True
             assert conversation.status == "WAITING_NEXT_TOOTH"
@@ -157,9 +155,7 @@ async def test_ai_timeout_resets_when_patient_replies_after_latest_ai_message():
             )
             await session.flush()
 
-            expired = await expire_conversation_for_ai_inactivity(
-                session, conversation, now=now
-            )
+            expired = await expire_conversation_for_ai_inactivity(session, conversation, now=now)
 
             assert expired is False
             assert conversation.status == "ACTIVE"
@@ -238,9 +234,7 @@ async def test_duplicate_sent_tooth_is_cancelled_before_second_dispatch():
             session.add_all([sent, candidate])
             await session.flush()
 
-            valid, reason = await validate_outreach_before_dispatch(
-                session, outreach=candidate
-            )
+            valid, reason = await validate_outreach_before_dispatch(session, outreach=candidate)
 
             assert valid is False
             assert reason == "DUPLICATE_TOOTH_ALREADY_SENT"
