@@ -126,9 +126,7 @@ async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) 
         item.priority_score = score
         item.outcome = None
         item.outcome_at = None
-        item.conversation_start_at = _monthly_contact(
-            first_start, settings.timezone, order - 1
-        )
+        item.conversation_start_at = _monthly_contact(first_start, settings.timezone, order - 1)
         if finding.review_status == FindingReview.PENDING:
             unreviewed += 1
         item.status = "FOLLOWUP_READY" if order == 1 else "SCHEDULED_FUTURE_TOOTH"
@@ -264,9 +262,7 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
     for order, item in enumerate(items, start=1):
         # Repair any legacy item without a date and enforce exact calendar-month spacing.
         item.sequence_order = order
-        item.conversation_start_at = _monthly_contact(
-            first_start, settings.timezone, order - 1
-        )
+        item.conversation_start_at = _monthly_contact(first_start, settings.timezone, order - 1)
         item.status = "FOLLOWUP_READY" if order == 1 else "SCHEDULED_FUTURE_TOOTH"
 
         existing_followup = await session.scalar(
