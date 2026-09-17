@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { AllRolesAiRunAccess } from "./product/AllRolesAiRunAccess";
 import { ArevikCofounder } from "./product/ArevikCofounder";
 import { BookingExperience } from "./product/BookingExperience";
+import { installCarePlanDateNormalizer } from "./product/carePlanDateNormalizer";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { ClinicalWorkspaceRedesign } from "./product/ClinicalWorkspaceRedesign";
@@ -11,11 +12,12 @@ import { FreemiumCountryField } from "./product/FreemiumCountryField";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { LegalLocaleQuality } from "./product/LegalLocaleQuality";
-import { LocalizedPublicRouteBridge, prepareLocalizedPublicRoute } from "./product/publicLocaleRouting";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
+import { PatientDriveMount } from "./product/PatientDriveMount";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
 import { PlatformAdminControlCenter } from "./product/PlatformAdminControlCenter";
 import ProductApp from "./product/ProductApp";
+import { LocalizedPublicRouteBridge, prepareLocalizedPublicRoute } from "./product/publicLocaleRouting";
 import { PublicLocaleQualityGate } from "./product/PublicLocaleQualityGate";
 import { PublicSeo } from "./product/PublicSeo";
 import { PublicSeoSemantics } from "./product/PublicSeoSemantics";
@@ -50,6 +52,7 @@ import "./product/booking-public-polish.css";
 import "./product/page-deck-v2-polish.css";
 
 prepareLocalizedPublicRoute();
+installCarePlanDateNormalizer();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -67,6 +70,7 @@ createRoot(document.getElementById("root")!).render(
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <ClinicalWorkspaceRedesign />
+      <PatientDriveMount />
       <SettingsWorkspaceEnhancer />
       <PlatformAccessExperienceV2 />
       <PlatformAdminControlCenter />
