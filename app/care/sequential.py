@@ -96,8 +96,6 @@ async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) 
         plan.summary = "No pathological tooth findings remain eligible for follow-up."
         return plan
 
-    # One tooth is one outreach unit. If the model produced multiple findings for
-    # the same tooth, only the highest-priority finding owns that tooth's message.
     ranked_all = sorted(eligible, key=lambda pair: _priority(pair[1])[1], reverse=True)
     ranked: list[tuple[CarePlanItem, DentalFinding]] = []
     seen_teeth: set[str] = set()
@@ -117,8 +115,6 @@ async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) 
         plan.summary = "No unique pathological teeth remain eligible for follow-up."
         return plan
 
-    # The first tooth is always scheduled for the next clinic-local day. Every
-    # later tooth is exactly one calendar month after the previous tooth.
     first_start = _next_local_contact(settings.timezone, days=1)
     unreviewed = 0
     for order, (item, finding) in enumerate(ranked, start=1):
@@ -187,8 +183,6 @@ async def schedule_item_outreach(
     if not (patient.whatsapp_phone or patient.phone):
         return None
 
-    # Idempotency is patient + OPG analysis + tooth, not finding_id. Multiple AI
-    # findings may refer to one tooth and must never produce duplicate first messages.
     existing = await session.scalar(
         select(WhatsAppOutreach)
         .where(
@@ -264,8 +258,6 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
     await _conversation_for_plan(session, plan=plan, patient=patient)
 
     settings = await settings_for_branch(session, plan.branch_id)
-    # Approval is the authoritative scheduling moment. This also repairs legacy
-    # plans that carried duplicated or stale target dates.
     first_start = _next_local_contact(settings.timezone, days=1)
     for order, item in enumerate(items, start=1):
         scheduled_at = _monthly_contact(first_start, settings.timezone, order - 1)
