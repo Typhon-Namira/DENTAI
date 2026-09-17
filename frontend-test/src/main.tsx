@@ -7,7 +7,6 @@ import { BookingExperience } from "./product/BookingExperience";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { ClinicalWorkspaceRedesign } from "./product/ClinicalWorkspaceRedesign";
-import { FollowupCaseWorkspace } from "./product/FollowupCaseWorkspace";
 import { FreemiumCountryField } from "./product/FreemiumCountryField";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
@@ -66,7 +65,6 @@ createRoot(document.getElementById("root")!).render(
       <ArevikCofounder />
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
-      <FollowupCaseWorkspace />
       <ClinicalWorkspaceRedesign />
       <PlatformAccessExperienceV2 />
       <PlatformAdminControlCenter />
