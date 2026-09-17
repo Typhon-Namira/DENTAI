@@ -2,10 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Activity,
-  CheckCircle2,
-  Clock3,
-  KeyRound,
-  Mail,
   MessageCircle,
   Phone,
   QrCode,
@@ -29,16 +25,12 @@ const COPY = {
   en: {
     eyebrow: "CLINIC SETTINGS",
     title: "Workspace settings",
-    lead: "Manage your account, subscription, security and clinic WhatsApp connection in one place.",
+    lead: "Manage your real account, subscription, security and clinic WhatsApp connection in one place.",
     account: "Account",
     accountLead: "Signed-in clinic user",
     username: "Username",
     email: "Email",
     role: "Role",
-    subscription: "Subscription",
-    plan: "Plan",
-    status: "Status",
-    expires: "Expires",
     whatsapp: "Clinic WhatsApp",
     whatsappLead: "Connect the WhatsApp account used by Teta2 for patient follow-up messages.",
     connected: "Connected",
@@ -53,23 +45,17 @@ const COPY = {
     steps: "WhatsApp → Linked devices → Link a device",
     generating: "Generating QR code…",
     close: "Close",
-    safety: "Only the real clinic WhatsApp connection reported by the server is shown here.",
-    security: "Security",
-    billing: "Subscription & billing",
+    safety: "Only the actual clinic WhatsApp state returned by the server is shown here.",
   },
   hy: {
     eyebrow: "ԿԼԻՆԻԿԱՅԻ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ",
     title: "Աշխատանքային միջավայրի կարգավորումներ",
-    lead: "Կառավարեք հաշիվը, բաժանորդագրությունը, անվտանգությունն ու կլինիկայի WhatsApp կապը մեկ տեղում։",
+    lead: "Կառավարեք իրական հաշիվը, բաժանորդագրությունը, անվտանգությունն ու կլինիկայի WhatsApp կապը մեկ տեղում։",
     account: "Հաշիվ",
     accountLead: "Մուտք գործած կլինիկայի օգտատեր",
     username: "Օգտանուն",
     email: "Էլ․ փոստ",
     role: "Դեր",
-    subscription: "Բաժանորդագրություն",
-    plan: "Փաթեթ",
-    status: "Կարգավիճակ",
-    expires: "Ավարտվում է",
     whatsapp: "Կլինիկայի WhatsApp",
     whatsappLead: "Միացրեք WhatsApp հաշիվը, որն Teta2-ը օգտագործում է պացիենտների հետագա հաղորդագրությունների համար։",
     connected: "Միացված է",
@@ -84,23 +70,17 @@ const COPY = {
     steps: "WhatsApp → Կապակցված սարքեր → Կապակցել սարք",
     generating: "Ստեղծվում է QR կոդը…",
     close: "Փակել",
-    safety: "Այստեղ ցուցադրվում է միայն սերվերի կողմից հաստատված իրական WhatsApp կապը։",
-    security: "Անվտանգություն",
-    billing: "Բաժանորդագրություն և վճարումներ",
+    safety: "Այստեղ ցուցադրվում է միայն սերվերից ստացված իրական WhatsApp կապի վիճակը։",
   },
   ru: {
     eyebrow: "НАСТРОЙКИ КЛИНИКИ",
     title: "Настройки рабочего пространства",
-    lead: "Управляйте учетной записью, подпиской, безопасностью и подключением WhatsApp клиники в одном месте.",
+    lead: "Управляйте реальной учетной записью, подпиской, безопасностью и подключением WhatsApp клиники в одном месте.",
     account: "Учетная запись",
     accountLead: "Текущий пользователь клиники",
     username: "Имя пользователя",
     email: "Email",
     role: "Роль",
-    subscription: "Подписка",
-    plan: "Тариф",
-    status: "Статус",
-    expires: "Действует до",
     whatsapp: "WhatsApp клиники",
     whatsappLead: "Подключите WhatsApp, который Teta2 использует для сообщений пациентам по последующему наблюдению.",
     connected: "Подключен",
@@ -115,22 +95,9 @@ const COPY = {
     steps: "WhatsApp → Связанные устройства → Привязать устройство",
     generating: "Создание QR-кода…",
     close: "Закрыть",
-    safety: "Здесь отображается только фактическое подключение WhatsApp, подтвержденное сервером.",
-    security: "Безопасность",
-    billing: "Подписка и оплата",
+    safety: "Здесь отображается только фактическое состояние WhatsApp, полученное от сервера.",
   },
 } as const;
-
-function fmtDate(value: string | null, lang: Lang) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(lang === "hy" ? "hy-AM" : lang === "ru" ? "ru-RU" : "en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
 
 function SettingsPanel() {
   const lang = useDashboardLanguage() as Lang;
@@ -264,29 +231,6 @@ function SettingsPanel() {
           </div>
 
           <p className="settings-truth-note"><ShieldCheck />{c.safety}</p>
-        </section>
-
-        <section className="settings-panel settings-subscription-summary">
-          <header>
-            <span><Clock3 /></span>
-            <div><small>{c.billing}</small><h2>{c.subscription}</h2></div>
-          </header>
-          <dl>
-            <div><dt>{c.plan}</dt><dd>{user?.subscription_plan ?? "—"}</dd></div>
-            <div><dt>{c.status}</dt><dd>{user?.subscription_state ?? "—"}</dd></div>
-            <div><dt>{c.expires}</dt><dd>{fmtDate(user?.subscription_expires_at ?? null, lang)}</dd></div>
-          </dl>
-        </section>
-
-        <section className="settings-panel settings-security-summary">
-          <header>
-            <span><KeyRound /></span>
-            <div><small>{c.security}</small><h2>{c.security}</h2></div>
-          </header>
-          <div className="settings-security-points">
-            <div><CheckCircle2 /><span>{user?.email ?? "—"}</span></div>
-            <div><Mail /><span>{user ? dashboardRole(user.role, lang) : "—"}</span></div>
-          </div>
         </section>
       </div>
 
