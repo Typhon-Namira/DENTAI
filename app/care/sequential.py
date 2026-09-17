@@ -55,6 +55,11 @@ def _monthly_contact(first_start: datetime, timezone_name: str, month_offset: in
     return add_calendar_months(local_start, month_offset).astimezone(UTC)
 
 
+def _approval_schedule(item: CarePlanItem, fallback: datetime) -> datetime:
+    """Use the clinician-edited follow-up date as the authoritative send date."""
+    return item.target_followup_at or item.conversation_start_at or fallback
+
+
 async def generate_sequential_plan(session: AsyncSession, analysis: AIAnalysis) -> CarePlan | None:
     plan = await ensure_care_plan(session, analysis)
     if not plan:
@@ -260,7 +265,8 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
     settings = await settings_for_branch(session, plan.branch_id)
     first_start = _next_local_contact(settings.timezone, days=1)
     for order, item in enumerate(items, start=1):
-        scheduled_at = _monthly_contact(first_start, settings.timezone, order - 1)
+        fallback = _monthly_contact(first_start, settings.timezone, order - 1)
+        scheduled_at = _approval_schedule(item, fallback)
         item.sequence_order = order
         item.conversation_start_at = scheduled_at
         item.target_followup_at = scheduled_at
