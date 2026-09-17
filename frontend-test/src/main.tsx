@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { AllRolesAiRunAccess } from "./product/AllRolesAiRunAccess";
 import { ArevikCofounder } from "./product/ArevikCofounder";
 import { BookingExperience } from "./product/BookingExperience";
+import { installCarePlanDateNormalizer } from "./product/carePlanDateNormalizer";
 import { CareExperienceEnhancer } from "./product/CareExperienceEnhancer";
 import { CareGenerationContractPanel } from "./product/CareGenerationContractPanel";
 import { ClinicalWorkspaceRedesign } from "./product/ClinicalWorkspaceRedesign";
@@ -51,6 +52,7 @@ import "./product/booking-public-polish.css";
 import "./product/page-deck-v2-polish.css";
 
 prepareLocalizedPublicRoute();
+installCarePlanDateNormalizer();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
