@@ -13,7 +13,7 @@ import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { LegalLocaleQuality } from "./product/LegalLocaleQuality";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
-import { PatientDriveExplorer } from "./product/PatientDriveExplorer";
+import { PatientDriveMount } from "./product/PatientDriveMount";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
 import { PlatformAdminControlCenter } from "./product/PlatformAdminControlCenter";
 import ProductApp from "./product/ProductApp";
@@ -70,7 +70,7 @@ createRoot(document.getElementById("root")!).render(
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <ClinicalWorkspaceRedesign />
-      <PatientDriveExplorer />
+      <PatientDriveMount />
       <SettingsWorkspaceEnhancer />
       <PlatformAccessExperienceV2 />
       <PlatformAdminControlCenter />
