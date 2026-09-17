@@ -20,6 +20,7 @@ import { PublicLocaleQualityGate } from "./product/PublicLocaleQualityGate";
 import { PublicSeo } from "./product/PublicSeo";
 import { PublicSeoSemantics } from "./product/PublicSeoSemantics";
 import { SeoAuthorityContent } from "./product/SeoAuthorityContent";
+import { SettingsWorkspaceEnhancer } from "./product/SettingsWorkspaceEnhancer";
 import { FreemiumPublicExperience, SubscriptionExperience } from "./product/SubscriptionExperience";
 import "./styles/medical-workspace.css";
 import "./v4/v4.css";
@@ -66,6 +67,7 @@ createRoot(document.getElementById("root")!).render(
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <ClinicalWorkspaceRedesign />
+      <SettingsWorkspaceEnhancer />
       <PlatformAccessExperienceV2 />
       <PlatformAdminControlCenter />
       <FreemiumCountryField />
