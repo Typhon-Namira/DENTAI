@@ -11,11 +11,12 @@ import { FreemiumCountryField } from "./product/FreemiumCountryField";
 import { HomepageEvidenceSections } from "./product/HomepageEvidenceSections";
 import { HomepageHeroFollowupAsset } from "./product/HomepageHeroFollowupAsset";
 import { LegalLocaleQuality } from "./product/LegalLocaleQuality";
-import { LocalizedPublicRouteBridge, prepareLocalizedPublicRoute } from "./product/publicLocaleRouting";
 import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
+import { PatientDriveExplorer } from "./product/PatientDriveExplorer";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
 import { PlatformAdminControlCenter } from "./product/PlatformAdminControlCenter";
 import ProductApp from "./product/ProductApp";
+import { LocalizedPublicRouteBridge, prepareLocalizedPublicRoute } from "./product/publicLocaleRouting";
 import { PublicLocaleQualityGate } from "./product/PublicLocaleQualityGate";
 import { PublicSeo } from "./product/PublicSeo";
 import { PublicSeoSemantics } from "./product/PublicSeoSemantics";
@@ -67,6 +68,7 @@ createRoot(document.getElementById("root")!).render(
       <CareExperienceEnhancer />
       <CareGenerationContractPanel />
       <ClinicalWorkspaceRedesign />
+      <PatientDriveExplorer />
       <SettingsWorkspaceEnhancer />
       <PlatformAccessExperienceV2 />
       <PlatformAdminControlCenter />
