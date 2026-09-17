@@ -106,7 +106,9 @@ async def upload(
 
 
 @router.delete("/{xray_id}", status_code=204)
-async def remove(xray_id: uuid.UUID, ctx: Annotated[AuthContext, Depends(current_context)]) -> Response:
+async def remove(
+    xray_id: uuid.UUID, ctx: Annotated[AuthContext, Depends(current_context)]
+) -> Response:
     xray = await ctx.session.get(XRay, xray_id)
     if not xray:
         raise AppError("XRAY_NOT_FOUND", "X-ray was not found.", 404)
@@ -115,9 +117,7 @@ async def remove(xray_id: uuid.UUID, ctx: Annotated[AuthContext, Depends(current
     storage_key = xray.storage_key
     analysis_ids = list(
         (
-            await ctx.session.scalars(
-                select(AIAnalysis.id).where(AIAnalysis.xray_id == xray.id)
-            )
+            await ctx.session.scalars(select(AIAnalysis.id).where(AIAnalysis.xray_id == xray.id))
         ).all()
     )
 
