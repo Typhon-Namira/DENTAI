@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   Archive,
@@ -472,6 +472,7 @@ function PlansWorkspace({ lang }: { lang: Lang }) {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const pendingDateSave = useRef<Promise<boolean> | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -489,20 +490,44 @@ function PlansWorkspace({ lang }: { lang: Lang }) {
 
   async function action(type: "approve" | "reject" | "pause" | "resume" | "complete") {
     if (!current) return;
+    if (type === "approve" && pendingDateSave.current) {
+      const saved = await pendingDateSave.current;
+      if (!saved) return;
+    }
     setBusy(type); setError("");
     try {
-      if (type === "approve") await productApi.approveCarePlan(current.plan.id);
-      else await productApi.transitionCarePlan(current.plan.id, type);
+      if (type === "approve") {
+        const isSequential = current.plan.items.some((item) => (item.sequence_order ?? 0) > 0);
+        if (isSequential) await productApi.approveSequentialCarePlan(current.plan.id);
+        else await productApi.approveCarePlan(current.plan.id);
+      } else {
+        await productApi.transitionCarePlan(current.plan.id, type);
+      }
       await reload();
     } catch (reason) { setError(errorMessage(reason)); } finally { setBusy(""); }
   }
 
-  async function updateDate(item: CarePlanItem, value: string) {
-    if (!current || !value) return;
+  async function updateDate(item: CarePlanItem, value: string): Promise<boolean> {
+    if (!current || !value) return false;
     setBusy(item.id); setError("");
-    try { await productApi.updateCarePlanItem(current.plan.id, item.id, { target_followup_at: new Date(value).toISOString() }); await reload(); }
-    catch (reason) { setError(errorMessage(reason)); }
-    finally { setBusy(""); }
+    try {
+      await productApi.updateCarePlanItem(current.plan.id, item.id, { target_followup_at: new Date(value).toISOString() });
+      await reload();
+      return true;
+    } catch (reason) {
+      setError(errorMessage(reason));
+      return false;
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function queueDateUpdate(item: CarePlanItem, value: string) {
+    const task = updateDate(item, value);
+    pendingDateSave.current = task;
+    void task.finally(() => {
+      if (pendingDateSave.current === task) pendingDateSave.current = null;
+    });
   }
 
   async function completeItem(item: CarePlanItem) {
@@ -544,7 +569,7 @@ function PlansWorkspace({ lang }: { lang: Lang }) {
                   <article key={item.id}>
                     <div className="cwr-tooth-index"><span>{item.tooth_fdi}</span><i>{item.sequence_order ?? index + 1}</i></div>
                     <div className="cwr-tooth-copy"><strong>{dashboardFinding(item.finding_type, lang)}</strong><p>{item.rationale}</p><small>{dashboardStatus(item.status, lang)}{item.priority_level ? ` · ${item.priority_level}` : ""}</small></div>
-                    <label>{c.targetDate}<input type="datetime-local" disabled={current.plan.status !== "PENDING_APPROVAL" || busy === item.id} defaultValue={new Date(item.target_followup_at).toISOString().slice(0, 16)} onBlur={(e) => { if (e.target.value) void updateDate(item, e.target.value); }} /></label>
+                    <label>{c.targetDate}<input type="datetime-local" disabled={current.plan.status !== "PENDING_APPROVAL" || busy === item.id} defaultValue={new Date(item.target_followup_at).toISOString().slice(0, 16)} onBlur={(e) => { if (e.target.value) queueDateUpdate(item, e.target.value); }} /></label>
                     {["ACTIVE", "PAUSED"].includes(current.plan.status) && item.status !== "COMPLETED" ? <button className="cwr-secondary compact" disabled={busy === item.id} onClick={() => void completeItem(item)}><Check />{c.markDone}</button> : <span className={`cwr-status ${item.status.toLowerCase()}`}>{dashboardStatus(item.status, lang)}</span>}
                   </article>
                 ))}

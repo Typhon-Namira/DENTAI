@@ -7,7 +7,9 @@ function normalize(plans: CarePlan[]): CarePlan[] {
     ...plan,
     items: plan.items.map((item) => ({
       ...item,
-      target_followup_at: item.conversation_start_at ?? item.target_followup_at,
+      // The clinician-edited target is authoritative. conversation_start_at is
+      // only a fallback for legacy rows that do not have a usable target value.
+      target_followup_at: item.target_followup_at || item.conversation_start_at || "",
     })),
   }));
 }

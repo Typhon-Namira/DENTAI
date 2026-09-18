@@ -288,8 +288,18 @@ async def update_plan_item(
     item = await ctx.session.get(CarePlanItem, item_id)
     if not item or item.care_plan_id != plan.id:
         raise AppError("CARE_PLAN_ITEM_NOT_FOUND", "Care plan item was not found.", 404)
-    for key, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    for key, value in updates.items():
         setattr(item, key, value)
+    # Sequential plans use one authoritative timestamp for both the clinical target
+    # shown in the dashboard and the WhatsApp outreach schedule. Keeping these in
+    # sync prevents a clinician-edited date from reverting on reload/approval.
+    if (
+        "target_followup_at" in updates
+        and (item.sequence_order or 0) > 0
+        and item.target_followup_at is not None
+    ):
+        item.conversation_start_at = item.target_followup_at
     await ctx.session.commit()
     return model_dict(item)
 

@@ -147,6 +147,7 @@ async def update_sequence_schedule(
                 "INVALID_OUTREACH_TIME", "First outreach must be scheduled in the future.", 422
             )
         item.conversation_start_at = normalized
+        item.target_followup_at = normalized
     else:
         item.conversation_start_at = None
 
