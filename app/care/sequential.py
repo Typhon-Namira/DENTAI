@@ -11,7 +11,11 @@ from app.care.models import (
     CarePlan,
     CarePlanItem,
 )
-from app.care.outreach_invariants import add_calendar_months, monthly_sequence_at
+from app.care.outreach_invariants import (
+    add_calendar_months,
+    align_sequence_schedule,
+    monthly_sequence_at,
+)
 from app.care.service import ensure_care_plan, settings_for_branch
 from app.database.models import (
     AIAnalysis,
@@ -336,6 +340,13 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
     first_anchor = items[0].conversation_start_at or items[0].target_followup_at
     if first_anchor is None:
         first_anchor = _next_local_contact(settings.timezone, days=1)
+    if any(item.status == "WAITING_PREVIOUS_TOOTH" for item in items):
+        align_sequence_schedule(
+            list(items),
+            settings.timezone,
+            first_start=first_anchor,
+            force_rebase=True,
+        )
     for order, item in enumerate(items, start=1):
         fallback = monthly_sequence_at(first_anchor, settings.timezone, order - 1)
         scheduled_at = item.conversation_start_at or item.target_followup_at or fallback
