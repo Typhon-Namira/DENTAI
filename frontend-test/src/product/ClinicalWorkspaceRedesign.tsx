@@ -33,6 +33,7 @@ import {
   type CareMessage,
   type CarePlan,
   type CarePlanItem,
+  type CareSettings,
   type PatientCreateInput,
 } from "../api/product";
 import type { Patient, PatientProfile, XRay } from "../api/types";
@@ -256,6 +257,60 @@ function fmt(value: string | null | undefined, lang: Lang, time = true) {
   }).format(date);
 }
 
+function dateParts(value: string, timeZone: string): Record<string, string> {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(value));
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]));
+}
+
+function clinicInputValue(value: string | null | undefined, timeZone: string): string {
+  if (!value) return "";
+  const p = dateParts(value, timeZone);
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+function zoneOffsetMs(at: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(at);
+  const p = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour),
+    Number(p.minute),
+    Number(p.second),
+  ) - at.getTime();
+}
+
+function clinicLocalToIso(localValue: string, timeZone: string): string {
+  const [date, clock] = localValue.split("T");
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = clock.split(":").map(Number);
+  const wallUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
+  let instant = new Date(wallUtc);
+  let offset = zoneOffsetMs(instant, timeZone);
+  instant = new Date(wallUtc - offset);
+  const corrected = zoneOffsetMs(instant, timeZone);
+  if (corrected !== offset) instant = new Date(wallUtc - corrected);
+  return instant.toISOString();
+}
+
 function bytes(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "—";
   if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
@@ -472,13 +527,19 @@ function PlansWorkspace({ lang }: { lang: Lang }) {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [careSettings, setCareSettings] = useState<Record<string, CareSettings>>({});
   const pendingDateSave = useRef<Promise<boolean> | null>(null);
 
   const reload = useCallback(async () => {
     try {
       const [planRows, patientPage] = await Promise.all([productApi.carePlans(), api.listPatients(undefined, "ALL")]);
+      const branchIds = [...new Set(planRows.map((plan) => plan.branch_id))];
+      const settingRows = await Promise.all(
+        branchIds.map(async (branchId) => [branchId, await productApi.careSettings(branchId)] as const),
+      );
       setPlans(planRows);
       setPatients(patientPage.items);
+      setCareSettings(Object.fromEntries(settingRows));
       setSelected((value) => value && planRows.some((plan) => plan.id === value) ? value : planRows[0]?.id || "");
     } catch (reason) { setError(errorMessage(reason)); }
   }, []);
@@ -511,7 +572,8 @@ function PlansWorkspace({ lang }: { lang: Lang }) {
     if (!current || !value) return false;
     setBusy(item.id); setError("");
     try {
-      await productApi.updateCarePlanItem(current.plan.id, item.id, { target_followup_at: new Date(value).toISOString() });
+      const zone = careSettings[current.plan.branch_id]?.timezone ?? "UTC";
+      await productApi.updateCarePlanItem(current.plan.id, item.id, { target_followup_at: clinicLocalToIso(value, zone) });
       await reload();
       return true;
     } catch (reason) {
@@ -569,7 +631,7 @@ function PlansWorkspace({ lang }: { lang: Lang }) {
                   <article key={item.id}>
                     <div className="cwr-tooth-index"><span>{item.tooth_fdi}</span><i>{item.sequence_order ?? index + 1}</i></div>
                     <div className="cwr-tooth-copy"><strong>{dashboardFinding(item.finding_type, lang)}</strong><p>{item.rationale}</p><small>{dashboardStatus(item.status, lang)}{item.priority_level ? ` · ${item.priority_level}` : ""}</small></div>
-                    <label>{c.targetDate}<input type="datetime-local" disabled={current.plan.status !== "PENDING_APPROVAL" || busy === item.id} defaultValue={new Date(item.target_followup_at).toISOString().slice(0, 16)} onBlur={(e) => { if (e.target.value) queueDateUpdate(item, e.target.value); }} /></label>
+                    <label>{c.targetDate}<input key={item.target_followup_at} type="datetime-local" disabled={current.plan.status !== "PENDING_APPROVAL" || busy === item.id} defaultValue={clinicInputValue(item.target_followup_at, careSettings[current.plan.branch_id]?.timezone ?? "UTC")} onBlur={(e) => { if (e.target.value) queueDateUpdate(item, e.target.value); }} /></label>
                     {["ACTIVE", "PAUSED"].includes(current.plan.status) && item.status !== "COMPLETED" ? <button className="cwr-secondary compact" disabled={busy === item.id} onClick={() => void completeItem(item)}><Check />{c.markDone}</button> : <span className={`cwr-status ${item.status.toLowerCase()}`}>{dashboardStatus(item.status, lang)}</span>}
                   </article>
                 ))}

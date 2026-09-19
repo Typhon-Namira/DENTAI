@@ -20,6 +20,8 @@ from app.care.models import (
     CarePlan,
     CarePlanItem,
 )
+from app.care.outreach_invariants import monthly_sequence_at
+from app.care.sequential import reschedule_sequence_from_item
 from app.care.service import (
     approve_care_plan,
     available_slots,
@@ -257,13 +259,41 @@ async def list_care_plans(
         )
     plans = (await ctx.session.scalars(query)).all()
     result = []
+    settings_cache = {}
     for plan in plans:
-        items = (
-            await ctx.session.scalars(
-                select(CarePlanItem).where(CarePlanItem.care_plan_id == plan.id)
-            )
-        ).all()
-        result.append({**model_dict(plan), "items": [model_dict(item) for item in items]})
+        items = list(
+            (
+                await ctx.session.scalars(
+                    select(CarePlanItem)
+                    .where(CarePlanItem.care_plan_id == plan.id)
+                    .order_by(CarePlanItem.sequence_order.asc(), CarePlanItem.priority_score.desc())
+                )
+            ).all()
+        )
+        payload_items = [model_dict(item) for item in items]
+
+        # Compatibility for plans generated before the monthly-sequence fix.
+        # Those rows used finding-based target dates and left later conversation
+        # starts empty, which could display duplicate dates. Render the intended
+        # monthly sequence from the first tooth without mutating history in a GET.
+        if (
+            plan.status == "PENDING_APPROVAL"
+            and items
+            and any(item.status == "WAITING_PREVIOUS_TOOTH" for item in items)
+        ):
+            if plan.branch_id not in settings_cache:
+                settings_cache[plan.branch_id] = await settings_for_branch(
+                    ctx.session, plan.branch_id
+                )
+            timezone_name = settings_cache[plan.branch_id].timezone
+            first_anchor = items[0].conversation_start_at or items[0].target_followup_at
+            if first_anchor is not None:
+                for index, payload in enumerate(payload_items):
+                    scheduled_at = monthly_sequence_at(first_anchor, timezone_name, index)
+                    payload["conversation_start_at"] = scheduled_at
+                    payload["target_followup_at"] = scheduled_at
+
+        result.append({**model_dict(plan), "items": payload_items})
     return result
 
 
@@ -289,17 +319,21 @@ async def update_plan_item(
     if not item or item.care_plan_id != plan.id:
         raise AppError("CARE_PLAN_ITEM_NOT_FOUND", "Care plan item was not found.", 404)
     updates = body.model_dump(exclude_unset=True)
+    target_followup_at = updates.pop("target_followup_at", None)
+    target_was_set = "target_followup_at" in body.model_fields_set
     for key, value in updates.items():
         setattr(item, key, value)
-    # Sequential plans use one authoritative timestamp for both the clinical target
-    # shown in the dashboard and the WhatsApp outreach schedule. Keeping these in
-    # sync prevents a clinician-edited date from reverting on reload/approval.
-    if (
-        "target_followup_at" in updates
-        and (item.sequence_order or 0) > 0
-        and item.target_followup_at is not None
-    ):
-        item.conversation_start_at = item.target_followup_at
+
+    if target_was_set and target_followup_at is not None and (item.sequence_order or 0) > 0:
+        await reschedule_sequence_from_item(
+            ctx.session,
+            plan=plan,
+            item=item,
+            start_at=target_followup_at,
+        )
+    elif target_was_set:
+        item.target_followup_at = target_followup_at
+
     await ctx.session.commit()
     return model_dict(item)
 
