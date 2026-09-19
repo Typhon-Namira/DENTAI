@@ -9,6 +9,7 @@ from sqlalchemy import or_, select
 from app.audit.service import audit
 from app.auth.dependencies import AuthContext, authorized_patient, current_context, roles
 from app.care.models import CarePlan, CarePlanItem
+from app.care.sequential import reschedule_sequence_from_item
 from app.common.serialization import model_dict
 from app.core.errors import AppError
 from app.database.models import (
@@ -146,8 +147,12 @@ async def update_sequence_schedule(
             raise AppError(
                 "INVALID_OUTREACH_TIME", "First outreach must be scheduled in the future.", 422
             )
-        item.conversation_start_at = normalized
-        item.target_followup_at = normalized
+        await reschedule_sequence_from_item(
+            ctx.session,
+            plan=plan,
+            item=item,
+            start_at=normalized,
+        )
     else:
         item.conversation_start_at = None
 
