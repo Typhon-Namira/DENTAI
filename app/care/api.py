@@ -20,6 +20,7 @@ from app.care.models import (
     CarePlan,
     CarePlanItem,
 )
+from app.care.outreach_invariants import monthly_sequence_at
 from app.care.sequential import reschedule_sequence_from_item
 from app.care.service import (
     approve_care_plan,
@@ -258,13 +259,41 @@ async def list_care_plans(
         )
     plans = (await ctx.session.scalars(query)).all()
     result = []
+    settings_cache = {}
     for plan in plans:
-        items = (
-            await ctx.session.scalars(
-                select(CarePlanItem).where(CarePlanItem.care_plan_id == plan.id)
-            )
-        ).all()
-        result.append({**model_dict(plan), "items": [model_dict(item) for item in items]})
+        items = list(
+            (
+                await ctx.session.scalars(
+                    select(CarePlanItem)
+                    .where(CarePlanItem.care_plan_id == plan.id)
+                    .order_by(CarePlanItem.sequence_order.asc(), CarePlanItem.priority_score.desc())
+                )
+            ).all()
+        )
+        payload_items = [model_dict(item) for item in items]
+
+        # Compatibility for plans generated before the monthly-sequence fix.
+        # Those rows used finding-based target dates and left later conversation
+        # starts empty, which could display duplicate dates. Render the intended
+        # monthly sequence from the first tooth without mutating history in a GET.
+        if (
+            plan.status == "PENDING_APPROVAL"
+            and items
+            and any(item.status == "WAITING_PREVIOUS_TOOTH" for item in items)
+        ):
+            if plan.branch_id not in settings_cache:
+                settings_cache[plan.branch_id] = await settings_for_branch(
+                    ctx.session, plan.branch_id
+                )
+            timezone_name = settings_cache[plan.branch_id].timezone
+            first_anchor = items[0].conversation_start_at or items[0].target_followup_at
+            if first_anchor is not None:
+                for index, payload in enumerate(payload_items):
+                    scheduled_at = monthly_sequence_at(first_anchor, timezone_name, index)
+                    payload["conversation_start_at"] = scheduled_at
+                    payload["target_followup_at"] = scheduled_at
+
+        result.append({**model_dict(plan), "items": payload_items})
     return result
 
 
