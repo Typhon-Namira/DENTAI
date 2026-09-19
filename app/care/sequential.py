@@ -11,7 +11,7 @@ from app.care.models import (
     CarePlan,
     CarePlanItem,
 )
-from app.care.outreach_invariants import add_calendar_months
+from app.care.outreach_invariants import add_calendar_months, monthly_sequence_at
 from app.care.service import ensure_care_plan, settings_for_branch
 from app.database.models import (
     AIAnalysis,
@@ -237,6 +237,74 @@ async def schedule_item_outreach(
     return row
 
 
+async def reschedule_sequence_from_item(
+    session: AsyncSession,
+    *,
+    plan: CarePlan,
+    item: CarePlanItem,
+    start_at: datetime,
+) -> list[CarePlanItem]:
+    """Persist a clinician-selected date and keep every later tooth one month apart."""
+    settings = await settings_for_branch(session, plan.branch_id)
+    normalized = start_at.replace(tzinfo=UTC) if start_at.tzinfo is None else start_at.astimezone(UTC)
+    affected = (
+        await session.scalars(
+            select(CarePlanItem)
+            .where(
+                CarePlanItem.care_plan_id == plan.id,
+                CarePlanItem.sequence_order >= item.sequence_order,
+                CarePlanItem.status.notin_(["REJECTED", "COMPLETED", "SUPERSEDED_NEW_OPG"]),
+            )
+            .order_by(CarePlanItem.sequence_order.asc())
+        )
+    ).all()
+    if not affected:
+        return []
+
+    patient = await session.get(Patient, plan.patient_id)
+    for offset, row in enumerate(affected):
+        scheduled_at = monthly_sequence_at(normalized, settings.timezone, offset)
+        row.conversation_start_at = scheduled_at
+        row.target_followup_at = scheduled_at
+
+        followup = await session.scalar(
+            select(FollowUp)
+            .where(
+                FollowUp.patient_id == plan.patient_id,
+                FollowUp.reason.like(f"Teta2 Care · tooth {row.tooth_fdi}%"),
+                FollowUp.status == "SCHEDULED",
+            )
+            .order_by(FollowUp.due_at.desc())
+            .limit(1)
+        )
+        if followup:
+            followup.due_at = scheduled_at
+
+        if patient:
+            outreach = await session.scalar(
+                select(WhatsAppOutreach)
+                .where(
+                    WhatsAppOutreach.patient_id == patient.id,
+                    WhatsAppOutreach.analysis_id == plan.analysis_id,
+                    WhatsAppOutreach.tooth_fdi == row.tooth_fdi,
+                    WhatsAppOutreach.status.in_(
+                        [WhatsAppOutreachStatus.QUEUED, WhatsAppOutreachStatus.SCHEDULED]
+                    ),
+                )
+                .order_by(WhatsAppOutreach.created_at.desc())
+                .limit(1)
+            )
+            if outreach:
+                outreach.target_followup_at = scheduled_at
+                outreach.scheduled_send_at = scheduled_at
+                outreach.status = WhatsAppOutreachStatus.SCHEDULED
+                outreach.retry_at = None
+                outreach.safe_error = None
+
+    await session.flush()
+    return list(affected)
+
+
 async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> CarePlan:
     if plan.status != "PENDING_APPROVAL":
         return plan
@@ -250,7 +318,9 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
             select(CarePlanItem)
             .where(
                 CarePlanItem.care_plan_id == plan.id,
-                CarePlanItem.status.in_(["FOLLOWUP_READY", "SCHEDULED_FUTURE_TOOTH"]),
+                CarePlanItem.status.in_(
+                    ["FOLLOWUP_READY", "SCHEDULED_FUTURE_TOOTH", "WAITING_PREVIOUS_TOOTH"]
+                ),
             )
             .order_by(CarePlanItem.sequence_order.asc())
         )
@@ -263,10 +333,12 @@ async def approve_sequential_plan(session: AsyncSession, *, plan: CarePlan) -> C
     await _conversation_for_plan(session, plan=plan, patient=patient)
 
     settings = await settings_for_branch(session, plan.branch_id)
-    first_start = _next_local_contact(settings.timezone, days=1)
+    first_anchor = items[0].conversation_start_at or items[0].target_followup_at
+    if first_anchor is None:
+        first_anchor = _next_local_contact(settings.timezone, days=1)
     for order, item in enumerate(items, start=1):
-        fallback = _monthly_contact(first_start, settings.timezone, order - 1)
-        scheduled_at = _approval_schedule(item, fallback)
+        fallback = monthly_sequence_at(first_anchor, settings.timezone, order - 1)
+        scheduled_at = item.conversation_start_at or item.target_followup_at or fallback
         item.sequence_order = order
         item.conversation_start_at = scheduled_at
         item.target_followup_at = scheduled_at
