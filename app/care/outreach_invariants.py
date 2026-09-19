@@ -38,9 +38,7 @@ def add_calendar_months(value: datetime, months: int) -> datetime:
     return value.replace(year=year, month=month, day=day)
 
 
-def monthly_sequence_at(
-    first_start: datetime, timezone_name: str, month_offset: int
-) -> datetime:
+def monthly_sequence_at(first_start: datetime, timezone_name: str, month_offset: int) -> datetime:
     """Return a sequence date N calendar months after the first clinic-local slot."""
     zone = ZoneInfo(timezone_name)
     normalized = utc(first_start)
@@ -71,14 +69,17 @@ def align_sequence_schedule(
     if not ordered:
         return False
 
-    anchor = utc(first_start) or utc(ordered[0].conversation_start_at) or utc(
-        ordered[0].target_followup_at
+    anchor = (
+        utc(first_start)
+        or utc(ordered[0].conversation_start_at)
+        or utc(ordered[0].target_followup_at)
     )
     if anchor is None:
         return False
 
     changed = False
     for index, item in enumerate(ordered):
+        desired: datetime | None
         if index == 0 or force_rebase or item.conversation_start_at is None:
             desired = monthly_sequence_at(anchor, timezone_name, index)
         else:
