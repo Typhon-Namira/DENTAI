@@ -1,6 +1,7 @@
 import calendar
 import uuid
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,6 +36,63 @@ def add_calendar_months(value: datetime, months: int) -> datetime:
     month = month_zero + 1
     day = min(value.day, calendar.monthrange(year, month)[1])
     return value.replace(year=year, month=month, day=day)
+
+
+def monthly_sequence_at(
+    first_start: datetime, timezone_name: str, month_offset: int
+) -> datetime:
+    """Return a sequence date N calendar months after the first clinic-local slot."""
+    zone = ZoneInfo(timezone_name)
+    normalized = utc(first_start)
+    if normalized is None:
+        raise ValueError("first_start is required")
+    local_start = normalized.astimezone(zone)
+    return add_calendar_months(local_start, month_offset).astimezone(UTC)
+
+
+def align_sequence_schedule(
+    items: list[CarePlanItem],
+    timezone_name: str,
+    *,
+    first_start: datetime | None = None,
+    force_rebase: bool = False,
+) -> bool:
+    """Keep one authoritative monthly schedule on CarePlanItem rows.
+
+    The first tooth is the anchor. Later teeth are one calendar month apart.
+    Existing later conversation_start_at values are preserved only when
+    force_rebase is false; this supports legacy/manual rows while allowing an
+    explicit first-date edit to rebase the remaining sequence.
+    """
+    ordered = sorted(
+        [item for item in items if (item.sequence_order or 0) > 0],
+        key=lambda item: item.sequence_order,
+    )
+    if not ordered:
+        return False
+
+    anchor = utc(first_start) or utc(ordered[0].conversation_start_at) or utc(
+        ordered[0].target_followup_at
+    )
+    if anchor is None:
+        return False
+
+    changed = False
+    for index, item in enumerate(ordered):
+        if index == 0 or force_rebase or item.conversation_start_at is None:
+            desired = monthly_sequence_at(anchor, timezone_name, index)
+        else:
+            desired = utc(item.conversation_start_at)
+            if desired is None:
+                desired = monthly_sequence_at(anchor, timezone_name, index)
+
+        if utc(item.conversation_start_at) != desired:
+            item.conversation_start_at = desired
+            changed = True
+        if utc(item.target_followup_at) != desired:
+            item.target_followup_at = desired
+            changed = True
+    return changed
 
 
 async def supersede_patient_schedule_for_new_xray(
