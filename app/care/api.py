@@ -20,6 +20,7 @@ from app.care.models import (
     CarePlan,
     CarePlanItem,
 )
+from app.care.sequential import reschedule_sequence_from_item
 from app.care.service import (
     approve_care_plan,
     available_slots,
@@ -289,17 +290,21 @@ async def update_plan_item(
     if not item or item.care_plan_id != plan.id:
         raise AppError("CARE_PLAN_ITEM_NOT_FOUND", "Care plan item was not found.", 404)
     updates = body.model_dump(exclude_unset=True)
+    target_followup_at = updates.pop("target_followup_at", None)
+    target_was_set = "target_followup_at" in body.model_fields_set
     for key, value in updates.items():
         setattr(item, key, value)
-    # Sequential plans use one authoritative timestamp for both the clinical target
-    # shown in the dashboard and the WhatsApp outreach schedule. Keeping these in
-    # sync prevents a clinician-edited date from reverting on reload/approval.
-    if (
-        "target_followup_at" in updates
-        and (item.sequence_order or 0) > 0
-        and item.target_followup_at is not None
-    ):
-        item.conversation_start_at = item.target_followup_at
+
+    if target_was_set and target_followup_at is not None and (item.sequence_order or 0) > 0:
+        await reschedule_sequence_from_item(
+            ctx.session,
+            plan=plan,
+            item=item,
+            start_at=target_followup_at,
+        )
+    elif target_was_set:
+        item.target_followup_at = target_followup_at
+
     await ctx.session.commit()
     return model_dict(item)
 
