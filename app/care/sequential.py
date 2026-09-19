@@ -250,7 +250,9 @@ async def reschedule_sequence_from_item(
 ) -> list[CarePlanItem]:
     """Persist a clinician-selected date and keep every later tooth one month apart."""
     settings = await settings_for_branch(session, plan.branch_id)
-    normalized = start_at.replace(tzinfo=UTC) if start_at.tzinfo is None else start_at.astimezone(UTC)
+    normalized = (
+        start_at.replace(tzinfo=UTC) if start_at.tzinfo is None else start_at.astimezone(UTC)
+    )
     affected = (
         await session.scalars(
             select(CarePlanItem)
