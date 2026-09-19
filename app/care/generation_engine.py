@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.care.language import language_for_phone
 from app.care.models import CarePlan, CarePlanItem
+from app.care.outreach_invariants import monthly_sequence_at
 from app.care.service import settings_for_branch
 from app.database.models import AIAnalysis, DentalFinding, FindingReview, Patient
 from app.outreach.service import timing_for_finding
@@ -290,13 +291,10 @@ async def build_followup_plan(session: AsyncSession, analysis: AIAnalysis) -> Ca
         plan_item.priority_score = candidate.priority_score
         plan_item.outcome = None
         plan_item.outcome_at = None
-        if order == 1:
-            plan_item.status = "FOLLOWUP_READY"
-            if not plan_item.conversation_start_at or plan_item.conversation_start_at <= now:
-                plan_item.conversation_start_at = first_start
-        else:
-            plan_item.status = "WAITING_PREVIOUS_TOOTH"
-            plan_item.conversation_start_at = None
+        scheduled_at = monthly_sequence_at(first_start, settings.timezone, order - 1)
+        plan_item.conversation_start_at = scheduled_at
+        plan_item.target_followup_at = scheduled_at
+        plan_item.status = "FOLLOWUP_READY" if order == 1 else "SCHEDULED_FUTURE_TOOTH"
         if all(row.review_status == FindingReview.CONFIRMED for row in candidate.findings):
             review_count += 1
 
