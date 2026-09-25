@@ -100,6 +100,14 @@ export function OPGAnalysisViewer({
       return [{group,box,tone:groupFindingTone(group),confidence:groupFindingConfidence(group),primary:primaryFinding(group)}];
     });
   },[groups,detections,imageSize]);
+  const selectedRegion=useMemo(()=>projected.find((region)=>region.group.key===selectedGroupKey)??null,[projected,selectedGroupKey]);
+  const focusPosition=useMemo(()=>{
+    if(!selectedRegion||!imageSize)return "50% 50%";
+    const [x1,y1,x2,y2]=selectedRegion.box;
+    const x=(((x1+x2)/2)/imageSize.width)*100;
+    const y=(((y1+y2)/2)/imageSize.height)*100;
+    return `${x}% ${y}%`;
+  },[selectedRegion,imageSize]);
   const activeKey=hovered??selectedGroupKey;
 
   useEffect(()=>{
@@ -121,6 +129,7 @@ export function OPGAnalysisViewer({
     const strength=Math.max(.2,Math.min(1,confidence)); return {fill:`rgba(239,68,68,${.045+strength*.17})`,stroke:`rgba(248,80,80,${.58+strength*.4})`,glow:`rgba(239,68,68,${.12+strength*.46})`};
   }
   const localizedType=(value:string)=>dashboardFinding(value,lang);
+  const localizedReviewStatus=(value:string)=>value==="CONFIRMED"?text.confirmed:value==="REJECTED"?text.rejected:text.pending;
   const modalHeadline=selectedGroup?localizedType(primaryFinding(selectedGroup)?.finding_type??""):"";
   const modalTypes=selectedGroup?selectedGroup.findings.map((finding)=>localizedType(finding.finding_type)):[];
   const clinicalExplanation=selectedExplanation?.clinical_explanation || (selectedGroup?`${text.clinicalFallback} ${modalTypes.join(", ")}.`:"");
@@ -139,6 +148,44 @@ export function OPGAnalysisViewer({
         {canReview&&pendingCount>0&&<div className="opg-review-dock"><span>{text.review} {decidedCount}/{pendingCount}</span>{reviewError&&<em>{reviewError}</em>}{reviewDone&&<em className="success">{reviewDone}</em>}<button type="button" disabled={!canSubmitReview||reviewing} onClick={onSubmitReview}>{reviewing?text.saving:text.saveReview}</button></div>}
       </div>}
     </div>
-    {selectedGroup&&<div className="finding-modal-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)onSelectedGroupChange(null)}}><section className="finding-modal" role="dialog" aria-modal="true" aria-label={modalHeadline}><button type="button" className="finding-modal-close" onClick={()=>onSelectedGroupChange(null)} aria-label={text.close}>×</button><div className="finding-modal-head"><div><span className="eyebrow">{text.selectedFinding}</span><h3>{text.tooth} {selectedGroup.toothCode??"?"} · {modalHeadline}</h3></div><span className="finding-confidence">{text.confidence}: {Math.round(groupFindingConfidence(selectedGroup)*100)}%</span></div><div className="finding-modal-copy"><p>{clinicalExplanation}</p><small>{reviewExplanation}</small></div><div className="finding-modal-list">{selectedGroup.findings.map((finding)=><div key={finding.id} className="finding-modal-row"><div><strong>{localizedType(finding.finding_type)}</strong><small>{text.reviewStatus}: {finding.review_status}</small></div>{canReview&&finding.review_status==="PENDING"&&<div className="finding-decision-actions"><button className={decisions[finding.id]==="CONFIRMED"?"selected confirm":""} type="button" onClick={()=>onDecisionChange(finding.id,"CONFIRMED")}>{text.confirm}</button><button className={decisions[finding.id]==="REJECTED"?"selected reject":""} type="button" onClick={()=>onDecisionChange(finding.id,"REJECTED")}>{text.reject}</button></div>}</div>)}</div></section></div>}
+    {selectedGroup&&<div className="finding-dialog-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)onSelectedGroupChange(null)}}>
+      <section className="finding-dialog" role="dialog" aria-modal="true" aria-label={`${text.tooth} ${selectedGroup.toothCode??"?"}: ${modalHeadline}`} lang={lang}>
+        <button className="finding-dialog-close" type="button" onClick={()=>onSelectedGroupChange(null)} aria-label={text.close}>×</button>
+        <div className={`finding-dialog-visual ${groupFindingTone(selectedGroup)==="RESTORATIVE"?"restorative":"pathology"}`}>
+          {imageUrl&&<img src={imageUrl} alt={`${text.tooth} ${selectedGroup.toothCode??"?"}`} style={{objectPosition:focusPosition}}/>}
+          <div className="finding-visual-shade"/>
+          <div className="finding-visual-target" aria-hidden="true"><i/><i/><span>{selectedGroup.toothCode??"?"}</span></div>
+          <div className="finding-visual-label"><span>✦</span><strong>Teta2 · {text.selectedFinding}</strong></div>
+        </div>
+        <div className="finding-dialog-content">
+          <header className="finding-dialog-heading">
+            <div><p className="eyebrow">{text.selectedFinding} · FDI {selectedGroup.toothCode??"?"}</p><h2>{modalHeadline}</h2></div>
+            <span className="finding-count-badge">{Math.round(groupFindingConfidence(selectedGroup)*100)}%</span>
+          </header>
+          <div className="finding-chip-row premium-finding-chips">
+            {selectedGroup.findings.map((finding)=><span key={finding.id}>{localizedType(finding.finding_type)}</span>)}
+          </div>
+          <div className="clinical-story-grid">
+            <article className="clinical-story-card primary-story"><span className="story-icon">◉</span><div><small>{text.selectedFinding}</small><p>{clinicalExplanation}</p></div></article>
+            <article className="clinical-story-card"><span className="story-icon">✓</span><div><small>{text.clinician}</small><p>{reviewExplanation}</p></div></article>
+          </div>
+          <div className="finding-confidence-list">
+            {selectedGroup.findings.map((finding)=><div key={finding.id}><span>{localizedType(finding.finding_type)}</span><strong>{typeof finding.confidence==="number"?`${Math.round(finding.confidence*100)}%`:"—"}</strong><small>{localizedReviewStatus(finding.review_status)}</small></div>)}
+          </div>
+          {canReview&&selectedGroup.findings.some((finding)=>finding.review_status==="PENDING")&&<section className="micro-review-card">
+            <div><strong>{text.review}</strong><small>{text.reviewHelp}</small></div>
+            <div className="micro-review-items">
+              {selectedGroup.findings.filter((finding)=>finding.review_status==="PENDING").map((finding)=><div key={finding.id} className="micro-review-item">
+                <span>{localizedType(finding.finding_type)}</span>
+                <div className="decision-segmented" role="group" aria-label={text.review}>
+                  <button className={decisions[finding.id]==="CONFIRMED"?"selected confirm":""} type="button" onClick={()=>onDecisionChange(finding.id,"CONFIRMED")}>{text.confirm}</button>
+                  <button className={decisions[finding.id]==="REJECTED"?"selected reject":""} type="button" onClick={()=>onDecisionChange(finding.id,"REJECTED")}>{text.reject}</button>
+                </div>
+              </div>)}
+            </div>
+          </section>}
+        </div>
+      </section>
+    </div>}
   </section>;
 }
