@@ -267,7 +267,7 @@ function metricCards(summary: Record<string, number>) {
 }
 
 function StatusPill({ value }: { value: string }) {
-  const key = value.toLowerCase();
+  const key = value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
   return <span className={`pa3-status pa3-status-${key}`}>{label(value)}</span>;
 }
 
