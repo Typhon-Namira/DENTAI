@@ -24,6 +24,8 @@ def subscription_state(clinic: ResolvedClinic, *, now: datetime | None = None) -
     configured = (getattr(clinic, "subscription_state", None) or "ACTIVE").upper()
     if configured in {"PAYMENT_REVIEW", "UPGRADE_PENDING"}:
         return "PAYMENT_REVIEW"
+    if configured == "SUSPENDED":
+        return "SUSPENDED"
     expires = _utc(getattr(clinic, "subscription_expires_at", None))
     plan = (getattr(clinic, "subscription_plan", None) or "").upper()
     if expires is not None and expires <= current:
@@ -50,6 +52,12 @@ def require_product_access(clinic: ResolvedClinic) -> None:
         raise AppError(
             "SUBSCRIPTION_PAYMENT_REVIEW",
             "Your Premium activation is waiting for payment approval. Existing clinic data is preserved.",
+            403,
+        )
+    if state == "SUSPENDED":
+        raise AppError(
+            "SUBSCRIPTION_SUSPENDED",
+            "Clinic access is suspended. Existing clinic data is preserved. Contact Teta2 support to restore access.",
             403,
         )
     raise AppError(

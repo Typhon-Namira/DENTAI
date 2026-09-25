@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -30,7 +30,9 @@ router = APIRouter(prefix="/platform/admin-control", tags=["platform-admin-contr
 class ClinicEdit(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=200)
     is_active: bool | None = None
-    subscription_state: str | None = Field(default=None, max_length=40)
+    subscription_state: (
+        Literal["ACTIVE", "PAYMENT_REVIEW", "EXPIRED", "SUSPENDED", "ARCHIVED"] | None
+    ) = None
     expires_at: datetime | None = None
 
 

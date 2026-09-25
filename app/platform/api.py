@@ -11,9 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import AppError
+from app.core.rate_limit import sensitive_limit
 from app.database.control_models import (
     AccessRequest,
     ClinicRegistry,
+    PlatformAdminAudit,
     PlatformEmailLog,
     PlatformSettings,
     PlatformVisit,
@@ -155,7 +157,10 @@ async def require_platform_admin(
     verify_platform_admin_session(supplied)
 
 
-@router.post("/admin/login")
+@router.post(
+    "/admin/login",
+    dependencies=[Depends(sensitive_limit("platform-admin-login", 5, 300))],
+)
 async def platform_admin_login(body: AdminLogin):
     token = authenticate_platform_admin(str(body.email), body.password)
     return {
@@ -370,6 +375,18 @@ async def update_admin_settings(
     for field, value in body.model_dump().items():
         setattr(row, field, value.strip() if isinstance(value, str) else value)
     row.updated_at = datetime.now(UTC)
+    session.add(
+        PlatformAdminAudit(
+            action="PLATFORM_SETTINGS_UPDATED",
+            target_type="PLATFORM_SETTINGS",
+            target_id=str(row.id),
+            details={
+                "price_amount": row.price_amount,
+                "price_currency": row.price_currency,
+                "payment_recipient": row.payment_recipient,
+            },
+        )
+    )
     await session.commit()
     return _serialize_settings(row)
 
@@ -528,7 +545,21 @@ async def renew_subscription(
     if not clinic:
         raise AppError("CLINIC_NOT_FOUND", "Clinic was not found.", 404)
     settings = await platform_settings(session)
+    previous_expiry = clinic.subscription_expires_at
     expires_at = await renew_clinic(clinic, settings, days=body.days)
+    clinic.subscription_state = "ACTIVE"
+    session.add(
+        PlatformAdminAudit(
+            action="CLINIC_SUBSCRIPTION_RENEWED",
+            target_type="CLINIC",
+            target_id=str(clinic.id),
+            details={
+                "days": body.days,
+                "previous_expiry": previous_expiry.isoformat() if previous_expiry else None,
+                "new_expiry": expires_at.isoformat(),
+            },
+        )
+    )
     await session.commit()
     return {
         "clinic": _serialize_clinic(clinic),
