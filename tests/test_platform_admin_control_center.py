@@ -1,7 +1,12 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
+from app.clinic_resolution.service import ResolvedClinic
+from app.core.errors import AppError
 from app.database.control_models import ClinicRegistry
 from app.platform.admin_control_service import clinic_category, clinic_operational_state
+from app.platform.entitlements import require_product_access, subscription_state
 
 
 def clinic(**overrides):
@@ -43,3 +48,26 @@ def test_archived_and_expired_states_are_operationally_distinct():
         == "EXPIRED"
     )
     assert clinic_operational_state(clinic(subscription_state="PAYMENT_REVIEW")) == "PAYMENT_REVIEW"
+
+
+def test_suspended_subscription_is_blocked_but_reported_distinctly():
+    resolved = ResolvedClinic(
+        id=clinic().id,
+        slug="test-clinic",
+        name="Test Clinic",
+        database_url="sqlite+aiosqlite:///./test.db",
+        allowed_origins=[],
+        subscription_plan="PREMIUM",
+        subscription_state="SUSPENDED",
+        subscription_starts_at=datetime.now(UTC) - timedelta(days=10),
+        subscription_expires_at=datetime.now(UTC) + timedelta(days=20),
+        free_trial_started_at=None,
+        upgrade_requested_at=None,
+    )
+
+    assert subscription_state(resolved) == "SUSPENDED"
+    with pytest.raises(AppError) as error:
+        require_product_access(resolved)
+
+    assert error.value.code == "SUBSCRIPTION_SUSPENDED"
+    assert error.value.status_code == 403
