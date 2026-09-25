@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import AppError
+from app.core.rate_limit import sensitive_limit
 from app.database.control_models import (
     AccessRequest,
     ClinicRegistry,
@@ -155,7 +156,10 @@ async def require_platform_admin(
     verify_platform_admin_session(supplied)
 
 
-@router.post("/admin/login")
+@router.post(
+    "/admin/login",
+    dependencies=[Depends(sensitive_limit("platform-admin-login", 5, 300))],
+)
 async def platform_admin_login(body: AdminLogin):
     token = authenticate_platform_admin(str(body.email), body.password)
     return {
