@@ -6,15 +6,15 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://35-159-65-156.sslip.io/api/:path*"
+      "destination": "https://18-185-183-79.sslip.io/api/:path*"
     },
     {
       "source": "/health",
-      "destination": "https://35-159-65-156.sslip.io/health"
+      "destination": "https://18-185-183-79.sslip.io/health"
     },
     {
       "source": "/ready",
-      "destination": "https://35-159-65-156.sslip.io/ready"
+      "destination": "https://18-185-183-79.sslip.io/ready"
     },
     {
       "source": "/(.*)",
