@@ -548,8 +548,6 @@ async def renew_subscription(
     previous_expiry = clinic.subscription_expires_at
     expires_at = await renew_clinic(clinic, settings, days=body.days)
     clinic.subscription_state = "ACTIVE"
-    if (clinic.subscription_source or "").upper() != "GIFT":
-        clinic.subscription_source = "PAID"
     session.add(
         PlatformAdminAudit(
             action="CLINIC_SUBSCRIPTION_RENEWED",
