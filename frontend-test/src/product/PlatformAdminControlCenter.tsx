@@ -118,6 +118,32 @@ type Dashboard = {
   recent_audit: AuditRow[];
 };
 
+type PlatformOverview = {
+  health: {
+    api: string;
+    control_database: string;
+    smtp_configured: boolean;
+    tenant_auto_provisioning_configured: boolean;
+    ai_provider: string;
+    groq_configured: boolean;
+    whatsapp_configured: boolean;
+    radar_enabled: boolean;
+    storage_provider: string;
+  };
+  metrics: Record<string, number>;
+  request_statuses: Record<string, number>;
+  top_routes: Array<[string, number]>;
+  recent_emails: Array<{
+    id: string;
+    kind: string;
+    recipient: string;
+    subject: string;
+    status: string;
+    error?: string | null;
+    created_at: string;
+  }>;
+};
+
 type AccessRequest = {
   id: string;
   clinic_name: string;
@@ -168,6 +194,7 @@ type AdminTab =
   | "payments"
   | "requests"
   | "traffic"
+  | "health"
   | "audit"
   | "settings";
 
@@ -252,6 +279,7 @@ export function PlatformAdminControlCenter() {
   const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [platformOverview, setPlatformOverview] = useState<PlatformOverview | null>(null);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
   const [tab, setTab] = useState<AdminTab>("overview");
@@ -264,6 +292,7 @@ export function PlatformAdminControlCenter() {
   const [editClinic, setEditClinic] = useState(false);
   const [giftClinic, setGiftClinic] = useState(false);
   const [archiveClinic, setArchiveClinic] = useState(false);
+  const [renewClinic, setRenewClinic] = useState(false);
 
   useEffect(() => {
     const onRoute = () => setRoute(window.location.pathname);
@@ -283,14 +312,18 @@ export function PlatformAdminControlCenter() {
   }, [active]);
 
   const load = useCallback(async (authToken: string) => {
-    const [nextDashboard, nextRequests, nextSettings] = await Promise.all([
+    const [nextDashboard, nextOverview, nextRequests, nextSettings] = await Promise.all([
       requestJson<Dashboard>("/api/v1/platform/admin-control/dashboard", authToken),
+      requestJson<PlatformOverview>("/api/v1/platform/admin/overview", authToken),
       requestJson<AccessRequest[]>("/api/v1/platform/admin/access-requests", authToken),
       requestJson<PlatformSettings>("/api/v1/platform/admin/settings", authToken),
     ]);
     setDashboard(nextDashboard);
+    setPlatformOverview(nextOverview);
     setRequests(nextRequests);
     setSettings(nextSettings);
+    setSelectedClinic((current) => current ? nextDashboard.clinics.find((clinic) => clinic.id === current.id) ?? null : null);
+    setSelectedRequest((current) => current ? nextRequests.find((request) => request.id === current.id) ?? null : null);
     setAuthenticated(true);
     setError("");
   }, []);
@@ -329,6 +362,7 @@ export function PlatformAdminControlCenter() {
     setToken("");
     setAuthenticated(false);
     setDashboard(null);
+    setPlatformOverview(null);
     setRequests([]);
     setSettings(null);
   }
@@ -393,6 +427,7 @@ export function PlatformAdminControlCenter() {
     ["payments", "Payments & revenue", CircleDollarSign, dashboard?.payments.verified_count],
     ["requests", "Access requests", Mail, dashboard?.summary.pending_requests],
     ["traffic", "Traffic", BarChart3, undefined],
+    ["health", "System health", HeartPulse, platformOverview?.metrics.emails_failed_100],
     ["audit", "Audit log", ShieldCheck, undefined],
     ["settings", "Platform settings", KeyRound, undefined],
   ];
@@ -432,6 +467,7 @@ export function PlatformAdminControlCenter() {
         {tab === "payments" && <Payments dashboard={dashboard} />}
         {tab === "requests" && <Requests rows={requests} selected={selectedRequest} setSelected={setSelectedRequest} token={token} busy={busy} mutate={mutate} />}
         {tab === "traffic" && <Traffic dashboard={dashboard} />}
+        {tab === "health" && <SystemHealth overview={platformOverview} dashboard={dashboard} />}
         {tab === "audit" && <Audit dashboard={dashboard} />}
         {tab === "settings" && settings && <Settings value={settings} token={token} onSaved={() => load(token)} setError={setError} />}
       </section>
@@ -443,11 +479,13 @@ export function PlatformAdminControlCenter() {
           onClose={() => setSelectedClinic(null)}
           onEdit={() => setEditClinic(true)}
           onGift={() => setGiftClinic(true)}
+          onRenew={() => setRenewClinic(true)}
           onArchive={() => setArchiveClinic(true)}
         />
       )}
       {editClinic && selectedClinic && <EditClinicModal clinic={selectedClinic} busy={busy} close={() => setEditClinic(false)} save={async (body) => { const updated = await mutate<Clinic>(`/api/v1/platform/admin-control/clinics/${selectedClinic.id}`, { method: "PATCH", body: JSON.stringify(body) }); setSelectedClinic(updated); setEditClinic(false); }} />}
       {giftClinic && selectedClinic && <GiftModal clinic={selectedClinic} busy={busy} close={() => setGiftClinic(false)} save={async (months, note) => { const updated = await mutate<Clinic>(`/api/v1/platform/admin-control/clinics/${selectedClinic.id}/gift`, { method: "POST", body: JSON.stringify({ months, note }) }); setSelectedClinic(updated); setGiftClinic(false); }} />}
+      {renewClinic && selectedClinic && <RenewModal clinic={selectedClinic} busy={busy} close={() => setRenewClinic(false)} renew={async (days) => { await mutate(`/api/v1/platform/admin/clinics/${selectedClinic.id}/renew`, { method: "POST", body: JSON.stringify({ days }) }); setRenewClinic(false); }} />}
       {archiveClinic && selectedClinic && <ArchiveModal clinic={selectedClinic} busy={busy} close={() => setArchiveClinic(false)} archive={async (slug) => { await mutate(`/api/v1/platform/admin-control/clinics/${selectedClinic.id}/archive`, { method: "POST", body: JSON.stringify({ confirm_slug: slug, note: "Archived from internal control center" }) }); setArchiveClinic(false); setSelectedClinic(null); }} />}
     </main>
   );
@@ -512,7 +550,35 @@ function Payments({ dashboard }: { dashboard: Dashboard | null }) {
 function Requests({ rows, selected, setSelected, token, busy, mutate }: { rows: AccessRequest[]; selected: AccessRequest | null; setSelected: (row: AccessRequest | null) => void; token: string; busy: string; mutate: <T>(path: string, init: RequestInit) => Promise<T> }) {
   const row = selected || rows[0] || null;
   const [editing, setEditing] = useState(false);
-  return <div className="pa3-request-layout"><section className="pa3-request-list pa3-panel"><div className="pa3-panel-head-simple"><div><small>CLINIC PIPELINE</small><h2>Access requests</h2></div><b>{rows.length}</b></div>{rows.map((item) => <button key={item.id} className={row?.id === item.id ? "active" : ""} onClick={() => setSelected(item)}><div><strong>{item.clinic_name}</strong><StatusPill value={item.status} /></div><span>{item.contact_name} · {item.country}</span><small>{dateTime(item.created_at)}</small></button>)}</section>{row ? <section className="pa3-panel pa3-request-detail"><div className="pa3-request-title"><div><small>ACCESS REQUEST</small><h2>{row.clinic_name}</h2><p>{row.city}, {row.country}</p></div><button className="pa3-icon-button" onClick={() => setEditing(true)}><Pencil /></button></div><div className="pa3-detail-grid"><Info label="Contact" value={row.contact_name} sub={row.contact_role} /><Info label="Email" value={row.email} sub={row.phone} /><Info label="Clinic size" value={`${row.dentists_count} dentists`} sub={`${row.branches_count} branch(es)`} /><Info label="Submitted" value={date(row.created_at)} sub={row.website || "No website"} /></div>{row.notes && <div className="pa3-note"><strong>Applicant note</strong><p>{row.notes}</p></div>}<div className="pa3-action-row">{["SUBMITTED", "PAYMENT_REQUESTED", "PAYMENT_REVIEW"].includes(row.status) && <button className="pa3-secondary" disabled={!!busy} onClick={() => void mutate(`/api/v1/platform/admin-control/access-requests/${row.id}/send-payment`, { method: "POST", body: JSON.stringify({ note: "Payment instructions sent from control center" }) })}><Mail /> Send payment instructions</button>}{["PAYMENT_REQUESTED", "PAYMENT_REVIEW"].includes(row.status) && <button className="pa3-primary" disabled={!!busy} onClick={() => { const reference = window.prompt("Verified bank/payment reference", row.payment_reference || "") || ""; void mutate(`/api/v1/platform/admin-control/access-requests/${row.id}/activate`, { method: "POST", body: JSON.stringify({ reference, proof_note: "Payment verified in internal control center." }) }); }}><Check /> Verify payment & activate</button>}{!row.activated_clinic_id && <button className="pa3-danger" disabled={!!busy} onClick={() => { if (window.confirm(`Delete unactivated request for ${row.clinic_name}?`)) void mutate(`/api/v1/platform/admin-control/access-requests/${row.id}`, { method: "DELETE" }).then(() => setSelected(null)); }}><Trash2 /> Delete request</button>}</div>{editing && <EditRequestModal row={row} busy={busy} close={() => setEditing(false)} save={async (body) => { await mutate(`/api/v1/platform/admin-control/access-requests/${row.id}`, { method: "PATCH", body: JSON.stringify(body) }); setEditing(false); setSelected(null); }} />}</section> : <Empty message="No access request selected." />}</div>;
+  return <div className="pa3-request-layout"><section className="pa3-request-list pa3-panel"><div className="pa3-panel-head-simple"><div><small>CLINIC PIPELINE</small><h2>Access requests</h2></div><b>{rows.length}</b></div>{rows.map((item) => <button key={item.id} className={row?.id === item.id ? "active" : ""} onClick={() => setSelected(item)}><div><strong>{item.clinic_name}</strong><StatusPill value={item.status} /></div><span>{item.contact_name} · {item.country}</span><small>{dateTime(item.created_at)}</small></button>)}</section>{row ? <section className="pa3-panel pa3-request-detail"><div className="pa3-request-title"><div><small>ACCESS REQUEST</small><h2>{row.clinic_name}</h2><p>{row.city}, {row.country}</p></div><button className="pa3-icon-button" onClick={() => setEditing(true)}><Pencil /></button></div><div className="pa3-detail-grid"><Info label="Contact" value={row.contact_name} sub={row.contact_role} /><Info label="Email" value={row.email} sub={row.phone} /><Info label="Clinic size" value={`${row.dentists_count} dentists`} sub={`${row.branches_count} branch(es)`} /><Info label="Submitted" value={date(row.created_at)} sub={row.website || "No website"} /></div>{row.notes && <div className="pa3-note"><strong>Applicant note</strong><p>{row.notes}</p></div>}<div className="pa3-action-row">{["SUBMITTED", "PAYMENT_REQUESTED", "PAYMENT_REVIEW"].includes(row.status) && <button className="pa3-secondary" disabled={!!busy} onClick={() => void mutate(`/api/v1/platform/admin-control/access-requests/${row.id}/send-payment`, { method: "POST", body: JSON.stringify({ note: "Payment instructions sent from control center" }) })}><Mail /> Send payment instructions</button>}{["PAYMENT_REQUESTED", "PAYMENT_REVIEW"].includes(row.status) && <button className="pa3-primary" disabled={!!busy} onClick={() => { const reference = window.prompt("Verified bank/payment reference", row.payment_reference || "")?.trim(); if (!reference) return; void mutate(`/api/v1/platform/admin-control/access-requests/${row.id}/activate`, { method: "POST", body: JSON.stringify({ reference, proof_note: "Payment verified in internal control center." }) }); }}><Check /> Verify payment & activate</button>}{!row.activated_clinic_id && row.status !== "REJECTED" && <button className="pa3-danger" disabled={!!busy} onClick={() => { const note = window.prompt("Reason for rejection (optional)", row.admin_note || "") ?? ""; if (window.confirm(`Reject access request for ${row.clinic_name}?`)) void mutate<AccessRequest>(`/api/v1/platform/admin/access-requests/${row.id}/reject`, { method: "POST", body: JSON.stringify({ note }) }); }}><X /> Reject request</button>}{!row.activated_clinic_id && <button className="pa3-danger" disabled={!!busy} onClick={() => { if (window.confirm(`Delete unactivated request for ${row.clinic_name}?`)) void mutate(`/api/v1/platform/admin-control/access-requests/${row.id}`, { method: "DELETE" }).then(() => setSelected(null)); }}><Trash2 /> Delete request</button>}</div>{editing && <EditRequestModal row={row} busy={busy} close={() => setEditing(false)} save={async (body) => { await mutate(`/api/v1/platform/admin-control/access-requests/${row.id}`, { method: "PATCH", body: JSON.stringify(body) }); setEditing(false); setSelected(null); }} />}</section> : <Empty message="No access request selected." />}</div>;
+}
+
+function SystemHealth({ overview, dashboard }: { overview: PlatformOverview | null; dashboard: Dashboard | null }) {
+  if (!overview || !dashboard) return <Loading />;
+  const offlineClinics = dashboard.clinics.filter((clinic) => clinic.stats.database_status !== "ONLINE");
+  const healthRows: Array<[string, string]> = [
+    ["API", overview.health.api],
+    ["Control database", overview.health.control_database],
+    ["Object storage", overview.health.storage_provider.toUpperCase()],
+    ["AI provider", overview.health.ai_provider],
+    ["SMTP", overview.health.smtp_configured ? "CONFIGURED" : "NOT CONFIGURED"],
+    ["Tenant provisioning", overview.health.tenant_auto_provisioning_configured ? "CONFIGURED" : "NOT CONFIGURED"],
+    ["Groq", overview.health.groq_configured ? "CONFIGURED" : "NOT CONFIGURED"],
+    ["WhatsApp", overview.health.whatsapp_configured ? "CONFIGURED" : "NOT CONFIGURED"],
+    ["Radar", overview.health.radar_enabled ? "ENABLED" : "DISABLED"],
+  ];
+  return <div className="pa3-stack">
+    <section className="pa3-metric-grid pa3-metric-grid-small">
+      <article><span><Building2 /></span><small>Active clinics</small><strong>{number(overview.metrics.clinics_active)}</strong></article>
+      <article><span><Clock3 /></span><small>Expiring within 7 days</small><strong>{number(overview.metrics.clinics_expiring_7d)}</strong></article>
+      <article><span><Mail /></span><small>Failed recent emails</small><strong>{number(overview.metrics.emails_failed_100)}</strong></article>
+    </section>
+    <section className="pa3-split">
+      <article className="pa3-panel"><PanelTitle eyebrow="PLATFORM SERVICES" title="Configuration and core health" icon={HeartPulse} /><div className="pa3-health-grid">{healthRows.map(([name, value]) => <div key={name}><span>{name}</span><StatusPill value={value} /></div>)}</div></article>
+      <article className="pa3-panel"><PanelTitle eyebrow="TENANT DATABASES" title="Clinic database availability" icon={Database} />{offlineClinics.length ? <div className="pa3-health-list">{offlineClinics.map((clinic) => <div key={clinic.id}><strong>{clinic.name}</strong><span>{clinic.slug}</span><StatusPill value={clinic.stats.database_status} /></div>)}</div> : <div className="pa3-health-ok"><Check /> All active tenant databases reported online.</div>}</article>
+    </section>
+    <section className="pa3-panel"><PanelTitle eyebrow="DELIVERY OPERATIONS" title="Recent email failures" icon={Mail} /><div className="pa3-table-wrap"><table className="pa3-table"><thead><tr><th>Type</th><th>Recipient</th><th>Subject</th><th>Status</th><th>Time</th></tr></thead><tbody>{overview.recent_emails.filter((email) => email.status === "FAILED").map((email) => <tr key={email.id}><td>{label(email.kind)}</td><td>{email.recipient}</td><td>{email.subject}</td><td><StatusPill value={email.status} /></td><td>{dateTime(email.created_at)}</td></tr>)}</tbody></table>{!overview.recent_emails.some((email) => email.status === "FAILED") && <Empty message="No recent email delivery failures." />}</div></section>
+  </div>;
 }
 
 function Traffic({ dashboard }: { dashboard: Dashboard | null }) {
@@ -538,11 +604,11 @@ function Settings({ value, token, onSaved, setError }: { value: PlatformSettings
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save platform settings"); }
     finally { setBusy(false); }
   }
-  return <section className="pa3-panel pa3-settings"><PanelTitle eyebrow="PLATFORM CONFIGURATION" title="Payment and activation settings" icon={KeyRound} /><div className="pa3-settings-grid"><label>Default Premium price<input type="number" value={form.price_amount} onChange={(event) => update("price_amount", Number(event.target.value))} /></label><label>Currency<input value={form.price_currency} onChange={(event) => update("price_currency", event.target.value.toUpperCase())} /></label><label className="wide">Payment recipient<input value={form.payment_recipient} onChange={(event) => update("payment_recipient", event.target.value)} /></label><label className="wide">Card / payment number<input value={form.payment_card} onChange={(event) => update("payment_card", event.target.value)} /></label><label className="wide">Bank / transfer details<textarea rows={4} value={form.payment_bank_details} onChange={(event) => update("payment_bank_details", event.target.value)} /></label><label className="wide">Payment email subject<input value={form.payment_email_subject} onChange={(event) => update("payment_email_subject", event.target.value)} /></label><label className="wide">Payment email introduction<textarea rows={4} value={form.payment_email_intro} onChange={(event) => update("payment_email_intro", event.target.value)} /></label><label className="wide">Activation email subject<input value={form.activation_email_subject} onChange={(event) => update("activation_email_subject", event.target.value)} /></label><label className="wide">Activation email introduction<textarea rows={4} value={form.activation_email_intro} onChange={(event) => update("activation_email_intro", event.target.value)} /></label></div><button className="pa3-primary" disabled={busy} onClick={() => void save()}><Save /> {busy ? "Saving…" : "Save platform settings"}</button></section>;
+  return <section className="pa3-panel pa3-settings"><PanelTitle eyebrow="PLATFORM CONFIGURATION" title="Payment and activation settings" icon={KeyRound} /><div className="pa3-note">Market-specific Armenia and Russia prices are currently applied by the market pricing rules. This fallback price is used by legacy/default activation flows.</div><div className="pa3-settings-grid"><label>Fallback Premium price<input type="number" value={form.price_amount} onChange={(event) => update("price_amount", Number(event.target.value))} /></label><label>Currency<input value={form.price_currency} onChange={(event) => update("price_currency", event.target.value.toUpperCase())} /></label><label className="wide">Payment recipient<input value={form.payment_recipient} onChange={(event) => update("payment_recipient", event.target.value)} /></label><label className="wide">Card / payment number<input value={form.payment_card} onChange={(event) => update("payment_card", event.target.value)} /></label><label className="wide">Bank / transfer details<textarea rows={4} value={form.payment_bank_details} onChange={(event) => update("payment_bank_details", event.target.value)} /></label><label className="wide">Payment email subject<input value={form.payment_email_subject} onChange={(event) => update("payment_email_subject", event.target.value)} /></label><label className="wide">Payment email introduction<textarea rows={4} value={form.payment_email_intro} onChange={(event) => update("payment_email_intro", event.target.value)} /></label><label className="wide">Activation email subject<input value={form.activation_email_subject} onChange={(event) => update("activation_email_subject", event.target.value)} /></label><label className="wide">Activation email introduction<textarea rows={4} value={form.activation_email_intro} onChange={(event) => update("activation_email_intro", event.target.value)} /></label></div><button className="pa3-primary" disabled={busy} onClick={() => void save()}><Save /> {busy ? "Saving…" : "Save platform settings"}</button></section>;
 }
 
-function ClinicDrawer({ clinic, busy, onClose, onEdit, onGift, onArchive }: { clinic: Clinic; busy: string; onClose: () => void; onEdit: () => void; onGift: () => void; onArchive: () => void }) {
-  return <div className="pa3-drawer-layer" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><aside className="pa3-drawer"><header><div><small>CLINIC CONTROL</small><h2>{clinic.name}</h2><p>{clinic.slug}</p></div><button onClick={onClose}><X /></button></header><div className="pa3-drawer-status"><span className={`pa3-account-tag ${clinic.category.toLowerCase()}`}>{clinic.category}</span><StatusPill value={clinic.operational_state} /><StatusPill value={clinic.stats.database_status} /></div><section><h3>Clinical operations</h3><div className="pa3-detail-grid"><Info label="Patients" value={number(clinic.stats.patients)} /><Info label="OPGs" value={number(clinic.stats.opgs)} /><Info label="AI analyses" value={number(clinic.stats.ai_analyses)} /><Info label="AI conversations" value={number(clinic.stats.ai_conversations)} /><Info label="Follow-ups completed" value={number(clinic.stats.followups_completed)} /><Info label="Follow-ups pending" value={number(clinic.stats.followups_pending)} /><Info label="AI messages" value={number(clinic.stats.conversation_messages)} /><Info label="Care items pending" value={number(clinic.stats.care_items_pending)} /></div></section><section><h3>Subscription</h3><div className="pa3-detail-grid"><Info label="Plan" value={clinic.subscription_plan} /><Info label="Source" value={clinic.subscription_source} /><Info label="Started" value={date(clinic.subscription_starts_at)} /><Info label="Expires" value={date(clinic.subscription_expires_at)} /><Info label="Days remaining" value={clinic.days_remaining == null ? "—" : String(clinic.days_remaining)} /><Info label="Gift note" value={clinic.gift_note || "—"} /></div></section><footer><button className="pa3-secondary" disabled={!!busy} onClick={onEdit}><Pencil /> Edit account</button><button className="pa3-gift" disabled={!!busy} onClick={onGift}><Gift /> Grant Premium gift</button><button className="pa3-danger" disabled={!!busy} onClick={onArchive}><Archive /> Archive access</button></footer><p className="pa3-safety-note"><ShieldCheck /> Clinic archive disables access but deliberately preserves the tenant database and clinical history.</p></aside></div>;
+function ClinicDrawer({ clinic, busy, onClose, onEdit, onGift, onRenew, onArchive }: { clinic: Clinic; busy: string; onClose: () => void; onEdit: () => void; onGift: () => void; onRenew: () => void; onArchive: () => void }) {
+  return <div className="pa3-drawer-layer" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><aside className="pa3-drawer"><header><div><small>CLINIC CONTROL</small><h2>{clinic.name}</h2><p>{clinic.slug}</p></div><button onClick={onClose}><X /></button></header><div className="pa3-drawer-status"><span className={`pa3-account-tag ${clinic.category.toLowerCase()}`}>{clinic.category}</span><StatusPill value={clinic.operational_state} /><StatusPill value={clinic.stats.database_status} /></div><section><h3>Clinical operations</h3><div className="pa3-detail-grid"><Info label="Patients" value={number(clinic.stats.patients)} /><Info label="OPGs" value={number(clinic.stats.opgs)} /><Info label="AI analyses" value={number(clinic.stats.ai_analyses)} /><Info label="AI conversations" value={number(clinic.stats.ai_conversations)} /><Info label="Follow-ups completed" value={number(clinic.stats.followups_completed)} /><Info label="Follow-ups pending" value={number(clinic.stats.followups_pending)} /><Info label="AI messages" value={number(clinic.stats.conversation_messages)} /><Info label="Care items pending" value={number(clinic.stats.care_items_pending)} /></div></section><section><h3>Subscription</h3><div className="pa3-detail-grid"><Info label="Plan" value={clinic.subscription_plan} /><Info label="Source" value={clinic.subscription_source} /><Info label="Started" value={date(clinic.subscription_starts_at)} /><Info label="Expires" value={date(clinic.subscription_expires_at)} /><Info label="Days remaining" value={clinic.days_remaining == null ? "—" : String(clinic.days_remaining)} /><Info label="Gift note" value={clinic.gift_note || "—"} /></div></section><footer><button className="pa3-secondary" disabled={!!busy} onClick={onEdit}><Pencil /> Edit account</button><button className="pa3-primary" disabled={!!busy || clinic.operational_state === "ARCHIVED"} onClick={onRenew}><RefreshCw /> Renew subscription</button><button className="pa3-gift" disabled={!!busy} onClick={onGift}><Gift /> Grant Premium gift</button><button className="pa3-danger" disabled={!!busy} onClick={onArchive}><Archive /> Archive access</button></footer><p className="pa3-safety-note"><ShieldCheck /> Clinic archive disables access but deliberately preserves the tenant database and clinical history.</p></aside></div>;
 }
 
 function EditClinicModal({ clinic, busy, close, save }: { clinic: Clinic; busy: string; close: () => void; save: (body: Record<string, unknown>) => Promise<void> }) {
@@ -557,6 +623,11 @@ function GiftModal({ clinic, busy, close, save }: { clinic: Clinic; busy: string
   const [months, setMonths] = useState(3);
   const [note, setNote] = useState("");
   return <Modal title={`Gift Premium to ${clinic.name}`} close={close}><div className="pa3-modal-form"><div className="pa3-gift-callout"><Gift /><div><strong>Startup-funded access</strong><p>This account will be reported separately from paid revenue.</p></div></div><label>Gift duration (months)<input type="number" min="1" max="24" value={months} onChange={(event) => setMonths(Number(event.target.value))} /></label><label>Internal note<textarea rows={4} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Reason, partnership, campaign or owner" /></label><button className="pa3-gift pa3-wide-button" disabled={!!busy} onClick={() => void save(months, note)}><Gift /> Grant {months} month{months === 1 ? "" : "s"} Premium</button></div></Modal>;
+}
+
+function RenewModal({ clinic, busy, close, renew }: { clinic: Clinic; busy: string; close: () => void; renew: (days: number) => Promise<void> }) {
+  const [days, setDays] = useState(30);
+  return <Modal title={`Renew ${clinic.name}`} close={close}><div className="pa3-modal-form"><div className="pa3-gift-callout"><RefreshCw /><div><strong>Extend Premium access</strong><p>The extension starts from the current expiry when it is still in the future, otherwise from today.</p></div></div><label>Extension (days)<input type="number" min="1" max="365" value={days} onChange={(event) => setDays(Number(event.target.value))} /></label><button className="pa3-primary pa3-wide-button" disabled={!!busy || days < 1 || days > 365} onClick={() => void renew(days)}><RefreshCw /> Renew for {days} days</button></div></Modal>;
 }
 
 function ArchiveModal({ clinic, busy, close, archive }: { clinic: Clinic; busy: string; close: () => void; archive: (slug: string) => Promise<void> }) {
