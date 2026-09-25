@@ -30,7 +30,9 @@ router = APIRouter(prefix="/platform/admin-control", tags=["platform-admin-contr
 class ClinicEdit(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=200)
     is_active: bool | None = None
-    subscription_state: Literal["ACTIVE", "PAYMENT_REVIEW", "EXPIRED", "SUSPENDED", "ARCHIVED"] | None = None
+    subscription_state: (
+        Literal["ACTIVE", "PAYMENT_REVIEW", "EXPIRED", "SUSPENDED", "ARCHIVED"] | None
+    ) = None
     expires_at: datetime | None = None
 
 
