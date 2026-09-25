@@ -1,6 +1,6 @@
 # Care API deployment
 
-The production frontend is hosted by Vercel at `www.teta2.com`. Its same-origin `/api`, `/health`, and `/ready` rewrites currently target `https://35-159-65-156.sslip.io`, an EC2-hosted FastAPI service. The Care API must be deployed to that service before the frontend release is considered operational.
+The production frontend is hosted by Vercel at `www.teta2.com`. Its same-origin `/api`, `/health`, and `/ready` rewrites currently target `https://18-185-183-79.sslip.io`, an EC2-hosted FastAPI service. The Care API must be deployed to that service before the frontend release is considered operational.
 
 ## GitHub environment secrets
 
