@@ -218,7 +218,7 @@ export default function ProductApp() {
     : route === "/login" ? <LoginPage lang={lang} setLang={setLang} onAuthenticated={setUser} go={go} />
     : route === "/register" ? null
     : <PublicProduct lang={lang} setLang={setLang} route={route} go={go} />;
-  const showPublicPreferences = !restoring && !user && window.location.pathname !== "/platform-admin";
+  const showPublicPreferences = !restoring && !user && !["/platform-admin", "/platform-managers"].includes(window.location.pathname);
   return <>{experience}{showPublicPreferences && (showLanguageModal ? <FirstVisitLanguageModal onSelect={(next: PublicLanguage) => setLang(next)} /> : <StorageNotice language={lang} onPolicy={() => go("/cookies")} />)}</>;
 }
 
