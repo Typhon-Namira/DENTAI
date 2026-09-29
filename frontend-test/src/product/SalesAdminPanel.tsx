@@ -1,12 +1,10 @@
 import {
   Activity,
-  Banknote,
   BadgeCheck,
   Camera,
   Check,
   Clock3,
   CreditCard,
-  FileText,
   KeyRound,
   Plus,
   RefreshCw,
@@ -16,7 +14,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { API_BASE_URL } from "../api/client";
 import "./sales-admin.css";
