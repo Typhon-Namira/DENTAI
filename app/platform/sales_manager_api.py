@@ -27,6 +27,7 @@ from app.platform.api import require_platform_admin
 from app.platform.sales_service import (
     MANAGER_SESSION_HOURS,
     available_balance,
+    backfill_commissions_for_attribution,
     create_manager_session,
     decrypt_bank_card,
     encrypt_bank_card,
@@ -837,6 +838,7 @@ async def admin_confirm_attribution(
         row.clinic_contact_id = contact.id
     row.manager_id = manager.id
     row.status = "ADMIN_CONFIRMED"
+    await backfill_commissions_for_attribution(session, row)
     session.add(
         PlatformAdminAudit(
             action="SALES_ATTRIBUTION_CONFIRMED",
