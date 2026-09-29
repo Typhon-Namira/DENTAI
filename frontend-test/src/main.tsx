@@ -16,6 +16,7 @@ import { PageDeckSectionsV2 } from "./product/PageDeckSectionsV2";
 import { PatientDriveMount } from "./product/PatientDriveMount";
 import { PlatformAccessExperienceV2 } from "./product/PlatformAccessExperienceV2";
 import { PlatformAdminControlCenter } from "./product/PlatformAdminControlCenter";
+import { PlatformSalesManagerPortal } from "./product/PlatformSalesManagerPortal";
 import ProductApp from "./product/ProductApp";
 import { LocalizedPublicRouteBridge, prepareLocalizedPublicRoute } from "./product/publicLocaleRouting";
 import { PublicLocaleQualityGate } from "./product/PublicLocaleQualityGate";
@@ -74,6 +75,7 @@ createRoot(document.getElementById("root")!).render(
       <SettingsWorkspaceEnhancer />
       <PlatformAccessExperienceV2 />
       <PlatformAdminControlCenter />
+      <PlatformSalesManagerPortal />
       <FreemiumCountryField />
       <FreemiumPublicExperience />
       <SubscriptionExperience />
