@@ -16,8 +16,6 @@ from app.database.control_models import (
     SalesCommission,
     SalesDailyReport,
     SalesManager,
-    SalesManagerActivity,
-    SalesManagerSession,
     SalesReportClinic,
     SalesWithdrawalRequest,
 )
@@ -30,7 +28,6 @@ from app.platform.sales_manager_auth import (
     require_sales_manager,
 )
 from app.platform.sales_manager_service import (
-    decrypt_bank_card,
     encrypt_bank_card,
     manager_balances,
     normalize_email,
