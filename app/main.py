@@ -39,6 +39,7 @@ from app.platform import admin_payment_api as platform_admin_payment
 from app.platform import api as platform
 from app.platform import freemium_api as platform_freemium
 from app.platform import market_api as platform_market
+from app.platform import sales_manager_api as platform_sales
 from app.platform.api import record_platform_visit
 
 settings = get_settings()
@@ -81,6 +82,7 @@ for router in (
     platform_market.router,
     platform_admin_control.router,
     platform_admin_payment.router,
+    platform_sales.router,
     auth.router,
     branches.router,
     patients.router,
