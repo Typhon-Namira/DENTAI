@@ -15,6 +15,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError
 from app.database.control_models import (
     AccessRequest,
+    ClinicRegistry,
     PlatformSubscriptionPayment,
     SalesClinicAttribution,
     SalesClinicContact,
@@ -365,6 +366,13 @@ async def manager_dashboard(session: AsyncSession, manager: SalesManager) -> dic
             )
         ).all()
     )
+    clinic_ids = {row.clinic_id for row in commissions}
+    clinic_names = {
+        clinic.id: clinic.name
+        for clinic in (
+            await session.scalars(select(ClinicRegistry).where(ClinicRegistry.id.in_(clinic_ids)))
+        ).all()
+    } if clinic_ids else {}
     withdrawals = list(
         (
             await session.scalars(
@@ -387,6 +395,7 @@ async def manager_dashboard(session: AsyncSession, manager: SalesManager) -> dic
             {
                 "id": str(row.id),
                 "clinic_id": str(row.clinic_id),
+                "clinic_name": clinic_names.get(row.clinic_id, "Clinic"),
                 "gross_amount": row.gross_amount,
                 "commission_amount": row.commission_amount,
                 "currency": row.currency,
@@ -573,3 +582,44 @@ async def backfill_commissions_for_attribution(
         if commission:
             created.append(commission)
     return created
+
+
+
+async def reconcile_unattributed_payments(session: AsyncSession) -> int:
+    """Re-run report matching for verified payments that did not yet have an attribution."""
+    payments = list(
+        (
+            await session.scalars(
+                select(PlatformSubscriptionPayment).order_by(
+                    PlatformSubscriptionPayment.verified_at.asc()
+                )
+            )
+        ).all()
+    )
+    reconciled = 0
+    for payment in payments:
+        existing = await session.scalar(
+            select(SalesClinicAttribution).where(
+                SalesClinicAttribution.clinic_id == payment.clinic_id
+            )
+        )
+        if existing is not None:
+            if existing.status in {"AUTO_CONFIRMED", "ADMIN_CONFIRMED"}:
+                await create_commission_for_payment(session, payment, existing)
+            continue
+        if payment.access_request_id is None:
+            continue
+        request = await session.get(AccessRequest, payment.access_request_id)
+        if request is None:
+            continue
+        attribution = await ensure_attribution_for_payment(
+            session,
+            request,
+            payment.clinic_id,
+        )
+        if attribution is None:
+            continue
+        reconciled += 1
+        if attribution.status in {"AUTO_CONFIRMED", "ADMIN_CONFIRMED"}:
+            await create_commission_for_payment(session, payment, attribution)
+    return reconciled
