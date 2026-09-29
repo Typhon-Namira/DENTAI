@@ -138,8 +138,8 @@ async def authenticate_sales_manager(
 
 async def require_sales_manager(
     request: Request,
+    db: Annotated[AsyncSession, Depends(control_session)],
     authorization: Annotated[str | None, Header()] = None,
-    db: Annotated[AsyncSession, Depends(control_session)] = None,
 ) -> SalesManagerContext:
     supplied = authorization.removeprefix("Bearer ") if authorization else ""
     if not supplied:
