@@ -1,12 +1,12 @@
+import logging
 import re
-import secrets
 import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.security import hash_password
@@ -34,10 +34,16 @@ from app.platform.sales_manager_service import (
     decrypt_bank_card,
     manager_balances,
 )
-from app.platform.service import random_password, renew_clinic, send_logged_email, platform_settings
+from app.platform.service import (
+    platform_settings,
+    random_password,
+    renew_clinic,
+    send_logged_email,
+)
 from app.storage.providers import storage_provider
 
 router = APIRouter(prefix="/platform/admin-control", tags=["platform-sales-admin"])
+logger = logging.getLogger(__name__)
 
 PHOTO_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024
@@ -382,7 +388,7 @@ async def replace_sales_manager_photo(
         try:
             await provider.delete(old_key)
         except Exception:
-            pass
+            logger.exception("Failed to delete superseded sales manager profile photo")
     return _manager_payload(row)
 
 
@@ -691,7 +697,7 @@ async def list_sales_attributions(db: Annotated[AsyncSession, Depends(control_se
             await db.scalars(select(SalesManager).where(SalesManager.id.in_(manager_ids)))
         ).all()
     } if manager_ids else {}
-    requests = {
+    request_map = {
         row.id: row
         for row in (
             await db.scalars(
@@ -706,7 +712,7 @@ async def list_sales_attributions(db: Annotated[AsyncSession, Depends(control_se
             "id": str(row.id),
             "access_request_id": str(row.access_request_id),
             "clinic_id": str(row.clinic_id) if row.clinic_id else None,
-            "clinic_name": requests.get(row.access_request_id).clinic_name if requests.get(row.access_request_id) else None,
+            "clinic_name": request_map.get(row.access_request_id).clinic_name if request_map.get(row.access_request_id) else None,
             "manager_id": str(row.manager_id) if row.manager_id else None,
             "manager_name": (
                 f"{managers[row.manager_id].first_name} {managers[row.manager_id].last_name}".strip()
