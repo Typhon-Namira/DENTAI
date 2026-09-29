@@ -10,6 +10,7 @@ from app.database.sessions import control_session
 from app.platform.api import PaymentVerification, require_platform_admin
 from app.platform.freemium_api import activate_free_upgrade_or_legacy
 from app.platform.market_api import MarketPaymentDecision, send_market_payment_instructions
+from app.platform.sales_manager_service import record_initial_verified_payment
 from app.platform.service import platform_settings
 
 router = APIRouter(prefix="/platform/admin-control", tags=["platform-admin-payments"])
@@ -75,6 +76,19 @@ async def verify_payment_and_activate(
         clinic.gift_granted_at = None
         clinic.gift_note = None
 
+    commission = None
+    attribution = None
+    if clinic and row.payment_amount is not None and row.payment_currency:
+        _, attribution, commission = await record_initial_verified_payment(
+            session,
+            row,
+            clinic_id=clinic.id,
+            amount=row.payment_amount,
+            currency=row.payment_currency,
+            reference=body.reference or row.payment_reference,
+            subscription_days=30,
+        )
+
     session.add(
         PlatformAdminAudit(
             action="PAYMENT_VERIFIED_AND_ACTIVATED",
@@ -85,6 +99,11 @@ async def verify_payment_and_activate(
                 "amount": row.payment_amount,
                 "currency": row.payment_currency,
                 "reference": body.reference,
+                "sales_attribution_status": attribution.status if attribution else None,
+                "sales_manager_id": (
+                    str(attribution.manager_id) if attribution and attribution.manager_id else None
+                ),
+                "sales_commission_id": str(commission.id) if commission else None,
             },
         )
     )

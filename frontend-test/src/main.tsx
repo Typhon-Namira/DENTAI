@@ -23,6 +23,7 @@ import { PublicSeo } from "./product/PublicSeo";
 import { PublicSeoSemantics } from "./product/PublicSeoSemantics";
 import { SeoAuthorityContent } from "./product/SeoAuthorityContent";
 import { SettingsWorkspaceEnhancer } from "./product/SettingsWorkspaceEnhancer";
+import { SalesManagerPortal } from "./product/SalesManagerPortal";
 import { FreemiumPublicExperience, SubscriptionExperience } from "./product/SubscriptionExperience";
 import "./styles/medical-workspace.css";
 import "./v4/v4.css";
@@ -74,6 +75,7 @@ createRoot(document.getElementById("root")!).render(
       <SettingsWorkspaceEnhancer />
       <PlatformAccessExperienceV2 />
       <PlatformAdminControlCenter />
+      <SalesManagerPortal />
       <FreemiumCountryField />
       <FreemiumPublicExperience />
       <SubscriptionExperience />
