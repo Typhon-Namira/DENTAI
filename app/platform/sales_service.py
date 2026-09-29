@@ -28,6 +28,7 @@ from app.database.control_models import (
 )
 
 MANAGER_SESSION_HOURS = 12
+SALES_COMMISSION_RATE_BPS = 3000
 
 
 def normalize_text(value: str | None) -> str | None:
@@ -260,12 +261,19 @@ async def find_sales_attribution_candidate(
             )
         ).all()
     )
-    scored: list[tuple[int, SalesClinicContact, dict]] = []
+    best_by_manager: dict[uuid.UUID, tuple[int, SalesClinicContact, dict]] = {}
     for contact in contacts:
         score, signals = _score_contact(contact, request)
-        if score:
-            scored.append((score, contact, signals))
-    scored.sort(key=lambda item: (item[0], item[1].created_at), reverse=True)
+        if not score:
+            continue
+        current = best_by_manager.get(contact.manager_id)
+        if current is None or (score, contact.created_at) > (current[0], current[1].created_at):
+            best_by_manager[contact.manager_id] = (score, contact, signals)
+    scored = sorted(
+        best_by_manager.values(),
+        key=lambda item: (item[0], item[1].created_at),
+        reverse=True,
+    )
     if not scored:
         return None, 0, {}, False
     top_score, top_contact, top_signals = scored[0]
@@ -477,7 +485,7 @@ async def create_commission_for_payment(
     manager = await session.get(SalesManager, attribution.manager_id)
     if not manager or manager.deleted_at is not None:
         return None
-    rate_bps = manager.commission_rate_bps
+    rate_bps = SALES_COMMISSION_RATE_BPS
     amount = (payment.amount * rate_bps) // 10000
     commission = SalesCommission(
         manager_id=manager.id,
