@@ -159,7 +159,6 @@ def upgrade() -> None:
             sa.Column("note", sa.Text()),
             sa.Column("verified_at", sa.DateTime(timezone=True), nullable=False),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-            sa.UniqueConstraint("access_request_id"),
         )
         for column in ("clinic_id", "access_request_id", "kind", "verified_at"):
             op.create_index(f"ix_platform_subscription_payments_{column}", "platform_subscription_payments", [column])
