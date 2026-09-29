@@ -60,6 +60,12 @@ async def verify_payment_and_activate(
     row = await session.get(AccessRequest, request_id)
     if not row:
         raise AppError("ACCESS_REQUEST_NOT_FOUND", "Access request was not found.", 404)
+    if not body.reference or not body.reference.strip():
+        raise AppError(
+            "PAYMENT_REFERENCE_REQUIRED",
+            "A verified payment reference is required before activation.",
+            422,
+        )
 
     existing_workspace = bool(row.activated_clinic_id)
 
