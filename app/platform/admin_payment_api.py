@@ -10,6 +10,7 @@ from app.database.sessions import control_session
 from app.platform.api import PaymentVerification, require_platform_admin
 from app.platform.freemium_api import activate_free_upgrade_or_legacy
 from app.platform.market_api import MarketPaymentDecision, send_market_payment_instructions
+from app.platform.sales_service import record_verified_subscription_payment
 from app.platform.service import platform_settings
 
 router = APIRouter(prefix="/platform/admin-control", tags=["platform-admin-payments"])
@@ -60,6 +61,8 @@ async def verify_payment_and_activate(
     if not row:
         raise AppError("ACCESS_REQUEST_NOT_FOUND", "Access request was not found.", 404)
 
+    existing_workspace = bool(row.activated_clinic_id)
+
     if row.payment_amount is None and row.activated_clinic_id:
         settings = await platform_settings(session)
         row.payment_amount = settings.price_amount
@@ -75,6 +78,17 @@ async def verify_payment_and_activate(
         clinic.gift_granted_at = None
         clinic.gift_note = None
 
+    sales_payment = None
+    attribution = None
+    commission = None
+    if clinic:
+        sales_payment, attribution, commission = await record_verified_subscription_payment(
+            session,
+            row,
+            clinic.id,
+            kind="RENEWAL" if existing_workspace else "INITIAL",
+        )
+
     session.add(
         PlatformAdminAudit(
             action="PAYMENT_VERIFIED_AND_ACTIVATED",
@@ -85,6 +99,10 @@ async def verify_payment_and_activate(
                 "amount": row.payment_amount,
                 "currency": row.payment_currency,
                 "reference": body.reference,
+                "sales_payment_id": str(sales_payment.id) if sales_payment else None,
+                "sales_attribution_id": str(attribution.id) if attribution else None,
+                "sales_attribution_status": attribution.status if attribution else None,
+                "sales_commission_id": str(commission.id) if commission else None,
             },
         )
     )
