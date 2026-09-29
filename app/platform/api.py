@@ -26,6 +26,7 @@ from app.platform.admin_auth import (
     authenticate_platform_admin,
     verify_platform_admin_session,
 )
+from app.platform.sales_manager_service import record_initial_verified_payment
 from app.platform.service import (
     activation_email_body,
     payment_email_body,
@@ -524,6 +525,19 @@ async def activate_access_request(
         access_request_id=row.id,
         clinic_id=clinic.id,
     )
+    if row.payment_amount is None:
+        row.payment_amount = settings.price_amount
+        row.payment_currency = settings.price_currency
+    if row.payment_amount is not None and row.payment_currency:
+        await record_initial_verified_payment(
+            session,
+            row,
+            clinic_id=clinic.id,
+            amount=row.payment_amount,
+            currency=row.payment_currency,
+            reference=row.payment_reference,
+            subscription_days=settings.subscription_days,
+        )
     await session.commit()
     return {
         "request": _serialize_access(row),
