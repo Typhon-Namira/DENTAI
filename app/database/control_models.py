@@ -1,7 +1,17 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base, utc_now
@@ -227,7 +237,7 @@ class SalesClinicContact(Base):
     negotiation_result: Mapped[str] = mapped_column(Text)
     outcome: Mapped[str] = mapped_column(String(60), index=True)
     next_step: Mapped[str | None] = mapped_column(Text)
-    follow_up_date: Mapped[datetime.date | None] = mapped_column(Date, index=True)
+    follow_up_date: Mapped[date | None] = mapped_column(Date, index=True)
     clinic_name_norm: Mapped[str] = mapped_column(String(220), index=True)
     email_norm: Mapped[str | None] = mapped_column(String(320), index=True)
     phone_norm: Mapped[str | None] = mapped_column(String(60), index=True)
