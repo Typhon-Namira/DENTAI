@@ -40,6 +40,7 @@ from app.platform.sales_service import (
     normalize_phone,
     normalize_text,
     normalize_website,
+    reconcile_unattributed_payments,
     reports_payload,
     unique_manager_username,
 )
@@ -124,6 +125,15 @@ async def require_manager(
 ):
     supplied = authorization.removeprefix("Bearer ") if authorization else ""
     manager, manager_session = await manager_from_token(session, supplied, request)
+    session.add(
+        SalesManagerActivity(
+            manager_id=manager.id,
+            session_id=manager_session.id,
+            action="API_ACCESS",
+            details={"method": request.method, "path": request.url.path},
+            ip_address=request.client.host if request.client else None,
+        )
+    )
     await session.flush()
     return manager, manager_session
 
@@ -334,11 +344,17 @@ async def submit_daily_report(
                 updated_at=now,
             )
         )
+    await session.flush()
+    reconciled = await reconcile_unattributed_payments(session)
     await log_manager_activity(
         session,
         manager,
         action="DAILY_REPORT_SUBMITTED",
-        details={"report_date": body.report_date.isoformat(), "clinic_count": len(body.contacts)},
+        details={
+            "report_date": body.report_date.isoformat(),
+            "clinic_count": len(body.contacts),
+            "reconciled_payments": reconciled,
+        },
         manager_session=manager_session,
         request=request,
     )
