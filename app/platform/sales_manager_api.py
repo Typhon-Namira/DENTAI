@@ -732,6 +732,33 @@ async def admin_withdrawals(session: Annotated[AsyncSession, Depends(control_ses
     ]
 
 
+
+
+@router.get("/admin/withdrawals/{withdrawal_id}/destination", dependencies=[Depends(require_platform_admin)])
+async def admin_withdrawal_destination(
+    withdrawal_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(control_session)],
+):
+    row = await session.get(SalesWithdrawal, withdrawal_id)
+    if not row:
+        raise AppError("WITHDRAWAL_NOT_FOUND", "Withdrawal request was not found.", 404)
+    session.add(
+        PlatformAdminAudit(
+            action="SALES_WITHDRAWAL_DESTINATION_VIEWED",
+            target_type="SALES_WITHDRAWAL",
+            target_id=str(row.id),
+            details={"manager_id": str(row.manager_id), "last4": row.bank_card_last4},
+        )
+    )
+    await session.commit()
+    return {
+        "withdrawal_id": str(row.id),
+        "card_number": decrypt_bank_card(row.bank_card_ciphertext),
+        "holder_name": row.bank_card_holder,
+        "last4": row.bank_card_last4,
+    }
+
+
 @router.post("/admin/withdrawals/{withdrawal_id}/pay", dependencies=[Depends(require_platform_admin)])
 async def admin_pay_withdrawal(
     withdrawal_id: uuid.UUID,
