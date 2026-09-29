@@ -28,6 +28,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { API_BASE_URL } from "../api/client";
+import { SalesAdminPanel } from "./SalesAdminPanel";
 import "./platform-admin-control-center.css";
 
 const ADMIN_SESSION_KEY = "teta2-platform-admin-session";
@@ -193,6 +194,8 @@ type AdminTab =
   | "clinics"
   | "payments"
   | "requests"
+  | "sales"
+  | "sales-payouts"
   | "traffic"
   | "health"
   | "audit"
@@ -426,6 +429,8 @@ export function PlatformAdminControlCenter() {
     ["clinics", "All clinics", Building2, dashboard?.summary.clinics_total],
     ["payments", "Payments & revenue", CircleDollarSign, dashboard?.payments.verified_count],
     ["requests", "Access requests", Mail, dashboard?.summary.pending_requests],
+    ["sales", "Sales managers", UsersRound, undefined],
+    ["sales-payouts", "Sales payouts", CreditCard, undefined],
     ["traffic", "Traffic", BarChart3, undefined],
     ["health", "System health", HeartPulse, platformOverview?.metrics.emails_failed_100],
     ["audit", "Audit log", ShieldCheck, undefined],
@@ -466,6 +471,8 @@ export function PlatformAdminControlCenter() {
         )}
         {tab === "payments" && <Payments dashboard={dashboard} />}
         {tab === "requests" && <Requests rows={requests} selected={selectedRequest} setSelected={setSelectedRequest} token={token} busy={busy} mutate={mutate} />}
+        {tab === "sales" && <SalesAdminPanel token={token} mode="managers" />}
+        {tab === "sales-payouts" && <SalesAdminPanel token={token} mode="withdrawals" />}
         {tab === "traffic" && <Traffic dashboard={dashboard} />}
         {tab === "health" && <SystemHealth overview={platformOverview} dashboard={dashboard} />}
         {tab === "audit" && <Audit dashboard={dashboard} />}
