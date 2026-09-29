@@ -257,7 +257,9 @@ async def find_sales_attribution_candidate(
     contacts = list(
         (
             await session.scalars(
-                select(SalesClinicContact).order_by(SalesClinicContact.created_at.desc()).limit(2500)
+                select(SalesClinicContact)
+                .order_by(SalesClinicContact.created_at.desc())
+                .limit(2500)
             )
         ).all()
     )
@@ -313,7 +315,10 @@ async def ensure_attribution_for_payment(
 async def available_balance(session: AsyncSession, manager_id: uuid.UUID) -> dict[str, int]:
     earned = (
         await session.execute(
-            select(SalesCommission.currency, func.coalesce(func.sum(SalesCommission.commission_amount), 0))
+            select(
+                SalesCommission.currency,
+                func.coalesce(func.sum(SalesCommission.commission_amount), 0),
+            )
             .where(SalesCommission.manager_id == manager_id)
             .group_by(SalesCommission.currency)
         )
@@ -337,19 +342,25 @@ async def available_balance(session: AsyncSession, manager_id: uuid.UUID) -> dic
 async def manager_dashboard(session: AsyncSession, manager: SalesManager) -> dict:
     reports = int(
         await session.scalar(
-            select(func.count()).select_from(SalesDailyReport).where(SalesDailyReport.manager_id == manager.id)
+            select(func.count())
+            .select_from(SalesDailyReport)
+            .where(SalesDailyReport.manager_id == manager.id)
         )
         or 0
     )
     contacts = int(
         await session.scalar(
-            select(func.count()).select_from(SalesClinicContact).where(SalesClinicContact.manager_id == manager.id)
+            select(func.count())
+            .select_from(SalesClinicContact)
+            .where(SalesClinicContact.manager_id == manager.id)
         )
         or 0
     )
     attributed = int(
         await session.scalar(
-            select(func.count()).select_from(SalesClinicAttribution).where(
+            select(func.count())
+            .select_from(SalesClinicAttribution)
+            .where(
                 SalesClinicAttribution.manager_id == manager.id,
                 SalesClinicAttribution.status.in_(["AUTO_CONFIRMED", "ADMIN_CONFIRMED"]),
             )
@@ -367,12 +378,18 @@ async def manager_dashboard(session: AsyncSession, manager: SalesManager) -> dic
         ).all()
     )
     clinic_ids = {row.clinic_id for row in commissions}
-    clinic_names = {
-        clinic.id: clinic.name
-        for clinic in (
-            await session.scalars(select(ClinicRegistry).where(ClinicRegistry.id.in_(clinic_ids)))
-        ).all()
-    } if clinic_ids else {}
+    clinic_names = (
+        {
+            clinic.id: clinic.name
+            for clinic in (
+                await session.scalars(
+                    select(ClinicRegistry).where(ClinicRegistry.id.in_(clinic_ids))
+                )
+            ).all()
+        }
+        if clinic_ids
+        else {}
+    )
     withdrawals = list(
         (
             await session.scalars(
@@ -477,7 +494,6 @@ async def reports_payload(session: AsyncSession, manager_id: uuid.UUID) -> list[
     return result
 
 
-
 async def create_commission_for_payment(
     session: AsyncSession,
     payment: PlatformSubscriptionPayment,
@@ -517,7 +533,9 @@ async def record_verified_subscription_payment(
     clinic_id: uuid.UUID,
     *,
     kind: str,
-) -> tuple[PlatformSubscriptionPayment | None, SalesClinicAttribution | None, SalesCommission | None]:
+) -> tuple[
+    PlatformSubscriptionPayment | None, SalesClinicAttribution | None, SalesCommission | None
+]:
     if request.payment_amount is None or not request.payment_currency:
         return None, None, None
     reference = (request.payment_reference or "").strip() or None
@@ -584,7 +602,6 @@ async def backfill_commissions_for_attribution(
     return created
 
 
-
 async def reconcile_unattributed_payments(session: AsyncSession) -> int:
     """Re-run report matching for verified payments that did not yet have an attribution."""
     payments = list(
@@ -625,7 +642,6 @@ async def reconcile_unattributed_payments(session: AsyncSession) -> int:
     return reconciled
 
 
-
 async def record_manual_renewal_payment(
     session: AsyncSession,
     clinic_id: uuid.UUID,
@@ -647,9 +663,7 @@ async def record_manual_renewal_payment(
     )
     if existing is not None:
         attribution = await session.scalar(
-            select(SalesClinicAttribution).where(
-                SalesClinicAttribution.clinic_id == clinic_id
-            )
+            select(SalesClinicAttribution).where(SalesClinicAttribution.clinic_id == clinic_id)
         )
         commission = (
             await session.scalar(
@@ -673,9 +687,7 @@ async def record_manual_renewal_payment(
     session.add(payment)
     await session.flush()
     attribution = await session.scalar(
-        select(SalesClinicAttribution).where(
-            SalesClinicAttribution.clinic_id == clinic_id
-        )
+        select(SalesClinicAttribution).where(SalesClinicAttribution.clinic_id == clinic_id)
     )
     commission = (
         await create_commission_for_payment(session, payment, attribution)

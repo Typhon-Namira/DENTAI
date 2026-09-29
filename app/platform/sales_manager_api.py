@@ -179,8 +179,15 @@ async def public_manager_photo(
         raise AppError("MANAGER_PHOTO_NOT_FOUND", "Manager photo was not found.", 404)
     data = await storage_provider().read(manager.photo_storage_key)
     suffix = manager.photo_storage_key.rsplit(".", 1)[-1].lower()
-    content_type = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(suffix, "application/octet-stream")
-    return Response(content=data, media_type=content_type, headers={"Cache-Control": "public, max-age=300"})
+    content_type = {
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "webp": "image/webp",
+    }.get(suffix, "application/octet-stream")
+    return Response(
+        content=data, media_type=content_type, headers={"Cache-Control": "public, max-age=300"}
+    )
 
 
 @router.post(
@@ -196,7 +203,8 @@ async def manager_login(
     manager = await session.scalar(
         select(SalesManager).where(
             SalesManager.deleted_at.is_(None),
-            (func.lower(SalesManager.username) == login) | (func.lower(SalesManager.email) == login),
+            (func.lower(SalesManager.username) == login)
+            | (func.lower(SalesManager.email) == login),
         )
     )
     if not manager or not manager.is_active:
@@ -401,7 +409,9 @@ async def request_withdrawal(
     currency = body.currency.strip().upper()
     balances = await available_balance(session, manager.id)
     if body.amount > balances.get(currency, 0):
-        raise AppError("WITHDRAWAL_BALANCE_INSUFFICIENT", "Withdrawal exceeds the available balance.", 409)
+        raise AppError(
+            "WITHDRAWAL_BALANCE_INSUFFICIENT", "Withdrawal exceeds the available balance.", 409
+        )
     withdrawal = SalesWithdrawal(
         manager_id=manager.id,
         currency=currency,
@@ -430,7 +440,9 @@ async def admin_managers(session: Annotated[AsyncSession, Depends(control_sessio
     rows = list(
         (
             await session.scalars(
-                select(SalesManager).where(SalesManager.deleted_at.is_(None)).order_by(SalesManager.created_at.desc())
+                select(SalesManager)
+                .where(SalesManager.deleted_at.is_(None))
+                .order_by(SalesManager.created_at.desc())
             )
         ).all()
     )
@@ -438,18 +450,29 @@ async def admin_managers(session: Annotated[AsyncSession, Depends(control_sessio
     for manager in rows:
         activity_count = int(
             await session.scalar(
-                select(func.count()).select_from(SalesManagerActivity).where(SalesManagerActivity.manager_id == manager.id)
+                select(func.count())
+                .select_from(SalesManagerActivity)
+                .where(SalesManagerActivity.manager_id == manager.id)
             )
             or 0
         )
         report_count = int(
             await session.scalar(
-                select(func.count()).select_from(SalesDailyReport).where(SalesDailyReport.manager_id == manager.id)
+                select(func.count())
+                .select_from(SalesDailyReport)
+                .where(SalesDailyReport.manager_id == manager.id)
             )
             or 0
         )
         balances = await available_balance(session, manager.id)
-        output.append({**manager_admin_payload(manager), "activity_count": activity_count, "report_count": report_count, "available_balance": balances})
+        output.append(
+            {
+                **manager_admin_payload(manager),
+                "activity_count": activity_count,
+                "report_count": report_count,
+                "available_balance": balances,
+            }
+        )
     return output
 
 
@@ -460,7 +483,9 @@ async def admin_create_manager(
 ):
     email = str(body.email).casefold()
     if await session.scalar(select(SalesManager.id).where(func.lower(SalesManager.email) == email)):
-        raise AppError("MANAGER_EMAIL_EXISTS", "A sales manager with this email already exists.", 409)
+        raise AppError(
+            "MANAGER_EMAIL_EXISTS", "A sales manager with this email already exists.", 409
+        )
     username = await unique_manager_username(session, body.full_name, email)
     password = generated_password()
     manager = SalesManager(
@@ -511,10 +536,14 @@ async def admin_edit_manager(
     if "email" in changes and changes["email"] is not None:
         next_email = str(changes["email"]).casefold()
         duplicate = await session.scalar(
-            select(SalesManager.id).where(func.lower(SalesManager.email) == next_email, SalesManager.id != manager.id)
+            select(SalesManager.id).where(
+                func.lower(SalesManager.email) == next_email, SalesManager.id != manager.id
+            )
         )
         if duplicate:
-            raise AppError("MANAGER_EMAIL_EXISTS", "A sales manager with this email already exists.", 409)
+            raise AppError(
+                "MANAGER_EMAIL_EXISTS", "A sales manager with this email already exists.", 409
+            )
         manager.email = next_email
     for field in ("full_name", "title", "phone", "territory", "bio"):
         if field in changes:
@@ -586,7 +615,9 @@ async def admin_delete_manager(
     return {"deleted": True, "history_preserved": True}
 
 
-@router.post("/admin/managers/{manager_id}/reset-password", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/managers/{manager_id}/reset-password", dependencies=[Depends(require_platform_admin)]
+)
 async def admin_reset_manager_password(
     manager_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(control_session)],
@@ -611,7 +642,13 @@ async def admin_reset_manager_password(
         manager_session.logout_at = datetime.now(UTC)
         manager_session.logout_reason = "PASSWORD_RESET"
     subject, email_body = manager_credentials_email(manager, password)
-    await send_logged_email(session, recipient=manager.email, subject=subject, body=email_body, kind="SALES_MANAGER_PASSWORD_RESET")
+    await send_logged_email(
+        session,
+        recipient=manager.email,
+        subject=subject,
+        body=email_body,
+        kind="SALES_MANAGER_PASSWORD_RESET",
+    )
     session.add(
         PlatformAdminAudit(
             action="SALES_MANAGER_PASSWORD_RESET",
@@ -636,10 +673,14 @@ async def admin_upload_manager_photo(
     content_type = (file.content_type or "").lower()
     extension = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}.get(content_type)
     if not extension:
-        raise AppError("MANAGER_PHOTO_TYPE_INVALID", "Use JPEG, PNG, or WebP for manager photos.", 422)
+        raise AppError(
+            "MANAGER_PHOTO_TYPE_INVALID", "Use JPEG, PNG, or WebP for manager photos.", 422
+        )
     data = await file.read()
     if not data or len(data) > 5 * 1024 * 1024:
-        raise AppError("MANAGER_PHOTO_SIZE_INVALID", "Manager photo must be between 1 byte and 5 MiB.", 422)
+        raise AppError(
+            "MANAGER_PHOTO_SIZE_INVALID", "Manager photo must be between 1 byte and 5 MiB.", 422
+        )
     key = f"platform/sales-managers/{manager.id}/{uuid.uuid4().hex}.{extension}"
     provider = storage_provider()
     await provider.upload(key, data, content_type)
@@ -730,12 +771,16 @@ async def admin_withdrawals(session: Annotated[AsyncSession, Depends(control_ses
             )
         ).all()
     )
-    managers = {manager.id: manager for manager in (await session.scalars(select(SalesManager))).all()}
+    managers = {
+        manager.id: manager for manager in (await session.scalars(select(SalesManager))).all()
+    }
     return [
         {
             "id": str(row.id),
             "manager_id": str(row.manager_id),
-            "manager_name": managers[row.manager_id].full_name if row.manager_id in managers else "Unknown",
+            "manager_name": managers[row.manager_id].full_name
+            if row.manager_id in managers
+            else "Unknown",
             "currency": row.currency,
             "amount": row.amount,
             "status": row.status,
@@ -750,9 +795,9 @@ async def admin_withdrawals(session: Annotated[AsyncSession, Depends(control_ses
     ]
 
 
-
-
-@router.get("/admin/withdrawals/{withdrawal_id}/destination", dependencies=[Depends(require_platform_admin)])
+@router.get(
+    "/admin/withdrawals/{withdrawal_id}/destination", dependencies=[Depends(require_platform_admin)]
+)
 async def admin_withdrawal_destination(
     withdrawal_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(control_session)],
@@ -777,7 +822,9 @@ async def admin_withdrawal_destination(
     }
 
 
-@router.post("/admin/withdrawals/{withdrawal_id}/pay", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/withdrawals/{withdrawal_id}/pay", dependencies=[Depends(require_platform_admin)]
+)
 async def admin_pay_withdrawal(
     withdrawal_id: uuid.UUID,
     body: WithdrawalDecision,
@@ -792,7 +839,11 @@ async def admin_pay_withdrawal(
         raise AppError("PAYMENT_REFERENCE_REQUIRED", "Enter the manual payment reference.", 422)
     balance = await available_balance(session, row.manager_id)
     if row.amount > balance.get(row.currency, 0) + row.amount:
-        raise AppError("WITHDRAWAL_BALANCE_CHANGED", "The available manager balance is no longer sufficient.", 409)
+        raise AppError(
+            "WITHDRAWAL_BALANCE_CHANGED",
+            "The available manager balance is no longer sufficient.",
+            409,
+        )
     row.status = "PAID"
     row.processed_at = datetime.now(UTC)
     row.payment_reference = body.payment_reference.strip()
@@ -802,14 +853,21 @@ async def admin_pay_withdrawal(
             action="SALES_WITHDRAWAL_PAID",
             target_type="SALES_WITHDRAWAL",
             target_id=str(row.id),
-            details={"manager_id": str(row.manager_id), "amount": row.amount, "currency": row.currency, "payment_reference": row.payment_reference},
+            details={
+                "manager_id": str(row.manager_id),
+                "amount": row.amount,
+                "currency": row.currency,
+                "payment_reference": row.payment_reference,
+            },
         )
     )
     await session.commit()
     return {"paid": True, "withdrawal_id": str(row.id)}
 
 
-@router.post("/admin/withdrawals/{withdrawal_id}/reject", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/withdrawals/{withdrawal_id}/reject", dependencies=[Depends(require_platform_admin)]
+)
 async def admin_reject_withdrawal(
     withdrawal_id: uuid.UUID,
     body: WithdrawalDecision,
@@ -819,7 +877,9 @@ async def admin_reject_withdrawal(
     if not row:
         raise AppError("WITHDRAWAL_NOT_FOUND", "Withdrawal request was not found.", 404)
     if row.status != "REQUESTED":
-        raise AppError("WITHDRAWAL_STATE_INVALID", "Only requested withdrawals can be rejected.", 409)
+        raise AppError(
+            "WITHDRAWAL_STATE_INVALID", "Only requested withdrawals can be rejected.", 409
+        )
     row.status = "REJECTED"
     row.processed_at = datetime.now(UTC)
     row.admin_note = _clean(body.admin_note)
@@ -828,7 +888,11 @@ async def admin_reject_withdrawal(
             action="SALES_WITHDRAWAL_REJECTED",
             target_type="SALES_WITHDRAWAL",
             target_id=str(row.id),
-            details={"manager_id": str(row.manager_id), "amount": row.amount, "currency": row.currency},
+            details={
+                "manager_id": str(row.manager_id),
+                "amount": row.amount,
+                "currency": row.currency,
+            },
         )
     )
     await session.commit()
@@ -844,17 +908,25 @@ async def admin_attributions(session: Annotated[AsyncSession, Depends(control_se
             )
         ).all()
     )
-    managers = {manager.id: manager for manager in (await session.scalars(select(SalesManager))).all()}
-    contacts = {contact.id: contact for contact in (await session.scalars(select(SalesClinicContact))).all()}
+    managers = {
+        manager.id: manager for manager in (await session.scalars(select(SalesManager))).all()
+    }
+    contacts = {
+        contact.id: contact for contact in (await session.scalars(select(SalesClinicContact))).all()
+    }
     return [
         {
             "id": str(row.id),
             "manager_id": str(row.manager_id),
-            "manager_name": managers[row.manager_id].full_name if row.manager_id in managers else "Unknown",
+            "manager_name": managers[row.manager_id].full_name
+            if row.manager_id in managers
+            else "Unknown",
             "clinic_id": str(row.clinic_id),
             "access_request_id": str(row.access_request_id) if row.access_request_id else None,
             "clinic_contact_id": str(row.clinic_contact_id) if row.clinic_contact_id else None,
-            "reported_clinic_name": contacts[row.clinic_contact_id].clinic_name if row.clinic_contact_id in contacts else None,
+            "reported_clinic_name": contacts[row.clinic_contact_id].clinic_name
+            if row.clinic_contact_id in contacts
+            else None,
             "match_score": row.match_score,
             "matched_signals": row.matched_signals,
             "status": row.status,
@@ -864,7 +936,9 @@ async def admin_attributions(session: Annotated[AsyncSession, Depends(control_se
     ]
 
 
-@router.post("/admin/attributions/{attribution_id}/confirm", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/admin/attributions/{attribution_id}/confirm", dependencies=[Depends(require_platform_admin)]
+)
 async def admin_confirm_attribution(
     attribution_id: uuid.UUID,
     body: AttributionDecision,
@@ -879,7 +953,11 @@ async def admin_confirm_attribution(
     if body.clinic_contact_id:
         contact = await session.get(SalesClinicContact, body.clinic_contact_id)
         if not contact or contact.manager_id != manager.id:
-            raise AppError("CLINIC_CONTACT_INVALID", "Selected clinic contact does not belong to this manager.", 409)
+            raise AppError(
+                "CLINIC_CONTACT_INVALID",
+                "Selected clinic contact does not belong to this manager.",
+                409,
+            )
         row.clinic_contact_id = contact.id
     if row.manager_id != manager.id and body.clinic_contact_id is None:
         row.clinic_contact_id = None
@@ -898,7 +976,9 @@ async def admin_confirm_attribution(
     return {"confirmed": True}
 
 
-@router.get("/admin/managers/{manager_id}/bank-destination", dependencies=[Depends(require_platform_admin)])
+@router.get(
+    "/admin/managers/{manager_id}/bank-destination", dependencies=[Depends(require_platform_admin)]
+)
 async def admin_bank_destination(
     manager_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(control_session)],

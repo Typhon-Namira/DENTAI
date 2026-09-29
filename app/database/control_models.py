@@ -146,7 +146,6 @@ class PlatformAdminAudit(Base):
     )
 
 
-
 class SalesManager(Base):
     __tablename__ = "platform_sales_managers"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -167,7 +166,9 @@ class SalesManager(Base):
     bank_card_holder: Mapped[str | None] = mapped_column(String(180))
     bank_card_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
 
@@ -200,7 +201,9 @@ class SalesManagerActivity(Base):
     action: Mapped[str] = mapped_column(String(100), index=True)
     details: Mapped[dict] = mapped_column(JSON, default=dict)
     ip_address: Mapped[str | None] = mapped_column(String(80))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
 
 
 class SalesDailyReport(Base):
@@ -212,7 +215,9 @@ class SalesDailyReport(Base):
     )
     report_date: Mapped[date] = mapped_column(Date, index=True)
     summary: Mapped[str | None] = mapped_column(Text)
-    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -244,7 +249,9 @@ class SalesClinicContact(Base):
     website_norm: Mapped[str | None] = mapped_column(String(220), index=True)
     city_norm: Mapped[str | None] = mapped_column(String(120), index=True)
     address_norm: Mapped[str | None] = mapped_column(String(320))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -262,7 +269,9 @@ class SalesClinicAttribution(Base):
     match_score: Mapped[int] = mapped_column(Integer, default=0)
     matched_signals: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String(40), default="AUTO_CONFIRMED", index=True)
-    attributed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    attributed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
 
 
 class PlatformSubscriptionPayment(Base):
@@ -275,7 +284,9 @@ class PlatformSubscriptionPayment(Base):
     currency: Mapped[str] = mapped_column(String(12))
     reference: Mapped[str | None] = mapped_column(String(200))
     note: Mapped[str | None] = mapped_column(Text)
-    verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    verified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -287,7 +298,9 @@ class SalesCommission(Base):
     )
     clinic_id: Mapped[uuid.UUID] = mapped_column(index=True)
     payment_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("platform_subscription_payments.id", ondelete="RESTRICT"), unique=True, index=True
+        ForeignKey("platform_subscription_payments.id", ondelete="RESTRICT"),
+        unique=True,
+        index=True,
     )
     attribution_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("platform_sales_clinic_attributions.id", ondelete="RESTRICT"), index=True
@@ -297,7 +310,9 @@ class SalesCommission(Base):
     commission_amount: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(12), index=True)
     status: Mapped[str] = mapped_column(String(30), default="AVAILABLE", index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
 
 
 class SalesWithdrawal(Base):
@@ -312,7 +327,9 @@ class SalesWithdrawal(Base):
     bank_card_ciphertext: Mapped[str] = mapped_column(Text)
     bank_card_last4: Mapped[str] = mapped_column(String(4))
     bank_card_holder: Mapped[str | None] = mapped_column(String(180))
-    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     payment_reference: Mapped[str | None] = mapped_column(String(200))
     admin_note: Mapped[str | None] = mapped_column(Text)
