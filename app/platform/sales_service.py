@@ -302,28 +302,25 @@ async def ensure_attribution_for_payment(
 
 
 async def available_balance(session: AsyncSession, manager_id: uuid.UUID) -> dict[str, int]:
-    rows = (
+    earned = (
         await session.execute(
             select(SalesCommission.currency, func.coalesce(func.sum(SalesCommission.commission_amount), 0))
-            .where(
-                SalesCommission.manager_id == manager_id,
-                SalesCommission.status == "AVAILABLE",
-            )
+            .where(SalesCommission.manager_id == manager_id)
             .group_by(SalesCommission.currency)
         )
     ).all()
-    reserved = (
+    committed = (
         await session.execute(
             select(SalesWithdrawal.currency, func.coalesce(func.sum(SalesWithdrawal.amount), 0))
             .where(
                 SalesWithdrawal.manager_id == manager_id,
-                SalesWithdrawal.status == "REQUESTED",
+                SalesWithdrawal.status.in_(["REQUESTED", "PAID"]),
             )
             .group_by(SalesWithdrawal.currency)
         )
     ).all()
-    result = {str(currency): int(amount) for currency, amount in rows}
-    for currency, amount in reserved:
+    result = {str(currency): int(amount) for currency, amount in earned}
+    for currency, amount in committed:
         result[str(currency)] = max(0, result.get(str(currency), 0) - int(amount))
     return result
 
