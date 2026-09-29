@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -182,7 +182,7 @@ class SalesDailyReport(Base):
     manager_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("platform_sales_managers.id", ondelete="CASCADE"), index=True
     )
-    report_date: Mapped[datetime.date] = mapped_column(Date, index=True)
+    report_date: Mapped[date] = mapped_column(Date, index=True)
     status: Mapped[str] = mapped_column(String(24), default="DRAFT", index=True)
     summary: Mapped[str | None] = mapped_column(Text)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
