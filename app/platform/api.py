@@ -26,6 +26,7 @@ from app.platform.admin_auth import (
     authenticate_platform_admin,
     verify_platform_admin_session,
 )
+from app.platform.sales_service import record_manual_renewal_payment
 from app.platform.service import (
     activation_email_body,
     payment_email_body,
@@ -82,6 +83,10 @@ class SettingsUpdate(BaseModel):
 
 class RenewRequest(BaseModel):
     days: int = Field(default=30, ge=1, le=365)
+    payment_amount: int | None = Field(default=None, gt=0, le=1_000_000_000)
+    payment_currency: str | None = Field(default=None, min_length=2, max_length=12)
+    payment_reference: str | None = Field(default=None, min_length=1, max_length=200)
+    payment_note: str | None = Field(default=None, max_length=2000)
 
 
 def _serialize_access(row: AccessRequest) -> dict:
@@ -546,8 +551,40 @@ async def renew_subscription(
         raise AppError("CLINIC_NOT_FOUND", "Clinic was not found.", 404)
     settings = await platform_settings(session)
     previous_expiry = clinic.subscription_expires_at
+    payment_fields = (
+        body.payment_amount,
+        body.payment_currency,
+        body.payment_reference,
+    )
+    if any(value is not None for value in payment_fields) and not all(
+        value is not None for value in payment_fields
+    ):
+        raise AppError(
+            "RENEWAL_PAYMENT_INCOMPLETE",
+            "Amount, currency, and payment reference are all required to record a paid renewal.",
+            422,
+        )
+
     expires_at = await renew_clinic(clinic, settings, days=body.days)
     clinic.subscription_state = "ACTIVE"
+
+    sales_payment = None
+    attribution = None
+    commission = None
+    if (
+        body.payment_amount is not None
+        and body.payment_currency is not None
+        and body.payment_reference is not None
+    ):
+        sales_payment, attribution, commission = await record_manual_renewal_payment(
+            session,
+            clinic.id,
+            amount=body.payment_amount,
+            currency=body.payment_currency,
+            reference=body.payment_reference,
+            note=body.payment_note,
+        )
+
     session.add(
         PlatformAdminAudit(
             action="CLINIC_SUBSCRIPTION_RENEWED",
@@ -557,6 +594,12 @@ async def renew_subscription(
                 "days": body.days,
                 "previous_expiry": previous_expiry.isoformat() if previous_expiry else None,
                 "new_expiry": expires_at.isoformat(),
+                "payment_amount": body.payment_amount,
+                "payment_currency": body.payment_currency,
+                "payment_reference": body.payment_reference,
+                "sales_payment_id": str(sales_payment.id) if sales_payment else None,
+                "sales_attribution_id": str(attribution.id) if attribution else None,
+                "sales_commission_id": str(commission.id) if commission else None,
             },
         )
     )
