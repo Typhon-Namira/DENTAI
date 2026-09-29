@@ -117,18 +117,14 @@ async def manager_balances(session: AsyncSession, manager_id: uuid.UUID) -> list
             "paid_out": paid.get(currency, 0),
             "available": max(
                 0,
-                gross.get(currency, 0)
-                - pending.get(currency, 0)
-                - paid.get(currency, 0),
+                gross.get(currency, 0) - pending.get(currency, 0) - paid.get(currency, 0),
             ),
         }
         for currency in currencies
     ]
 
 
-def _candidate_score(
-    request: AccessRequest, entry: SalesReportClinic
-) -> tuple[int, list[str]]:
+def _candidate_score(request: AccessRequest, entry: SalesReportClinic) -> tuple[int, list[str]]:
     reasons: list[str] = []
     score = 0
     req_email = normalize_email(request.email)
@@ -242,10 +238,15 @@ async def create_commission_for_payment(
     )
     if existing:
         return existing
-    if not attribution or not attribution.manager_id or attribution.status not in {
-        "AUTO_MATCHED",
-        "ADMIN_CONFIRMED",
-    }:
+    if (
+        not attribution
+        or not attribution.manager_id
+        or attribution.status
+        not in {
+            "AUTO_MATCHED",
+            "ADMIN_CONFIRMED",
+        }
+    ):
         return None
     commission = SalesCommission(
         manager_id=attribution.manager_id,
