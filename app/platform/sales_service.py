@@ -3,7 +3,7 @@ import hashlib
 import re
 import secrets
 import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet
@@ -11,11 +11,11 @@ from fastapi import Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.security import hash_password, verify_password
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.database.control_models import (
     AccessRequest,
+    PlatformSubscriptionPayment,
     SalesClinicAttribution,
     SalesClinicContact,
     SalesCommission,
@@ -24,7 +24,6 @@ from app.database.control_models import (
     SalesManagerActivity,
     SalesManagerSession,
     SalesWithdrawal,
-    PlatformSubscriptionPayment,
 )
 
 MANAGER_SESSION_HOURS = 12
