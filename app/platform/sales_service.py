@@ -623,3 +623,63 @@ async def reconcile_unattributed_payments(session: AsyncSession) -> int:
         if attribution.status in {"AUTO_CONFIRMED", "ADMIN_CONFIRMED"}:
             await create_commission_for_payment(session, payment, attribution)
     return reconciled
+
+
+
+async def record_manual_renewal_payment(
+    session: AsyncSession,
+    clinic_id: uuid.UUID,
+    *,
+    amount: int,
+    currency: str,
+    reference: str,
+    note: str | None = None,
+) -> tuple[PlatformSubscriptionPayment, SalesClinicAttribution | None, SalesCommission | None]:
+    clean_reference = reference.strip()
+    clean_currency = currency.strip().upper()
+    existing = await session.scalar(
+        select(PlatformSubscriptionPayment).where(
+            PlatformSubscriptionPayment.clinic_id == clinic_id,
+            PlatformSubscriptionPayment.reference == clean_reference,
+            PlatformSubscriptionPayment.amount == amount,
+            PlatformSubscriptionPayment.currency == clean_currency,
+        )
+    )
+    if existing is not None:
+        attribution = await session.scalar(
+            select(SalesClinicAttribution).where(
+                SalesClinicAttribution.clinic_id == clinic_id
+            )
+        )
+        commission = (
+            await session.scalar(
+                select(SalesCommission).where(SalesCommission.payment_id == existing.id)
+            )
+            if attribution is not None
+            else None
+        )
+        return existing, attribution, commission
+
+    payment = PlatformSubscriptionPayment(
+        clinic_id=clinic_id,
+        access_request_id=None,
+        kind="RENEWAL",
+        amount=amount,
+        currency=clean_currency,
+        reference=clean_reference,
+        note=note,
+        verified_at=datetime.now(UTC),
+    )
+    session.add(payment)
+    await session.flush()
+    attribution = await session.scalar(
+        select(SalesClinicAttribution).where(
+            SalesClinicAttribution.clinic_id == clinic_id
+        )
+    )
+    commission = (
+        await create_commission_for_payment(session, payment, attribution)
+        if attribution is not None
+        else None
+    )
+    return payment, attribution, commission
