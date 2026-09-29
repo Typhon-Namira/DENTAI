@@ -24,6 +24,7 @@ from app.database.control_models import (
     SalesManagerActivity,
     SalesManagerSession,
     SalesWithdrawal,
+    PlatformSubscriptionPayment,
 )
 
 MANAGER_SESSION_HOURS = 12
@@ -458,3 +459,110 @@ async def reports_payload(session: AsyncSession, manager_id: uuid.UUID) -> list[
             }
         )
     return result
+
+
+
+async def create_commission_for_payment(
+    session: AsyncSession,
+    payment: PlatformSubscriptionPayment,
+    attribution: SalesClinicAttribution,
+) -> SalesCommission | None:
+    if attribution.status not in {"AUTO_CONFIRMED", "ADMIN_CONFIRMED"}:
+        return None
+    existing = await session.scalar(
+        select(SalesCommission).where(SalesCommission.payment_id == payment.id)
+    )
+    if existing:
+        return existing
+    manager = await session.get(SalesManager, attribution.manager_id)
+    if not manager or manager.deleted_at is not None:
+        return None
+    rate_bps = manager.commission_rate_bps
+    amount = (payment.amount * rate_bps) // 10000
+    commission = SalesCommission(
+        manager_id=manager.id,
+        clinic_id=payment.clinic_id,
+        payment_id=payment.id,
+        attribution_id=attribution.id,
+        rate_bps=rate_bps,
+        gross_amount=payment.amount,
+        commission_amount=amount,
+        currency=payment.currency,
+        status="AVAILABLE",
+    )
+    session.add(commission)
+    await session.flush()
+    return commission
+
+
+async def record_verified_subscription_payment(
+    session: AsyncSession,
+    request: AccessRequest,
+    clinic_id: uuid.UUID,
+    *,
+    kind: str,
+) -> tuple[PlatformSubscriptionPayment | None, SalesClinicAttribution | None, SalesCommission | None]:
+    if request.payment_amount is None or not request.payment_currency:
+        return None, None, None
+    reference = (request.payment_reference or "").strip() or None
+    if reference:
+        existing = await session.scalar(
+            select(PlatformSubscriptionPayment).where(
+                PlatformSubscriptionPayment.clinic_id == clinic_id,
+                PlatformSubscriptionPayment.reference == reference,
+                PlatformSubscriptionPayment.amount == request.payment_amount,
+                PlatformSubscriptionPayment.currency == request.payment_currency,
+            )
+        )
+        if existing:
+            attribution = await session.scalar(
+                select(SalesClinicAttribution).where(SalesClinicAttribution.clinic_id == clinic_id)
+            )
+            commission = (
+                await session.scalar(
+                    select(SalesCommission).where(SalesCommission.payment_id == existing.id)
+                )
+                if attribution
+                else None
+            )
+            return existing, attribution, commission
+    payment = PlatformSubscriptionPayment(
+        clinic_id=clinic_id,
+        access_request_id=request.id,
+        kind=kind,
+        amount=int(request.payment_amount),
+        currency=str(request.payment_currency).upper(),
+        reference=reference,
+        note=request.payment_proof_note,
+        verified_at=request.payment_verified_at or datetime.now(UTC),
+    )
+    session.add(payment)
+    await session.flush()
+    attribution = await ensure_attribution_for_payment(session, request, clinic_id)
+    commission = (
+        await create_commission_for_payment(session, payment, attribution)
+        if attribution is not None
+        else None
+    )
+    return payment, attribution, commission
+
+
+async def backfill_commissions_for_attribution(
+    session: AsyncSession,
+    attribution: SalesClinicAttribution,
+) -> list[SalesCommission]:
+    payments = list(
+        (
+            await session.scalars(
+                select(PlatformSubscriptionPayment)
+                .where(PlatformSubscriptionPayment.clinic_id == attribution.clinic_id)
+                .order_by(PlatformSubscriptionPayment.verified_at.asc())
+            )
+        ).all()
+    )
+    created: list[SalesCommission] = []
+    for payment in payments:
+        commission = await create_commission_for_payment(session, payment, attribution)
+        if commission:
+            created.append(commission)
+    return created
