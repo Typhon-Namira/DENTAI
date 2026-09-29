@@ -58,7 +58,6 @@ class ManagerCreate(BaseModel):
     territory: str | None = Field(default=None, max_length=160)
     bio: str | None = Field(default=None, max_length=3000)
     public_verified: bool = True
-    commission_rate_bps: int = Field(default=3000, ge=0, le=10000)
 
 
 class ManagerEdit(BaseModel):
@@ -70,7 +69,6 @@ class ManagerEdit(BaseModel):
     bio: str | None = Field(default=None, max_length=3000)
     is_active: bool | None = None
     public_verified: bool | None = None
-    commission_rate_bps: int | None = Field(default=None, ge=0, le=10000)
 
 
 class ManagerLogin(BaseModel):
@@ -456,7 +454,7 @@ async def admin_create_manager(
         bio=_clean(body.bio),
         is_active=True,
         public_verified=body.public_verified,
-        commission_rate_bps=body.commission_rate_bps,
+        commission_rate_bps=3000,
     )
     session.add(manager)
     await session.flush()
@@ -473,7 +471,7 @@ async def admin_create_manager(
             action="SALES_MANAGER_CREATED",
             target_type="SALES_MANAGER",
             target_id=str(manager.id),
-            details={"email": manager.email, "username": manager.username, "commission_rate_bps": manager.commission_rate_bps},
+            details={"email": manager.email, "username": manager.username},
         )
     )
     await session.commit()
@@ -501,7 +499,7 @@ async def admin_edit_manager(
     for field in ("full_name", "title", "phone", "territory", "bio"):
         if field in changes:
             setattr(manager, field, _clean(changes[field]))
-    for field in ("is_active", "public_verified", "commission_rate_bps"):
+    for field in ("is_active", "public_verified"):
         if field in changes:
             setattr(manager, field, changes[field])
     manager.updated_at = datetime.now(UTC)
@@ -863,6 +861,8 @@ async def admin_confirm_attribution(
         if not contact or contact.manager_id != manager.id:
             raise AppError("CLINIC_CONTACT_INVALID", "Selected clinic contact does not belong to this manager.", 409)
         row.clinic_contact_id = contact.id
+    if row.manager_id != manager.id and body.clinic_contact_id is None:
+        row.clinic_contact_id = None
     row.manager_id = manager.id
     row.status = "ADMIN_CONFIRMED"
     await backfill_commissions_for_attribution(session, row)
