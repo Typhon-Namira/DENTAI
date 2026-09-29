@@ -306,6 +306,7 @@ class SalesWithdrawalRequest(Base):
     currency: Mapped[str] = mapped_column(String(12), index=True)
     status: Mapped[str] = mapped_column(String(24), default="PENDING", index=True)
     bank_card_last4: Mapped[str] = mapped_column(String(4))
+    encrypted_bank_card_snapshot: Mapped[str] = mapped_column(Text)
     bank_account_holder: Mapped[str | None] = mapped_column(String(160))
     requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
