@@ -584,9 +584,7 @@ async def public_manager_photo(
         or not manager.photo_storage_key
         or not manager.photo_mime
     ):
-        raise AppError(
-            "SALES_MANAGER_PHOTO_NOT_FOUND", "Manager photo was not found.", 404
-        )
+        raise AppError("SALES_MANAGER_PHOTO_NOT_FOUND", "Manager photo was not found.", 404)
     provider = storage_provider()
     if isinstance(provider, LocalStorageProvider):
         try:
