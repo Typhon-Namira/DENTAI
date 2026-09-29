@@ -121,8 +121,8 @@ class AttributionDecision(BaseModel):
 
 async def require_manager(
     request: Request,
+    session: Annotated[AsyncSession, Depends(control_session)],
     authorization: Annotated[str | None, Header()] = None,
-    session: Annotated[AsyncSession, Depends(control_session)] = None,
 ):
     supplied = authorization.removeprefix("Bearer ") if authorization else ""
     manager, manager_session = await manager_from_token(session, supplied, request)
@@ -206,8 +206,8 @@ async def manager_login(
 @router.post("/logout")
 async def manager_logout(
     request: Request,
+    session: Annotated[AsyncSession, Depends(control_session)],
     ctx=Depends(require_manager),
-    session: Annotated[AsyncSession, Depends(control_session)] = None,
 ):
     manager, manager_session = ctx
     manager_session.logout_at = datetime.now(UTC)
@@ -225,8 +225,8 @@ async def manager_logout(
 
 @router.get("/me")
 async def manager_me(
+    session: Annotated[AsyncSession, Depends(control_session)],
     ctx=Depends(require_manager),
-    session: Annotated[AsyncSession, Depends(control_session)] = None,
 ):
     manager, _ = ctx
     await session.commit()
@@ -236,8 +236,8 @@ async def manager_me(
 @router.get("/dashboard")
 async def sales_dashboard(
     request: Request,
+    session: Annotated[AsyncSession, Depends(control_session)],
     ctx=Depends(require_manager),
-    session: Annotated[AsyncSession, Depends(control_session)] = None,
 ):
     manager, manager_session = ctx
     await log_manager_activity(
@@ -254,8 +254,8 @@ async def sales_dashboard(
 
 @router.get("/reports")
 async def manager_reports(
+    session: Annotated[AsyncSession, Depends(control_session)],
     ctx=Depends(require_manager),
-    session: Annotated[AsyncSession, Depends(control_session)] = None,
 ):
     manager, _ = ctx
     payload = await reports_payload(session, manager.id)
@@ -267,8 +267,8 @@ async def manager_reports(
 async def submit_daily_report(
     body: DailyReportSubmit,
     request: Request,
+    session: Annotated[AsyncSession, Depends(control_session)],
     ctx=Depends(require_manager),
-    session: Annotated[AsyncSession, Depends(control_session)] = None,
 ):
     manager, manager_session = ctx
     report = await session.scalar(
@@ -347,8 +347,8 @@ async def submit_daily_report(
 async def update_bank_card(
     body: BankCardUpdate,
     request: Request,
+    session: Annotated[AsyncSession, Depends(control_session)],
     ctx=Depends(require_manager),
-    session: Annotated[AsyncSession, Depends(control_session)] = None,
 ):
     manager, manager_session = ctx
     ciphertext, last4 = encrypt_bank_card(body.card_number)
@@ -373,8 +373,8 @@ async def update_bank_card(
 async def request_withdrawal(
     body: WithdrawalRequest,
     request: Request,
+    session: Annotated[AsyncSession, Depends(control_session)],
     ctx=Depends(require_manager),
-    session: Annotated[AsyncSession, Depends(control_session)] = None,
 ):
     manager, manager_session = ctx
     if not manager.bank_card_ciphertext or not manager.bank_card_last4:
