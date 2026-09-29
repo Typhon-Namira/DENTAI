@@ -744,55 +744,9 @@ async def admin_pay_withdrawal(
         raise AppError("WITHDRAWAL_STATE_INVALID", "Only requested withdrawals can be paid.", 409)
     if not body.payment_reference or not body.payment_reference.strip():
         raise AppError("PAYMENT_REFERENCE_REQUIRED", "Enter the manual payment reference.", 422)
-    available = await session.scalars(
-        select(SalesCommission)
-        .where(
-            SalesCommission.manager_id == row.manager_id,
-            SalesCommission.currency == row.currency,
-            SalesCommission.status == "AVAILABLE",
-        )
-        .order_by(SalesCommission.created_at.asc())
-    )
-    remaining = row.amount
-    commissions = list(available.all())
-    total = sum(item.commission_amount for item in commissions)
-    other_pending = int(
-        await session.scalar(
-            select(func.coalesce(func.sum(SalesWithdrawal.amount), 0)).where(
-                SalesWithdrawal.manager_id == row.manager_id,
-                SalesWithdrawal.currency == row.currency,
-                SalesWithdrawal.status == "REQUESTED",
-                SalesWithdrawal.id != row.id,
-            )
-        )
-        or 0
-    )
-    if total - other_pending < row.amount:
+    balance = await available_balance(session, row.manager_id)
+    if row.amount > balance.get(row.currency, 0) + row.amount:
         raise AppError("WITHDRAWAL_BALANCE_CHANGED", "The available manager balance is no longer sufficient.", 409)
-    for commission in commissions:
-        if remaining <= 0:
-            break
-        if commission.commission_amount <= remaining:
-            commission.status = "PAID"
-            remaining -= commission.commission_amount
-        else:
-            # Keep exact accounting by splitting a partially consumed commission.
-            paid_part = remaining
-            commission.commission_amount -= paid_part
-            session.add(
-                SalesCommission(
-                    manager_id=commission.manager_id,
-                    clinic_id=commission.clinic_id,
-                    payment_id=commission.payment_id,
-                    attribution_id=commission.attribution_id,
-                    rate_bps=commission.rate_bps,
-                    gross_amount=commission.gross_amount,
-                    commission_amount=paid_part,
-                    currency=commission.currency,
-                    status="PAID",
-                )
-            )
-            remaining = 0
     row.status = "PAID"
     row.processed_at = datetime.now(UTC)
     row.payment_reference = body.payment_reference.strip()
