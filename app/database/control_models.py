@@ -291,7 +291,9 @@ class SalesSubscriptionPayment(Base):
     currency: Mapped[str] = mapped_column(String(12), index=True)
     reference: Mapped[str | None] = mapped_column(String(200))
     subscription_days: Mapped[int | None] = mapped_column(Integer)
-    verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    verified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -332,7 +334,9 @@ class SalesWithdrawalRequest(Base):
     bank_card_last4: Mapped[str] = mapped_column(String(4))
     encrypted_bank_card_snapshot: Mapped[str] = mapped_column(Text)
     bank_account_holder: Mapped[str | None] = mapped_column(String(160))
-    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     paid_reference: Mapped[str | None] = mapped_column(String(200))
