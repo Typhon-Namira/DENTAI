@@ -214,6 +214,7 @@ def upgrade() -> None:
             sa.Column("currency", sa.String(12), nullable=False),
             sa.Column("status", sa.String(24), nullable=False, server_default="PENDING"),
             sa.Column("bank_card_last4", sa.String(4), nullable=False),
+            sa.Column("encrypted_bank_card_snapshot", sa.Text(), nullable=False),
             sa.Column("bank_account_holder", sa.String(160)),
             sa.Column("requested_at", sa.DateTime(timezone=True), nullable=False),
             sa.Column("reviewed_at", sa.DateTime(timezone=True)),
