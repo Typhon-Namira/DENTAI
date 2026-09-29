@@ -259,7 +259,7 @@ class PlatformSubscriptionPayment(Base):
     __tablename__ = "platform_subscription_payments"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     clinic_id: Mapped[uuid.UUID] = mapped_column(index=True)
-    access_request_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
+    access_request_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
     kind: Mapped[str] = mapped_column(String(30), index=True)
     amount: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(12))
