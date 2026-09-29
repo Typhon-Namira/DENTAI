@@ -17,7 +17,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { API_BASE_URL } from "../api/client";
 import "./sales-manager-portal.css";
