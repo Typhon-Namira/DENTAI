@@ -15,7 +15,6 @@ from app.database.control_models import (
     PlatformAdminAudit,
     SalesClinicAttribution,
     SalesClinicContact,
-    SalesCommission,
     SalesDailyReport,
     SalesManager,
     SalesManagerActivity,
@@ -129,6 +128,9 @@ async def require_manager(
     return manager, manager_session
 
 
+ManagerContext = Annotated[tuple[SalesManager, SalesManagerSession], Depends(require_manager)]
+
+
 def _clean(value: str | None) -> str | None:
     return value.strip() if value and value.strip() else None
 
@@ -206,7 +208,7 @@ async def manager_login(
 async def manager_logout(
     request: Request,
     session: Annotated[AsyncSession, Depends(control_session)],
-    ctx=Depends(require_manager),
+    ctx: ManagerContext,
 ):
     manager, manager_session = ctx
     manager_session.logout_at = datetime.now(UTC)
@@ -225,7 +227,7 @@ async def manager_logout(
 @router.get("/me")
 async def manager_me(
     session: Annotated[AsyncSession, Depends(control_session)],
-    ctx=Depends(require_manager),
+    ctx: ManagerContext,
 ):
     manager, _ = ctx
     await session.commit()
@@ -236,7 +238,7 @@ async def manager_me(
 async def sales_dashboard(
     request: Request,
     session: Annotated[AsyncSession, Depends(control_session)],
-    ctx=Depends(require_manager),
+    ctx: ManagerContext,
 ):
     manager, manager_session = ctx
     await log_manager_activity(
@@ -254,7 +256,7 @@ async def sales_dashboard(
 @router.get("/reports")
 async def manager_reports(
     session: Annotated[AsyncSession, Depends(control_session)],
-    ctx=Depends(require_manager),
+    ctx: ManagerContext,
 ):
     manager, _ = ctx
     payload = await reports_payload(session, manager.id)
@@ -267,7 +269,7 @@ async def submit_daily_report(
     body: DailyReportSubmit,
     request: Request,
     session: Annotated[AsyncSession, Depends(control_session)],
-    ctx=Depends(require_manager),
+    ctx: ManagerContext,
 ):
     manager, manager_session = ctx
     report = await session.scalar(
@@ -347,7 +349,7 @@ async def update_bank_card(
     body: BankCardUpdate,
     request: Request,
     session: Annotated[AsyncSession, Depends(control_session)],
-    ctx=Depends(require_manager),
+    ctx: ManagerContext,
 ):
     manager, manager_session = ctx
     ciphertext, last4 = encrypt_bank_card(body.card_number)
@@ -373,7 +375,7 @@ async def request_withdrawal(
     body: WithdrawalRequest,
     request: Request,
     session: Annotated[AsyncSession, Depends(control_session)],
-    ctx=Depends(require_manager),
+    ctx: ManagerContext,
 ):
     manager, manager_session = ctx
     if not manager.bank_card_ciphertext or not manager.bank_card_last4:
@@ -638,7 +640,7 @@ async def admin_upload_manager_photo(
     if previous:
         try:
             await provider.delete(previous)
-        except Exception:
+        except Exception:  # nosec B110 - stale photo cleanup must not fail a successful replacement
             pass
     return {"uploaded": True, "photo_available": True}
 
