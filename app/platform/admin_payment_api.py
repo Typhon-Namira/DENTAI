@@ -101,9 +101,7 @@ async def verify_payment_and_activate(
                 "reference": body.reference,
                 "sales_attribution_status": attribution.status if attribution else None,
                 "sales_manager_id": (
-                    str(attribution.manager_id)
-                    if attribution and attribution.manager_id
-                    else None
+                    str(attribution.manager_id) if attribution and attribution.manager_id else None
                 ),
                 "sales_commission_id": str(commission.id) if commission else None,
             },
