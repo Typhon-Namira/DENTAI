@@ -299,35 +299,37 @@ async def submit_daily_report(
                 )
             ).all()
         )
-        for item in existing:
-            await session.delete(item)
+        for existing_contact in existing:
+            await session.delete(existing_contact)
         await session.flush()
 
-    for item in body.contacts:
-        clinic_name = item.clinic_name.strip()
+    for contact_input in body.contacts:
+        clinic_name = contact_input.clinic_name.strip()
         session.add(
             SalesClinicContact(
                 report_id=report.id,
                 manager_id=manager.id,
                 clinic_name=clinic_name,
-                country=_clean(item.country),
-                city=_clean(item.city),
-                address=_clean(item.address),
-                website=_clean(item.website),
-                contact_name=_clean(item.contact_name),
-                contact_role=_clean(item.contact_role),
-                email=str(item.email).casefold() if item.email else None,
-                phone=_clean(item.phone),
-                negotiation_result=item.negotiation_result.strip(),
-                outcome=item.outcome.strip().upper(),
-                next_step=_clean(item.next_step),
-                follow_up_date=item.follow_up_date,
+                country=_clean(contact_input.country),
+                city=_clean(contact_input.city),
+                address=_clean(contact_input.address),
+                website=_clean(contact_input.website),
+                contact_name=_clean(contact_input.contact_name),
+                contact_role=_clean(contact_input.contact_role),
+                email=str(contact_input.email).casefold() if contact_input.email else None,
+                phone=_clean(contact_input.phone),
+                negotiation_result=contact_input.negotiation_result.strip(),
+                outcome=contact_input.outcome.strip().upper(),
+                next_step=_clean(contact_input.next_step),
+                follow_up_date=contact_input.follow_up_date,
                 clinic_name_norm=normalize_text(clinic_name) or clinic_name.casefold(),
-                email_norm=normalize_text(str(item.email)) if item.email else None,
-                phone_norm=normalize_phone(item.phone),
-                website_norm=normalize_website(item.website),
-                city_norm=normalize_text(item.city),
-                address_norm=normalize_text(item.address),
+                email_norm=(
+                    normalize_text(str(contact_input.email)) if contact_input.email else None
+                ),
+                phone_norm=normalize_phone(contact_input.phone),
+                website_norm=normalize_website(contact_input.website),
+                city_norm=normalize_text(contact_input.city),
+                address_norm=normalize_text(contact_input.address),
                 created_at=now,
                 updated_at=now,
             )
