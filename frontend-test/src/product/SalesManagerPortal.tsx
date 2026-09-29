@@ -37,6 +37,7 @@ type ManagerProfile = {
   bank_card_last4?: string | null;
   bank_account_holder?: string | null;
   last_login_at?: string | null;
+  photo_url?: string | null;
 };
 
 type Balance = {
@@ -267,7 +268,7 @@ export function SalesManagerPortal() {
   return <main className="sm-root">
     <aside className="sm-sidebar">
       <div className="sm-brand"><strong>Teta2</strong><span>SALES</span></div>
-      <div className="sm-person"><span>{profile.first_name[0]}{profile.last_name[0]}</span><div><strong>{profile.name}</strong><small>{profile.title}</small></div></div>
+      <div className="sm-person">{profile.photo_url ? <img src={`${API_BASE_URL}${profile.photo_url}`} alt={profile.name}/> : <span>{profile.first_name[0]}{profile.last_name[0]}</span>}<div><strong>{profile.name}</strong><small>{profile.title}</small></div></div>
       <nav>{nav.map(([id, title, Icon]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}><Icon/><span>{title}</span></button>)}</nav>
       <div className="sm-side-bottom"><button onClick={() => void logout()}><LogOut/> Sign out</button></div>
     </aside>
