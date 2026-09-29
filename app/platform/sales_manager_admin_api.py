@@ -217,14 +217,16 @@ async def create_sales_manager(
     phone: Annotated[str | None, Form(max_length=50)] = None,
     username: Annotated[str | None, Form(max_length=80)] = None,
     is_public: Annotated[bool, Form()] = True,
-    photo: Annotated[UploadFile, File()] = None,
+    photo: Annotated[UploadFile | None, File()] = None,
 ):
     normalized_email = str(email).strip().casefold()
     duplicate = await db.scalar(
         select(SalesManager.id).where(SalesManager.email == normalized_email)
     )
     if duplicate:
-        raise AppError("SALES_MANAGER_EMAIL_EXISTS", "A manager with this email already exists.", 409)
+        raise AppError(
+            "SALES_MANAGER_EMAIL_EXISTS", "A manager with this email already exists.", 409
+        )
     if not photo or photo.content_type not in PHOTO_TYPES:
         raise AppError(
             "SALES_MANAGER_PHOTO_REQUIRED",
@@ -233,9 +235,13 @@ async def create_sales_manager(
         )
     data = await photo.read(MAX_PROFILE_PHOTO_BYTES + 1)
     if len(data) > MAX_PROFILE_PHOTO_BYTES:
-        raise AppError("SALES_MANAGER_PHOTO_TOO_LARGE", "Profile photo exceeds 5 MB.", 413)
+        raise AppError(
+            "SALES_MANAGER_PHOTO_TOO_LARGE", "Profile photo exceeds 5 MB.", 413
+        )
     if not _valid_photo_signature(photo.content_type, data):
-        raise AppError("SALES_MANAGER_PHOTO_INVALID", "Profile photo content is invalid.", 415)
+        raise AppError(
+            "SALES_MANAGER_PHOTO_INVALID", "Profile photo content is invalid.", 415
+        )
 
     manager_id = uuid.uuid4()
     resolved_username = await _unique_username(db, username, first_name, last_name)
@@ -321,7 +327,11 @@ async def edit_sales_manager(
             )
         )
         if duplicate:
-            raise AppError("SALES_MANAGER_EMAIL_EXISTS", "A manager with this email already exists.", 409)
+            raise AppError(
+                "SALES_MANAGER_EMAIL_EXISTS",
+                "A manager with this email already exists.",
+                409,
+            )
         row.email = email
     for field in ("first_name", "last_name", "title", "phone", "is_public"):
         if field in changes:
@@ -633,7 +643,11 @@ async def confirm_sales_withdrawal(
     if not row:
         raise AppError("SALES_WITHDRAWAL_NOT_FOUND", "Withdrawal request was not found.", 404)
     if row.status != "PENDING":
-        raise AppError("SALES_WITHDRAWAL_STATE_INVALID", "Only pending withdrawals can be paid.", 409)
+        raise AppError(
+            "SALES_WITHDRAWAL_STATE_INVALID",
+            "Only pending withdrawals can be paid.",
+            409,
+        )
     reference = (body.reference or "").strip()
     if not reference:
         raise AppError("SALES_WITHDRAWAL_REFERENCE_REQUIRED", "Payment reference is required.", 422)
@@ -664,7 +678,11 @@ async def reject_sales_withdrawal(
     if not row:
         raise AppError("SALES_WITHDRAWAL_NOT_FOUND", "Withdrawal request was not found.", 404)
     if row.status != "PENDING":
-        raise AppError("SALES_WITHDRAWAL_STATE_INVALID", "Only pending withdrawals can be rejected.", 409)
+        raise AppError(
+            "SALES_WITHDRAWAL_STATE_INVALID",
+            "Only pending withdrawals can be rejected.",
+            409,
+        )
     row.status = "REJECTED"
     row.reviewed_at = datetime.now(UTC)
     row.admin_note = body.note.strip() if body.note else None
@@ -707,29 +725,33 @@ async def list_sales_attributions(db: Annotated[AsyncSession, Depends(control_se
             )
         ).all()
     } if rows else {}
-    return [
-        {
-            "id": str(row.id),
-            "access_request_id": str(row.access_request_id),
-            "clinic_id": str(row.clinic_id) if row.clinic_id else None,
-            "clinic_name": request_map.get(row.access_request_id).clinic_name if request_map.get(row.access_request_id) else None,
-            "manager_id": str(row.manager_id) if row.manager_id else None,
-            "manager_name": (
-                f"{managers[row.manager_id].first_name} {managers[row.manager_id].last_name}".strip()
-                if row.manager_id in managers
-                else None
-            ),
-            "report_clinic_id": str(row.report_clinic_id) if row.report_clinic_id else None,
-            "status": row.status,
-            "match_method": row.match_method,
-            "match_score": row.match_score,
-            "match_details": row.match_details,
-            "matched_at": row.matched_at,
-            "confirmed_at": row.confirmed_at,
-            "created_at": row.created_at,
-        }
-        for row in rows
-    ]
+    result = []
+    for row in rows:
+        access_request = request_map.get(row.access_request_id)
+        manager = managers.get(row.manager_id) if row.manager_id else None
+        result.append(
+            {
+                "id": str(row.id),
+                "access_request_id": str(row.access_request_id),
+                "clinic_id": str(row.clinic_id) if row.clinic_id else None,
+                "clinic_name": access_request.clinic_name if access_request else None,
+                "manager_id": str(row.manager_id) if row.manager_id else None,
+                "manager_name": (
+                    f"{manager.first_name} {manager.last_name}".strip() if manager else None
+                ),
+                "report_clinic_id": (
+                    str(row.report_clinic_id) if row.report_clinic_id else None
+                ),
+                "status": row.status,
+                "match_method": row.match_method,
+                "match_score": row.match_score,
+                "match_details": row.match_details,
+                "matched_at": row.matched_at,
+                "confirmed_at": row.confirmed_at,
+                "created_at": row.created_at,
+            }
+        )
+    return result
 
 
 @router.post("/sales-attributions/{attribution_id}/confirm", dependencies=[Depends(require_platform_admin)])
@@ -747,7 +769,11 @@ async def admin_confirm_sales_attribution(
     if body.report_clinic_id:
         report_entry = await db.get(SalesReportClinic, body.report_clinic_id)
         if not report_entry or report_entry.manager_id != manager.id:
-            raise AppError("SALES_REPORT_CLINIC_INVALID", "Reported clinic does not belong to this manager.", 409)
+            raise AppError(
+                "SALES_REPORT_CLINIC_INVALID",
+                "Reported clinic does not belong to this manager.",
+                409,
+            )
     commission = await confirm_attribution(
         db,
         attribution,
@@ -792,7 +818,11 @@ async def paid_clinic_renewal(
         )
     )
     if duplicate:
-        raise AppError("SUBSCRIPTION_PAYMENT_DUPLICATE", "This paid renewal was already recorded.", 409)
+        raise AppError(
+            "SUBSCRIPTION_PAYMENT_DUPLICATE",
+            "This paid renewal was already recorded.",
+            409,
+        )
     settings = await platform_settings(db)
     expires_at = await renew_clinic(clinic, settings, days=body.days)
     clinic.subscription_state = "ACTIVE"
