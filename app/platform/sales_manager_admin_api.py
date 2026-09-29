@@ -192,11 +192,7 @@ async def _manager_stats(db: AsyncSession, manager_id: uuid.UUID) -> dict:
 @router.get("/sales-managers", dependencies=[Depends(require_platform_admin)])
 async def list_sales_managers(db: Annotated[AsyncSession, Depends(control_session)]):
     rows = list(
-        (
-            await db.scalars(
-                select(SalesManager).order_by(SalesManager.created_at.desc())
-            )
-        ).all()
+        (await db.scalars(select(SalesManager).order_by(SalesManager.created_at.desc()))).all()
     )
     result = []
     for row in rows:
@@ -235,13 +231,9 @@ async def create_sales_manager(
         )
     data = await photo.read(MAX_PROFILE_PHOTO_BYTES + 1)
     if len(data) > MAX_PROFILE_PHOTO_BYTES:
-        raise AppError(
-            "SALES_MANAGER_PHOTO_TOO_LARGE", "Profile photo exceeds 5 MB.", 413
-        )
+        raise AppError("SALES_MANAGER_PHOTO_TOO_LARGE", "Profile photo exceeds 5 MB.", 413)
     if not _valid_photo_signature(photo.content_type, data):
-        raise AppError(
-            "SALES_MANAGER_PHOTO_INVALID", "Profile photo content is invalid.", 415
-        )
+        raise AppError("SALES_MANAGER_PHOTO_INVALID", "Profile photo content is invalid.", 415)
 
     manager_id = uuid.uuid4()
     resolved_username = await _unique_username(db, username, first_name, last_name)
@@ -274,7 +266,11 @@ async def create_sales_manager(
     db.add(manager)
     try:
         await db.flush()
-        public_url = __import__("app.core.config", fromlist=["get_settings"]).get_settings().platform_public_url.rstrip("/")
+        public_url = (
+            __import__("app.core.config", fromlist=["get_settings"])
+            .get_settings()
+            .platform_public_url.rstrip("/")
+        )
         body = (
             f"Hello {manager.first_name},\n\n"
             "Your Teta2 Sales Manager account has been created and verified.\n\n"
@@ -298,7 +294,11 @@ async def create_sales_manager(
             action="SALES_MANAGER_CREATED",
             target_type="SALES_MANAGER",
             target_id=str(manager.id),
-            details={"email": manager.email, "username": manager.username, "is_public": manager.is_public},
+            details={
+                "email": manager.email,
+                "username": manager.username,
+                "is_public": manager.is_public,
+            },
         )
         await db.commit()
     except Exception:
@@ -402,7 +402,9 @@ async def replace_sales_manager_photo(
     return _manager_payload(row)
 
 
-@router.post("/sales-managers/{manager_id}/reset-password", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/sales-managers/{manager_id}/reset-password", dependencies=[Depends(require_platform_admin)]
+)
 async def reset_sales_manager_password(
     manager_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(control_session)],
@@ -423,7 +425,11 @@ async def reset_sales_manager_password(
         )
         .values(ended_at=datetime.now(UTC))
     )
-    public_url = __import__("app.core.config", fromlist=["get_settings"]).get_settings().platform_public_url.rstrip("/")
+    public_url = (
+        __import__("app.core.config", fromlist=["get_settings"])
+        .get_settings()
+        .platform_public_url.rstrip("/")
+    )
     await send_logged_email(
         db,
         recipient=row.email,
@@ -633,7 +639,9 @@ async def list_sales_withdrawals(
     return result
 
 
-@router.post("/sales-withdrawals/{withdrawal_id}/confirm", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/sales-withdrawals/{withdrawal_id}/confirm", dependencies=[Depends(require_platform_admin)]
+)
 async def confirm_sales_withdrawal(
     withdrawal_id: uuid.UUID,
     body: WithdrawalDecision,
@@ -662,13 +670,20 @@ async def confirm_sales_withdrawal(
         action="SALES_WITHDRAWAL_PAID",
         target_type="SALES_WITHDRAWAL",
         target_id=str(row.id),
-        details={"manager_id": str(row.manager_id), "amount": row.amount, "currency": row.currency, "reference": reference},
+        details={
+            "manager_id": str(row.manager_id),
+            "amount": row.amount,
+            "currency": row.currency,
+            "reference": reference,
+        },
     )
     await db.commit()
     return {"paid": True, "id": str(row.id)}
 
 
-@router.post("/sales-withdrawals/{withdrawal_id}/reject", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/sales-withdrawals/{withdrawal_id}/reject", dependencies=[Depends(require_platform_admin)]
+)
 async def reject_sales_withdrawal(
     withdrawal_id: uuid.UUID,
     body: WithdrawalDecision,
@@ -709,22 +724,30 @@ async def list_sales_attributions(db: Annotated[AsyncSession, Depends(control_se
         ).all()
     )
     manager_ids = {row.manager_id for row in rows if row.manager_id}
-    managers = {
-        row.id: row
-        for row in (
-            await db.scalars(select(SalesManager).where(SalesManager.id.in_(manager_ids)))
-        ).all()
-    } if manager_ids else {}
-    request_map = {
-        row.id: row
-        for row in (
-            await db.scalars(
-                select(AccessRequest).where(
-                    AccessRequest.id.in_({item.access_request_id for item in rows})
+    managers = (
+        {
+            row.id: row
+            for row in (
+                await db.scalars(select(SalesManager).where(SalesManager.id.in_(manager_ids)))
+            ).all()
+        }
+        if manager_ids
+        else {}
+    )
+    request_map = (
+        {
+            row.id: row
+            for row in (
+                await db.scalars(
+                    select(AccessRequest).where(
+                        AccessRequest.id.in_({item.access_request_id for item in rows})
+                    )
                 )
-            )
-        ).all()
-    } if rows else {}
+            ).all()
+        }
+        if rows
+        else {}
+    )
     result = []
     for row in rows:
         access_request = request_map.get(row.access_request_id)
@@ -739,9 +762,7 @@ async def list_sales_attributions(db: Annotated[AsyncSession, Depends(control_se
                 "manager_name": (
                     f"{manager.first_name} {manager.last_name}".strip() if manager else None
                 ),
-                "report_clinic_id": (
-                    str(row.report_clinic_id) if row.report_clinic_id else None
-                ),
+                "report_clinic_id": (str(row.report_clinic_id) if row.report_clinic_id else None),
                 "status": row.status,
                 "match_method": row.match_method,
                 "match_score": row.match_score,
@@ -754,7 +775,9 @@ async def list_sales_attributions(db: Annotated[AsyncSession, Depends(control_se
     return result
 
 
-@router.post("/sales-attributions/{attribution_id}/confirm", dependencies=[Depends(require_platform_admin)])
+@router.post(
+    "/sales-attributions/{attribution_id}/confirm", dependencies=[Depends(require_platform_admin)]
+)
 async def admin_confirm_sales_attribution(
     attribution_id: uuid.UUID,
     body: AttributionConfirm,
