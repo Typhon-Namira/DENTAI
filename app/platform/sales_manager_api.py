@@ -108,6 +108,11 @@ def _manager_payload(manager: SalesManager) -> dict:
         "bank_account_holder": manager.bank_account_holder,
         "last_login_at": manager.last_login_at,
         "last_logout_at": manager.last_logout_at,
+        "photo_url": (
+            f"/api/v1/platform/sales-managers/public/{manager.id}/photo"
+            if manager.photo_storage_key
+            else None
+        ),
         "created_at": manager.created_at,
     }
 
