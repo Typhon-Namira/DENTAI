@@ -37,6 +37,7 @@ type Manager = {
 type Commission = {
   id: string;
   clinic_id: string;
+  clinic_name: string;
   gross_amount: number;
   commission_amount: number;
   currency: string;
@@ -384,7 +385,7 @@ function Status({ value }: { value: string }) {
 }
 
 function CommissionTable({ rows }: { rows: Commission[] }) {
-  return <div className="sm-table-wrap"><table><thead><tr><th>Date</th><th>Clinic</th><th>Subscription</th><th>Rate</th><th>Your commission</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{dateTime(row.created_at)}</td><td><code>{row.clinic_id.slice(0, 8)}</code></td><td>{money(row.gross_amount, row.currency)}</td><td>{row.rate_percent}%</td><td><strong>{money(row.commission_amount, row.currency)}</strong></td></tr>)}</tbody></table>{!rows.length && <p className="sm-empty">No verified commissions yet.</p>}</div>;
+  return <div className="sm-table-wrap"><table><thead><tr><th>Date</th><th>Clinic</th><th>Subscription</th><th>Rate</th><th>Your commission</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{dateTime(row.created_at)}</td><td><strong>{row.clinic_name}</strong><small>{row.clinic_id.slice(0, 8)}</small></td><td>{money(row.gross_amount, row.currency)}</td><td>{row.rate_percent}%</td><td><strong>{money(row.commission_amount, row.currency)}</strong></td></tr>)}</tbody></table>{!rows.length && <p className="sm-empty">No verified commissions yet.</p>}</div>;
 }
 
 function ClinicContactEditor({ value, index, onChange, onRemove }: { value: Contact; index: number; onChange: (value: Contact) => void; onRemove: () => void }) {
