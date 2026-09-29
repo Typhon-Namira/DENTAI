@@ -168,7 +168,9 @@ class SalesManager(Base):
     bank_account_holder: Mapped[str | None] = mapped_column(String(160))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_logout_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -178,7 +180,9 @@ class SalesManagerSession(Base):
     manager_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("platform_sales_managers.id", ondelete="CASCADE"), index=True
     )
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     ip_hash: Mapped[str | None] = mapped_column(String(80))
@@ -187,7 +191,9 @@ class SalesManagerSession(Base):
 
 class SalesDailyReport(Base):
     __tablename__ = "platform_sales_daily_reports"
-    __table_args__ = (UniqueConstraint("manager_id", "report_date", name="uq_sales_report_manager_date"),)
+    __table_args__ = (
+        UniqueConstraint("manager_id", "report_date", name="uq_sales_report_manager_date"),
+    )
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     manager_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("platform_sales_managers.id", ondelete="CASCADE"), index=True
@@ -222,7 +228,9 @@ class SalesReportClinic(Base):
     outcome_status: Mapped[str] = mapped_column(String(40), default="CONTACTED", index=True)
     next_step: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
-    contacted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    contacted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     normalized_name: Mapped[str] = mapped_column(String(220), index=True)
     normalized_email: Mapped[str | None] = mapped_column(String(320), index=True)
     normalized_phone: Mapped[str | None] = mapped_column(String(60), index=True)
@@ -245,7 +253,9 @@ class SalesManagerActivity(Base):
     details: Mapped[dict] = mapped_column(JSON, default=dict)
     ip_hash: Mapped[str | None] = mapped_column(String(80))
     user_agent: Mapped[str | None] = mapped_column(String(500))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
 
 
 class SalesReferralAttribution(Base):
@@ -265,7 +275,9 @@ class SalesReferralAttribution(Base):
     match_details: Mapped[dict] = mapped_column(JSON, default=dict)
     matched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -303,7 +315,9 @@ class SalesCommission(Base):
     commission_amount: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(12), index=True)
     status: Mapped[str] = mapped_column(String(24), default="AVAILABLE", index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
 
 
 class SalesWithdrawalRequest(Base):
