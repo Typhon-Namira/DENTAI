@@ -126,7 +126,9 @@ async def manager_balances(session: AsyncSession, manager_id: uuid.UUID) -> list
     ]
 
 
-def _candidate_score(request: AccessRequest, entry: SalesReportClinic) -> tuple[int, list[str]]:
+def _candidate_score(
+    request: AccessRequest, entry: SalesReportClinic
+) -> tuple[int, list[str]]:
     reasons: list[str] = []
     score = 0
     req_email = normalize_email(request.email)
