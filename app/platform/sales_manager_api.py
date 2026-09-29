@@ -584,13 +584,21 @@ async def public_manager_photo(
         or not manager.photo_storage_key
         or not manager.photo_mime
     ):
-        raise AppError("SALES_MANAGER_PHOTO_NOT_FOUND", "Manager photo was not found.", 404)
+        raise AppError(
+            "SALES_MANAGER_PHOTO_NOT_FOUND", "Manager photo was not found.", 404
+        )
     provider = storage_provider()
     if isinstance(provider, LocalStorageProvider):
         try:
             data = await provider.read(manager.photo_storage_key)
         except FileNotFoundError as exc:
-            raise AppError("SALES_MANAGER_PHOTO_NOT_FOUND", "Manager photo was not found.", 404) from exc
-        return Response(data, media_type=manager.photo_mime, headers={"Cache-Control": "public, max-age=300"})
+            raise AppError(
+                "SALES_MANAGER_PHOTO_NOT_FOUND", "Manager photo was not found.", 404
+            ) from exc
+        return Response(
+            data,
+            media_type=manager.photo_mime,
+            headers={"Cache-Control": "public, max-age=300"},
+        )
     url = await provider.create_download_url(manager.photo_storage_key, 900)
     return RedirectResponse(url=url, status_code=307)
