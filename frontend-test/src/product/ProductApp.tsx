@@ -36,6 +36,7 @@ import { productCopy, type ProductLang } from "./content";
 import ClinicalCareApp from "./ClinicalCareApp";
 import { LegalPage, type LegalRoute } from "./LegalPages";
 import { FirstVisitLanguageModal, LanguageDropdown, PublicFooter as SharedFooter, PublicNavbar, StorageNotice, type PublicLanguage } from "./PublicChrome";
+import { VerifiedSalesManagers } from "./VerifiedSalesManagers";
 
 const LANG_KEY = "teta2-product-language";
 const OPG_HERO_URL = "https://images.squarespace-cdn.com/content/v1/57e01f4c2e69cf3a18c52ac1/09f04224-c53b-4362-aff2-52ae4d2cc114/OPG.jpg";
@@ -218,7 +219,7 @@ export default function ProductApp() {
     : route === "/login" ? <LoginPage lang={lang} setLang={setLang} onAuthenticated={setUser} go={go} />
     : route === "/register" ? null
     : <PublicProduct lang={lang} setLang={setLang} route={route} go={go} />;
-  const showPublicPreferences = !restoring && !user && window.location.pathname !== "/platform-admin";
+  const showPublicPreferences = !restoring && !user && !["/platform-admin", "/platform-managers"].includes(window.location.pathname);
   return <>{experience}{showPublicPreferences && (showLanguageModal ? <FirstVisitLanguageModal onSelect={(next: PublicLanguage) => setLang(next)} /> : <StorageNotice language={lang} onPolicy={() => go("/cookies")} />)}</>;
 }
 
@@ -381,6 +382,7 @@ function AboutPage({ lang, go }: { lang: ProductLang; go: (route: PublicRoute) =
       <SectionHeading kicker="Teta2" title={c.title} body={c.lead} />
       <blockquote className="product-principle">{c.principle}</blockquote>
       <div className="product-roadmap">{c.roadmap.map((item, index) => <article key={item}><b>0{index + 1}</b><p>{item}</p></article>)}</div>
+      <VerifiedSalesManagers />
       <section className="product-final-cta"><div><span>Teta2</span><h2>{productCopy(lang).plans.care.tagline}</h2></div><button className="product-primary" onClick={() => go("/register")}>{productCopy(lang).nav.access}</button></section>
     </main>
   );
