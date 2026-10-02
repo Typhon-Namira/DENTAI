@@ -4,8 +4,8 @@ import re
 import uuid
 from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
-from urllib.parse import urlparse
 from typing import cast
+from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet
 from sqlalchemy import func, select
