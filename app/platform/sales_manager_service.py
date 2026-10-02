@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -15,14 +16,27 @@ from app.database.control_models import (
     AccessRequest,
     SalesCommission,
     SalesDailyReport,
+    SalesEquityAward,
+    SalesGrowthIdea,
     SalesManager,
     SalesReferralAttribution,
     SalesReportClinic,
+    SalesScoreEvent,
     SalesSubscriptionPayment,
     SalesWithdrawalRequest,
 )
 
 COMMISSION_RATE_BPS = 3000
+
+SCORE_TARGET_TOTAL = 1000
+SCORE_TARGET_REPORTS = 270
+SCORE_TARGET_CLINICS = 600
+SCORE_TARGET_GROWTH = 130
+SCORE_REPORT_POINTS = 3
+SCORE_CLINIC_POINTS = 30
+SCORE_GROWTH_POINTS = 10
+EQUITY_AWARD_KEY = "FIRST_MANAGER_1000"
+EQUITY_PERCENT_BPS = 300
 
 
 def _fernet() -> Fernet:
@@ -319,3 +333,197 @@ async def confirm_attribution(
         )
     )
     return await create_commission_for_payment(session, payment, attribution) if payment else None
+
+
+async def add_score_event(
+    session: AsyncSession,
+    *,
+    manager_id: uuid.UUID,
+    category: str,
+    points: int,
+    source_type: str,
+    source_id: str,
+    description: str,
+) -> SalesScoreEvent | None:
+    existing = await session.scalar(
+        select(SalesScoreEvent).where(
+            SalesScoreEvent.source_type == source_type,
+            SalesScoreEvent.source_id == source_id,
+            SalesScoreEvent.category == category,
+        )
+    )
+    if existing:
+        return existing
+    row = SalesScoreEvent(
+        manager_id=manager_id,
+        category=category,
+        points=points,
+        source_type=source_type,
+        source_id=source_id,
+        description=description,
+    )
+    session.add(row)
+    await session.flush()
+    return row
+
+
+async def sync_manager_score_events(session: AsyncSession, manager_id: uuid.UUID) -> None:
+    submitted_reports = list(
+        (
+            await session.scalars(
+                select(SalesDailyReport).where(
+                    SalesDailyReport.manager_id == manager_id,
+                    SalesDailyReport.status == "SUBMITTED",
+                )
+            )
+        ).all()
+    )
+    for report in submitted_reports:
+        await add_score_event(
+            session,
+            manager_id=manager_id,
+            category="REPORTS",
+            points=SCORE_REPORT_POINTS,
+            source_type="DAILY_REPORT",
+            source_id=str(report.id),
+            description=f"Submitted daily sales report for {report.report_date.isoformat()}",
+        )
+
+    paid_clinic_rows = (
+        await session.execute(
+            select(SalesCommission.clinic_id)
+            .join(
+                SalesSubscriptionPayment,
+                SalesSubscriptionPayment.id == SalesCommission.payment_id,
+            )
+            .where(
+                SalesCommission.manager_id == manager_id,
+                SalesSubscriptionPayment.kind == "INITIAL",
+            )
+            .distinct()
+        )
+    ).all()
+    for (clinic_id,) in paid_clinic_rows:
+        await add_score_event(
+            session,
+            manager_id=manager_id,
+            category="CLINICS",
+            points=SCORE_CLINIC_POINTS,
+            source_type="PAID_CLINIC",
+            source_id=str(clinic_id),
+            description="Attributed clinic completed its first verified subscription payment",
+        )
+
+    approved_ideas = list(
+        (
+            await session.scalars(
+                select(SalesGrowthIdea).where(
+                    SalesGrowthIdea.manager_id == manager_id,
+                    SalesGrowthIdea.status == "APPROVED",
+                )
+            )
+        ).all()
+    )
+    for idea in approved_ideas:
+        await add_score_event(
+            session,
+            manager_id=manager_id,
+            category="GROWTH",
+            points=SCORE_GROWTH_POINTS,
+            source_type="APPROVED_IDEA",
+            source_id=str(idea.id),
+            description=f"Approved product growth idea: {idea.title}",
+        )
+
+
+async def sales_score_summary(session: AsyncSession, manager_id: uuid.UUID) -> dict:
+    await sync_manager_score_events(session, manager_id)
+    rows = (
+        await session.execute(
+            select(
+                SalesScoreEvent.category,
+                func.coalesce(func.sum(SalesScoreEvent.points), 0),
+            )
+            .where(SalesScoreEvent.manager_id == manager_id)
+            .group_by(SalesScoreEvent.category)
+        )
+    ).all()
+    raw = {str(category): int(points) for category, points in rows}
+    categories = {
+        "reports": {
+            "key": "REPORTS",
+            "label": "Daily reports",
+            "points": min(raw.get("REPORTS", 0), SCORE_TARGET_REPORTS),
+            "raw_points": raw.get("REPORTS", 0),
+            "target": SCORE_TARGET_REPORTS,
+            "unit_points": SCORE_REPORT_POINTS,
+        },
+        "clinics": {
+            "key": "CLINICS",
+            "label": "Paid clinics",
+            "points": min(raw.get("CLINICS", 0), SCORE_TARGET_CLINICS),
+            "raw_points": raw.get("CLINICS", 0),
+            "target": SCORE_TARGET_CLINICS,
+            "unit_points": SCORE_CLINIC_POINTS,
+        },
+        "growth": {
+            "key": "GROWTH",
+            "label": "Growth participation",
+            "points": min(raw.get("GROWTH", 0), SCORE_TARGET_GROWTH),
+            "raw_points": raw.get("GROWTH", 0),
+            "target": SCORE_TARGET_GROWTH,
+            "unit_points": SCORE_GROWTH_POINTS,
+        },
+    }
+    for item in categories.values():
+        item["completed"] = item["points"] >= item["target"]
+        item["percent"] = round((item["points"] / item["target"]) * 100, 2)
+    total = sum(int(item["points"]) for item in categories.values())
+    all_complete = all(bool(item["completed"]) for item in categories.values())
+    award = await session.scalar(
+        select(SalesEquityAward).where(SalesEquityAward.award_key == EQUITY_AWARD_KEY)
+    )
+    is_winner = bool(award and award.manager_id == manager_id)
+
+    if all_complete and not award:
+        try:
+            async with session.begin_nested():
+                candidate = SalesEquityAward(
+                    award_key=EQUITY_AWARD_KEY,
+                    manager_id=manager_id,
+                    points_at_award=SCORE_TARGET_TOTAL,
+                    equity_percent_bps=EQUITY_PERCENT_BPS,
+                    status="PENDING_ADMIN_REVIEW",
+                )
+                session.add(candidate)
+                await session.flush()
+            award = candidate
+            is_winner = True
+        except IntegrityError:
+            award = await session.scalar(
+                select(SalesEquityAward).where(
+                    SalesEquityAward.award_key == EQUITY_AWARD_KEY
+                )
+            )
+            is_winner = bool(award and award.manager_id == manager_id)
+
+    return {
+        "total": total,
+        "target": SCORE_TARGET_TOTAL,
+        "percent": round((total / SCORE_TARGET_TOTAL) * 100, 2),
+        "all_complete": all_complete,
+        "categories": categories,
+        "award": (
+            {
+                "id": str(award.id),
+                "status": award.status,
+                "manager_id": str(award.manager_id),
+                "reached_at": award.reached_at,
+                "equity_percent": award.equity_percent_bps / 100,
+                "is_winner": is_winner,
+                "whatsapp": "+37493700251",
+            }
+            if award
+            else None
+        ),
+    }
