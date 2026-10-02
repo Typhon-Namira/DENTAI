@@ -24,7 +24,6 @@ from app.database.control_models import (
     SalesManagerSession,
     SalesReferralAttribution,
     SalesReportClinic,
-    SalesScoreEvent,
     SalesSubscriptionPayment,
     SalesWithdrawalRequest,
 )
@@ -229,9 +228,7 @@ async def list_sales_growth_ideas(db: Annotated[AsyncSession, Depends(control_se
     rows = list(
         (
             await db.scalars(
-                select(SalesGrowthIdea)
-                .order_by(SalesGrowthIdea.submitted_at.desc())
-                .limit(1000)
+                select(SalesGrowthIdea).order_by(SalesGrowthIdea.submitted_at.desc()).limit(1000)
             )
         ).all()
     )
@@ -391,7 +388,9 @@ async def sales_equity_award(db: Annotated[AsyncSession, Depends(control_session
             "id": str(award.id),
             "manager_id": str(award.manager_id),
             "manager_name": (
-                f"{manager.first_name} {manager.last_name}".strip() if manager else "Unknown manager"
+                f"{manager.first_name} {manager.last_name}".strip()
+                if manager
+                else "Unknown manager"
             ),
             "manager_email": manager.email if manager else None,
             "status": award.status,
