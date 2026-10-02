@@ -48,7 +48,12 @@ async def platform_settings(session: AsyncSession) -> PlatformSettings:
     return row
 
 
-def _send_smtp(recipient: str, subject: str, body: str) -> str | None:
+def _send_smtp(
+    recipient: str,
+    subject: str,
+    body: str,
+    html_body: str | None = None,
+) -> str | None:
     settings = get_settings()
     if not settings.smtp_host or not settings.smtp_from_email:
         raise RuntimeError("SMTP is not configured")
@@ -57,6 +62,8 @@ def _send_smtp(recipient: str, subject: str, body: str) -> str | None:
     message["To"] = recipient
     message["Subject"] = subject
     message.set_content(body)
+    if html_body:
+        message.add_alternative(html_body, subtype="html")
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
         if settings.smtp_use_tls:
             smtp.starttls()
@@ -73,6 +80,7 @@ async def send_logged_email(
     subject: str,
     body: str,
     kind: str,
+    html_body: str | None = None,
     access_request_id: uuid.UUID | None = None,
     clinic_id: uuid.UUID | None = None,
 ) -> PlatformEmailLog:
@@ -87,7 +95,13 @@ async def send_logged_email(
     session.add(log)
     await session.flush()
     try:
-        provider_message_id = await asyncio.to_thread(_send_smtp, recipient, subject, body)
+        provider_message_id = await asyncio.to_thread(
+            _send_smtp,
+            recipient,
+            subject,
+            body,
+            html_body,
+        )
         log.status = "SENT"
         log.provider_message_id = provider_message_id
     except Exception as exc:
