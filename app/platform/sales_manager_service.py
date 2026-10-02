@@ -512,9 +512,7 @@ async def sales_score_summary(session: AsyncSession, manager_id: uuid.UUID) -> d
             is_winner = True
         except IntegrityError:
             award = await session.scalar(
-                select(SalesEquityAward).where(
-                    SalesEquityAward.award_key == EQUITY_AWARD_KEY
-                )
+                select(SalesEquityAward).where(SalesEquityAward.award_key == EQUITY_AWARD_KEY)
             )
             is_winner = bool(award and award.manager_id == manager_id)
 
