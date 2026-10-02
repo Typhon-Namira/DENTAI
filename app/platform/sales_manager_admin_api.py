@@ -420,6 +420,10 @@ async def confirm_sales_equity_award(
     row.reviewed_at = datetime.now(UTC)
     row.admin_note = body.note.strip() if body.note else None
     row.updated_at = datetime.now(UTC)
+    manager = await db.get(SalesManager, row.manager_id)
+    if manager:
+        manager.title = "Senior Business Manager"
+        manager.updated_at = datetime.now(UTC)
     await _audit(
         db,
         action="SALES_EQUITY_AWARD_CONFIRMED",
