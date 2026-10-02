@@ -1,3 +1,4 @@
+import html
 import logging
 import re
 import uuid
@@ -101,6 +102,87 @@ def _valid_photo_signature(content_type: str, data: bytes) -> bool:
         "image/webp": data.startswith(b"RIFF") and data[8:12] == b"WEBP",
     }
     return checks.get(content_type, False)
+
+
+def _sales_manager_credentials_email_html(
+    *,
+    first_name: str,
+    username: str,
+    email: str,
+    temporary_password: str,
+    login_url: str,
+) -> str:
+    safe_first = html.escape(first_name)
+    safe_username = html.escape(username)
+    safe_email = html.escape(email)
+    safe_password = html.escape(temporary_password)
+    safe_login_url = html.escape(login_url, quote=True)
+    return f"""<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#eef1f4;font-family:Arial,Helvetica,sans-serif;color:#24313d;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef1f4;padding:32px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #d9e0e6;border-radius:18px;overflow:hidden;box-shadow:0 18px 50px rgba(39,52,65,.10);">
+            <tr>
+              <td style="padding:28px 34px;background:linear-gradient(135deg,#ffffff,#e8edf1);border-bottom:1px solid #dce2e7;">
+                <div style="font-size:28px;font-weight:800;letter-spacing:-.8px;color:#1f2c38;">Teta2</div>
+                <div style="margin-top:5px;font-size:11px;font-weight:700;letter-spacing:1.8px;color:#7c8894;">SALES OPERATIONS</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:34px;">
+                <div style="display:inline-block;padding:6px 10px;border:1px solid #cfd7de;border-radius:999px;background:#f5f7f9;color:#5e6b77;font-size:11px;font-weight:700;letter-spacing:.8px;">VERIFIED SALES MANAGER ACCOUNT</div>
+                <h1 style="margin:20px 0 8px;font-size:26px;line-height:1.25;color:#1f2c38;">Welcome to Teta2, {safe_first}</h1>
+                <p style="margin:0 0 24px;color:#6f7d89;font-size:15px;line-height:1.7;">Your Sales Manager account has been created and verified by Teta2 Platform Administration. Use the secure credentials below for your first sign-in.</p>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #dce2e7;border-radius:14px;background:#f8fafb;">
+                  <tr>
+                    <td style="padding:18px 20px 8px;color:#7b8793;font-size:12px;font-weight:700;">USERNAME</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 20px 16px;color:#24313d;font-size:16px;font-weight:700;">{safe_username}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 20px 8px;color:#7b8793;font-size:12px;font-weight:700;">EMAIL</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 20px 16px;color:#24313d;font-size:15px;">{safe_email}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 20px 8px;color:#7b8793;font-size:12px;font-weight:700;">TEMPORARY PASSWORD</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 20px 20px;">
+                      <span style="display:inline-block;padding:10px 12px;border-radius:8px;background:#202c38;color:#ffffff;font-family:Consolas,Monaco,monospace;font-size:15px;font-weight:700;letter-spacing:.4px;">{safe_password}</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <div style="padding:22px 0 4px;text-align:center;">
+                  <a href="{safe_login_url}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#3f4b56;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">Open Sales Manager Portal</a>
+                </div>
+                <p style="margin:10px 0 0;text-align:center;color:#8a96a1;font-size:12px;line-height:1.6;">{safe_login_url}</p>
+
+                <div style="margin-top:26px;padding:16px 18px;border-left:4px solid #9ca8b3;background:#f4f6f8;border-radius:8px;">
+                  <div style="font-size:13px;font-weight:700;color:#34424f;">Security requirement</div>
+                  <p style="margin:5px 0 0;color:#6f7d89;font-size:13px;line-height:1.6;">You will be required to replace the temporary password immediately after your first sign-in. Do not forward or share these credentials.</p>
+                </div>
+
+                <p style="margin:24px 0 0;color:#6f7d89;font-size:13px;line-height:1.7;">Daily clinic reports, commissions, withdrawal requests, sign-in history and manager activity are recorded in the platform for operational and administrative purposes.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 34px;background:#f6f8fa;border-top:1px solid #e0e5ea;color:#87939e;font-size:12px;line-height:1.6;">
+                This is an official Teta2 account message. If you did not expect this account, contact Teta2 Platform Administration.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>"""
 
 
 def _manager_payload(row: SalesManager) -> dict:
@@ -506,22 +588,33 @@ async def create_sales_manager(
             .get_settings()
             .platform_public_url.rstrip("/")
         )
+        login_url = f"{public_url}/platform-managers"
         body = (
             f"Hello {manager.first_name},\n\n"
             "Your Teta2 Sales Manager account has been created and verified.\n\n"
-            f"Login URL: {public_url}/platform-managers\n"
+            f"Login URL: {login_url}\n"
             f"Username: {manager.username}\n"
             f"Email: {manager.email}\n"
             f"Temporary password: {temporary_password}\n\n"
-            "You will be required to change this password after signing in. "
-            "Daily clinic reports, commissions, withdrawals, login history and account activity are recorded in the platform.\n\n"
-            "Teta2"
+            "You will be required to change this password immediately after your first sign-in. "
+            "Do not forward or share these credentials.\n\n"
+            "Daily clinic reports, commissions, withdrawal requests, sign-in history and manager activity "
+            "are recorded in the platform for operational and administrative purposes.\n\n"
+            "Teta2 Platform Administration"
+        )
+        html_body = _sales_manager_credentials_email_html(
+            first_name=manager.first_name,
+            username=manager.username,
+            email=manager.email,
+            temporary_password=temporary_password,
+            login_url=login_url,
         )
         await send_logged_email(
             db,
             recipient=manager.email,
-            subject="Your Teta2 Sales Manager account",
+            subject="Your verified Teta2 Sales Manager account",
             body=body,
+            html_body=html_body,
             kind="SALES_MANAGER_CREDENTIALS",
         )
         await _audit(
