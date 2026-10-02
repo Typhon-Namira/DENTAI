@@ -5,6 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import urlparse
+from typing import cast
 
 from cryptography.fernet import Fernet
 from sqlalchemy import func, select
@@ -487,9 +488,11 @@ async def sales_score_summary(session: AsyncSession, manager_id: uuid.UUID) -> d
         },
     }
     for item in categories.values():
-        item["completed"] = item["points"] >= item["target"]
-        item["percent"] = round((item["points"] / item["target"]) * 100, 2)
-    total = sum(int(item["points"]) for item in categories.values())
+        points = cast(int, item["points"])
+        target = cast(int, item["target"])
+        item["completed"] = points >= target
+        item["percent"] = round((points / target) * 100, 2)
+    total = sum(cast(int, item["points"]) for item in categories.values())
     all_complete = all(bool(item["completed"]) for item in categories.values())
     award = await session.scalar(
         select(SalesEquityAward).where(SalesEquityAward.award_key == EQUITY_AWARD_KEY)
