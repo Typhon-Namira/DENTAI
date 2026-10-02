@@ -275,6 +275,17 @@ async def create_commission_for_payment(
     )
     session.add(commission)
     await session.flush()
+    if payment.kind == "INITIAL":
+        await add_score_event(
+            session,
+            manager_id=commission.manager_id,
+            category="CLINICS",
+            points=SCORE_CLINIC_POINTS,
+            source_type="PAID_CLINIC",
+            source_id=str(payment.clinic_id),
+            description="Attributed clinic completed its first verified subscription payment",
+        )
+        await sales_score_summary(session, commission.manager_id)
     return commission
 
 
