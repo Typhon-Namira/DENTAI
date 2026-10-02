@@ -266,6 +266,19 @@ export function SalesManagerPortal() {
     });
   }, [active, token, profile, load]);
 
+  useEffect(() => {
+    if (!profile || !dashboard?.score || celebration) return;
+    const storageKey = `teta2-sales-score-milestones:${profile.id}`;
+    const seen = new Set<string>(JSON.parse(localStorage.getItem(storageKey) || "[]"));
+    const score = dashboard.score;
+    let next: "reports" | "clinics" | "growth" | "winner" | null = null;
+    if (score.award?.is_winner && score.all_complete && !seen.has("winner")) next = "winner";
+    else if (score.categories.reports.completed && !seen.has("reports")) next = "reports";
+    else if (score.categories.clinics.completed && !seen.has("clinics")) next = "clinics";
+    else if (score.categories.growth.completed && !seen.has("growth")) next = "growth";
+    if (next) setCelebration(next);
+  }, [profile, dashboard, celebration]);
+
   if (!active) return null;
 
   if (!token || !profile) {
@@ -301,19 +314,6 @@ export function SalesManagerPortal() {
       setBusy(false);
     }
   }
-
-  useEffect(() => {
-    if (!profile || !dashboard?.score || celebration) return;
-    const storageKey = `teta2-sales-score-milestones:${profile.id}`;
-    const seen = new Set<string>(JSON.parse(localStorage.getItem(storageKey) || "[]"));
-    const score = dashboard.score;
-    let next: "reports" | "clinics" | "growth" | "winner" | null = null;
-    if (score.award?.is_winner && score.all_complete && !seen.has("winner")) next = "winner";
-    else if (score.categories.reports.completed && !seen.has("reports")) next = "reports";
-    else if (score.categories.clinics.completed && !seen.has("clinics")) next = "clinics";
-    else if (score.categories.growth.completed && !seen.has("growth")) next = "growth";
-    if (next) setCelebration(next);
-  }, [profile, dashboard, celebration]);
 
   function closeCelebration() {
     if (!profile || !celebration) return;
