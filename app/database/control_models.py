@@ -395,9 +395,7 @@ class SalesEquityAward(Base):
     )
     points_at_award: Mapped[int] = mapped_column(Integer, default=1000)
     equity_percent_bps: Mapped[int] = mapped_column(Integer, default=300)
-    status: Mapped[str] = mapped_column(
-        String(32), default="PENDING_ADMIN_REVIEW", index=True
-    )
+    status: Mapped[str] = mapped_column(String(32), default="PENDING_ADMIN_REVIEW", index=True)
     reached_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, index=True
     )
