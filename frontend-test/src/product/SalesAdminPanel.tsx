@@ -6,10 +6,12 @@ import {
   Clock3,
   CreditCard,
   KeyRound,
+  Lightbulb,
   Plus,
   RefreshCw,
   ShieldCheck,
   Trash2,
+  Trophy,
   UserRound,
   UsersRound,
   X,
@@ -25,6 +27,35 @@ type Balance = {
   pending_withdrawal: number;
   paid_out: number;
   available: number;
+};
+
+type ScoreCategory = {
+  key: string;
+  label: string;
+  points: number;
+  target: number;
+  percent: number;
+  completed: boolean;
+};
+
+type ScoreSummary = {
+  total: number;
+  target: number;
+  percent: number;
+  all_complete: boolean;
+  categories: {
+    reports: ScoreCategory;
+    clinics: ScoreCategory;
+    growth: ScoreCategory;
+  };
+  award?: {
+    id: string;
+    status: string;
+    manager_id: string;
+    reached_at: string;
+    equity_percent: number;
+    is_winner: boolean;
+  } | null;
 };
 
 type Manager = {
@@ -54,6 +85,7 @@ type Manager = {
     commission_events: number;
   };
   balances: Balance[];
+  score: ScoreSummary;
 };
 
 type Withdrawal = {
@@ -135,7 +167,35 @@ type ActivityDetail = {
   }>;
 };
 
-type Mode = "managers" | "withdrawals";
+type GrowthIdeaAdmin = {
+  id: string;
+  manager_id: string;
+  manager_name: string;
+  manager_email?: string | null;
+  title: string;
+  description: string;
+  expected_impact?: string | null;
+  status: string;
+  admin_note?: string | null;
+  submitted_at: string;
+  reviewed_at?: string | null;
+};
+
+type EquityAwardAdmin = {
+  id: string;
+  manager_id: string;
+  manager_name: string;
+  manager_email?: string | null;
+  status: string;
+  points_at_award: number;
+  equity_percent: number;
+  reached_at: string;
+  reviewed_at?: string | null;
+  admin_note?: string | null;
+  score: ScoreSummary;
+};
+
+type Mode = "managers" | "withdrawals" | "ideas" | "award";
 
 function url(path: string) {
   return `${API_BASE_URL}${path}`;
@@ -173,6 +233,8 @@ export function SalesAdminPanel({ token, mode }: { token: string; mode: Mode }) 
   const [managers, setManagers] = useState<Manager[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [attributions, setAttributions] = useState<Attribution[]>([]);
+  const [ideas, setIdeas] = useState<GrowthIdeaAdmin[]>([]);
+  const [award, setAward] = useState<EquityAwardAdmin | null>(null);
   const [selected, setSelected] = useState<Manager | null>(null);
   const [activity, setActivity] = useState<ActivityDetail | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -182,14 +244,18 @@ export function SalesAdminPanel({ token, mode }: { token: string; mode: Mode }) 
   const [busy, setBusy] = useState("");
 
   const load = useCallback(async () => {
-    const [nextManagers, nextWithdrawals, nextAttributions] = await Promise.all([
+    const [nextManagers, nextWithdrawals, nextAttributions, nextIdeas, nextAward] = await Promise.all([
       json<Manager[]>("/api/v1/platform/admin-control/sales-managers", token),
       json<Withdrawal[]>("/api/v1/platform/admin-control/sales-withdrawals", token),
       json<Attribution[]>("/api/v1/platform/admin-control/sales-attributions", token),
+      json<GrowthIdeaAdmin[]>("/api/v1/platform/admin-control/sales-growth-ideas", token),
+      json<{award: EquityAwardAdmin | null}>("/api/v1/platform/admin-control/sales-equity-award", token),
     ]);
     setManagers(nextManagers);
     setWithdrawals(nextWithdrawals);
     setAttributions(nextAttributions);
+    setIdeas(nextIdeas);
+    setAward(nextAward.award);
     setSelected((current) => current ? nextManagers.find((row) => row.id === current.id) ?? null : null);
   }, [token]);
 
@@ -226,6 +292,24 @@ export function SalesAdminPanel({ token, mode }: { token: string; mode: Mode }) 
     }
   }
 
+  if (mode === "ideas") {
+    return <GrowthIdeasAdmin rows={ideas} busy={busy} error={error} refresh={load} approve={async (row) => {
+      const note = window.prompt("Approval note (optional)", row.admin_note || "") ?? "";
+      await mutate(`/api/v1/platform/admin-control/sales-growth-ideas/${row.id}/approve`, {method:"POST",body:JSON.stringify({note})});
+    }} reject={async (row) => {
+      const note = window.prompt("Reason for rejection", row.admin_note || "") ?? "";
+      if (!window.confirm(`Reject idea "${row.title}" from ${row.manager_name}?`)) return;
+      await mutate(`/api/v1/platform/admin-control/sales-growth-ideas/${row.id}/reject`, {method:"POST",body:JSON.stringify({note})});
+    }}/>;
+  }
+
+  if (mode === "award") {
+    return <EquityAwardView award={award} busy={busy} error={error} refresh={load} confirm={async (row) => {
+      const note = window.prompt("Legal / administrative confirmation note (optional)", row.admin_note || "") ?? "";
+      await mutate(`/api/v1/platform/admin-control/sales-equity-award/${row.id}/confirm`, {method:"POST",body:JSON.stringify({note})});
+    }}/>;
+  }
+
   if (mode === "withdrawals") {
     return <WithdrawalsView rows={withdrawals} busy={busy} error={error} confirm={async (row) => {
       const reference = window.prompt("Manual payment reference", row.paid_reference || "")?.trim();
@@ -258,7 +342,7 @@ export function SalesAdminPanel({ token, mode }: { token: string; mode: Mode }) 
 
     <section className="pa3-panel sa-directory">
       <div className="sa-toolbar"><div><small>SALES OPERATIONS</small><h2>Verified sales managers</h2><p>Create, edit, monitor and remove manager access. Historical activity is preserved.</p></div><div><button className="pa3-secondary" onClick={() => void load()}><RefreshCw/> Refresh</button><button className="pa3-primary" onClick={() => setCreateOpen(true)}><Plus/> Add sales manager</button></div></div>
-      <div className="pa3-table-wrap"><table className="pa3-table"><thead><tr><th>Manager</th><th>Status</th><th>Reports</th><th>Clinics</th><th>Logins</th><th>Balance</th><th>Last login</th></tr></thead><tbody>{managers.map((row) => <tr key={row.id} onClick={() => setSelected(row)}><td><div className="sa-manager-cell">{row.photo_url ? <img src={`${API_BASE_URL}${row.photo_url}`} alt=""/> : <span><UserRound/></span>}<div><strong>{row.name}</strong><small>{row.email} · @{row.username}</small></div></div></td><td><span className={`pa3-status pa3-status-${row.is_active ? "active" : "archived"}`}>{row.is_active ? "ACTIVE" : "REMOVED"}</span>{row.is_public && <small>Public verified card</small>}</td><td className="numeric">{row.stats.submitted_reports}</td><td className="numeric">{row.stats.reported_clinics}</td><td className="numeric">{row.stats.login_count}</td><td>{row.balances.length ? row.balances.map((balance) => <small key={balance.currency}>{money(balance.available, balance.currency)}</small>) : "—"}</td><td>{when(row.last_login_at)}</td></tr>)}</tbody></table>{!managers.length && <div className="pa3-empty">No sales managers have been created.</div>}</div>
+      <div className="pa3-table-wrap"><table className="pa3-table"><thead><tr><th>Manager</th><th>Status</th><th>Score</th><th>Reports</th><th>Clinics</th><th>Logins</th><th>Balance</th><th>Last login</th></tr></thead><tbody>{managers.map((row) => <tr key={row.id} onClick={() => setSelected(row)}><td><div className="sa-manager-cell">{row.photo_url ? <img src={`${API_BASE_URL}${row.photo_url}`} alt=""/> : <span><UserRound/></span>}<div><strong>{row.name}</strong><small>{row.email} · @{row.username}</small></div></div></td><td><span className={`pa3-status pa3-status-${row.is_active ? "active" : "archived"}`}>{row.is_active ? "ACTIVE" : "REMOVED"}</span>{row.is_public && <small>Public verified card</small>}</td><td><strong>{row.score.total}/1000</strong><small>{Math.round(row.score.percent)}%</small></td><td className="numeric">{row.stats.submitted_reports}</td><td className="numeric">{row.stats.reported_clinics}</td><td className="numeric">{row.stats.login_count}</td><td>{row.balances.length ? row.balances.map((balance) => <small key={balance.currency}>{money(balance.available, balance.currency)}</small>) : "—"}</td><td>{when(row.last_login_at)}</td></tr>)}</tbody></table>{!managers.length && <div className="pa3-empty">No sales managers have been created.</div>}</div>
     </section>
 
     {pendingAttributions.length > 0 && <AttributionReview rows={pendingAttributions} managers={managers} busy={busy} confirm={async (row, managerId) => {
@@ -268,7 +352,11 @@ export function SalesAdminPanel({ token, mode }: { token: string; mode: Mode }) 
       });
     }}/>}
 
-    {selected && <ManagerDrawer manager={selected} detail={activity} busy={busy} close={() => setSelected(null)} edit={() => setEditOpen(true)} photo={() => setPhotoOpen(true)} reset={async () => {
+    {selected && <ManagerDrawer manager={selected} detail={activity} busy={busy} close={() => setSelected(null)} edit={() => setEditOpen(true)} photo={() => setPhotoOpen(true)} growth={async () => {
+      const note = window.prompt("Describe the manager's verified startup-growth contribution (+10 points)")?.trim();
+      if (!note) return;
+      await mutate(`/api/v1/platform/admin-control/sales-managers/${selected.id}/growth-contribution`, {method:"POST",body:JSON.stringify({note})});
+    }} reset={async () => {
       if (!window.confirm(`Reset password for ${selected.name} and email a new temporary password?`)) return;
       await mutate(`/api/v1/platform/admin-control/sales-managers/${selected.id}/reset-password`, { method: "POST", body: "{}" });
     }} remove={async () => {
@@ -349,20 +437,33 @@ function ReplacePhotoModal({ token, manager, close, saved, setError }: { token: 
   return <Modal title="Replace manager photo" close={close}><div className="sa-form">{manager.photo_url && <img className="sa-photo-preview" src={`${API_BASE_URL}${manager.photo_url}`} alt={manager.name}/>}<label>New verified profile photo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] || null)}/></label><button className="pa3-primary sa-wide" disabled={busy || !photo} onClick={() => void upload()}><Camera/> Replace photo</button></div></Modal>;
 }
 
-function ManagerDrawer({ manager, detail, busy, close, edit, photo, reset, remove }: { manager: Manager; detail: ActivityDetail | null; busy: string; close: () => void; edit: () => void; photo: () => void; reset: () => Promise<void>; remove: () => Promise<void> }) {
+function ManagerDrawer({ manager, detail, busy, close, edit, photo, growth, reset, remove }: { manager: Manager; detail: ActivityDetail | null; busy: string; close: () => void; edit: () => void; photo: () => void; growth: () => Promise<void>; reset: () => Promise<void>; remove: () => Promise<void> }) {
   const [section, setSection] = useState<"overview" | "reports" | "sessions" | "activity">("overview");
   return <div className="pa3-drawer-layer" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}><aside className="pa3-drawer sa-drawer"><header><div><small>SALES MANAGER CONTROL</small><h2>{manager.name}</h2><p>@{manager.username} · {manager.email}</p></div><button onClick={close}><X/></button></header><div className="sa-profile-head">{manager.photo_url ? <img src={`${API_BASE_URL}${manager.photo_url}`} alt={manager.name}/> : <span><UserRound/></span>}<div><strong>{manager.title}</strong><p>{manager.phone || "No phone"} · {manager.is_public ? "Public verified card" : "Hidden from About"}</p></div></div><div className="sa-subnav">{(["overview","reports","sessions","activity"] as const).map((id) => <button className={section === id ? "active" : ""} key={id} onClick={() => setSection(id)}>{id}</button>)}</div>
-    {section === "overview" && <><section><h3>Performance</h3><div className="pa3-detail-grid"><Info title="Reports" value={String(manager.stats.submitted_reports)}/><Info title="Clinics reported" value={String(manager.stats.reported_clinics)}/><Info title="Logins" value={String(manager.stats.login_count)}/><Info title="Commission events" value={String(manager.stats.commission_events)}/><Info title="Last login" value={when(manager.last_login_at)}/><Info title="Last logout" value={when(manager.last_logout_at)}/></div></section><section><h3>Financial ledger</h3><div className="sa-balance-list">{manager.balances.map((row) => <div key={row.currency}><strong>{money(row.available,row.currency)}</strong><span>available</span><small>{money(row.earned,row.currency)} earned · {money(row.paid_out,row.currency)} paid · {money(row.pending_withdrawal,row.currency)} pending</small></div>)}{!manager.balances.length && <p className="pa3-muted">No commission ledger yet.</p>}</div></section></>}
+    {section === "overview" && <><section><h3>1,000-point progress</h3><AdminScoreBars score={manager.score}/></section><section><h3>Performance</h3><div className="pa3-detail-grid"><Info title="Reports" value={String(manager.stats.submitted_reports)}/><Info title="Clinics reported" value={String(manager.stats.reported_clinics)}/><Info title="Logins" value={String(manager.stats.login_count)}/><Info title="Commission events" value={String(manager.stats.commission_events)}/><Info title="Last login" value={when(manager.last_login_at)}/><Info title="Last logout" value={when(manager.last_logout_at)}/></div></section><section><h3>Financial ledger</h3><div className="sa-balance-list">{manager.balances.map((row) => <div key={row.currency}><strong>{money(row.available,row.currency)}</strong><span>available</span><small>{money(row.earned,row.currency)} earned · {money(row.paid_out,row.currency)} paid · {money(row.pending_withdrawal,row.currency)} pending</small></div>)}{!manager.balances.length && <p className="pa3-muted">No commission ledger yet.</p>}</div></section></>}
     {section === "reports" && <section><h3>Permanent daily report history</h3>{detail ? <div className="sa-report-list">{detail.reports.map((report) => <article key={report.id}><div><strong>{report.report_date}</strong><span>{report.status}</span><small>{report.clinics.length} clinic(s)</small></div>{report.summary && <p>{report.summary}</p>}{report.clinics.map((clinic) => <div className="sa-report-clinic" key={clinic.id}><strong>{clinic.clinic_name}</strong><small>{clinic.city}, {clinic.country} · {clinic.outcome_status}</small><p>{clinic.negotiation_result}</p><span>{clinic.email || "No email"} · {clinic.phone || "No phone"}</span></div>)}</article>)}</div> : <Loading/>}</section>}
     {section === "sessions" && <section><h3>Login / logout sessions</h3>{detail ? <div className="sa-session-list">{detail.sessions.map((session) => <article key={session.id}><ShieldCheck/><div><strong>{when(session.started_at)}</strong><span>{session.ended_at ? `Logout ${when(session.ended_at)}` : "Session active / expired without logout"}</span><small>Last seen {when(session.last_seen_at)} · IP hash {session.ip_hash || "—"}</small><code>{session.user_agent || "Unknown user agent"}</code></div></article>)}</div> : <Loading/>}</section>}
     {section === "activity" && <section><h3>Full manager activity trail</h3>{detail ? <div className="sa-activity-list">{detail.activities.map((row) => <article key={row.id}><Activity/><div><strong>{row.action.replaceAll("_"," ")}</strong><span>{row.entity_type || "Manager"} {row.entity_id ? `· ${row.entity_id}` : ""}</span><small>{when(row.created_at)}</small><code>{JSON.stringify(row.details)}</code></div></article>)}</div> : <Loading/>}</section>}
-    <footer><button className="pa3-secondary" disabled={!!busy} onClick={edit}>Edit manager</button><button className="pa3-secondary" disabled={!!busy} onClick={photo}><Camera/> Photo</button><button className="pa3-secondary" disabled={!!busy} onClick={() => void reset()}><KeyRound/> Reset password</button>{manager.is_active && <button className="pa3-danger" disabled={!!busy} onClick={() => void remove()}><Trash2/> Remove access</button>}</footer>
+    <footer><button className="pa3-secondary" disabled={!!busy} onClick={edit}>Edit manager</button><button className="pa3-secondary" disabled={!!busy} onClick={photo}><Camera/> Photo</button><button className="pa3-secondary" disabled={!!busy} onClick={() => void growth()}><Trophy/> +10 growth points</button><button className="pa3-secondary" disabled={!!busy} onClick={() => void reset()}><KeyRound/> Reset password</button>{manager.is_active && <button className="pa3-danger" disabled={!!busy} onClick={() => void remove()}><Trash2/> Remove access</button>}</footer>
   </aside></div>;
 }
 
 function AttributionReview({ rows, managers, busy, confirm }: { rows: Attribution[]; managers: Manager[]; busy: string; confirm: (row: Attribution, managerId: string) => Promise<void> }) {
   const [choices, setChoices] = useState<Record<string,string>>({});
   return <section className="pa3-panel"><div className="sa-toolbar"><div><small>ATTRIBUTION SAFETY QUEUE</small><h2>Clinic ownership review</h2><p>Automatic attribution only credits a unique high-confidence report match. Ambiguous or unmatched clinics stay here until an administrator confirms the manager.</p></div></div><div className="pa3-table-wrap"><table className="pa3-table"><thead><tr><th>Clinic</th><th>Match state</th><th>Evidence</th><th>Assign manager</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td><strong>{row.clinic_name || "Unknown clinic"}</strong><small>{row.access_request_id}</small></td><td><span className={`pa3-status pa3-status-${statusClass(row.status)}`}>{row.status}</span><small>Score {row.match_score}</small></td><td><code>{JSON.stringify(row.match_details)}</code></td><td><div className="sa-assign"><select value={choices[row.id] || ""} onChange={(e) => setChoices((current) => ({...current,[row.id]:e.target.value}))}><option value="">Select manager…</option>{managers.filter((manager) => manager.is_active).map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}</select><button className="pa3-primary" disabled={!!busy || !choices[row.id]} onClick={() => void confirm(row,choices[row.id])}>Confirm</button></div></td></tr>)}</tbody></table></div></section>;
+}
+
+function AdminScoreBars({ score }: { score: ScoreSummary }) {
+  return <div className="sa-score-bars">{Object.values(score.categories).map(item=><div key={item.key} className={item.completed?"complete":""}><span><strong>{item.label}</strong><b>{item.points}/{item.target}</b></span><i><em style={{width:`${Math.min(100,item.percent)}%`}}/></i></div>)}<footer><strong>Total {score.total}/1000</strong><span>{score.award?.is_winner ? `3% award: ${score.award.status}` : score.all_complete ? "All targets complete" : "In progress"}</span></footer></div>;
+}
+
+function GrowthIdeasAdmin({ rows, busy, error, approve, reject, refresh }: { rows: GrowthIdeaAdmin[]; busy: string; error: string; approve: (row: GrowthIdeaAdmin) => Promise<void>; reject: (row: GrowthIdeaAdmin) => Promise<void>; refresh: () => Promise<void> }) {
+  const pending=rows.filter(row=>row.status==="PENDING");
+  return <div className="sa-stack">{error&&<div className="pa3-error">{error}</div>}<section className="pa3-metric-grid pa3-metric-grid-small"><article><span><Lightbulb/></span><small>Pending ideas</small><strong>{pending.length}</strong></article><article><span><Check/></span><small>Approved</small><strong>{rows.filter(r=>r.status==="APPROVED").length}</strong></article><article><span><X/></span><small>Rejected</small><strong>{rows.filter(r=>r.status==="REJECTED").length}</strong></article></section><section className="pa3-panel"><div className="sa-toolbar"><div><small>SALES MANAGER IDEAS</small><h2>Product & growth proposals</h2><p>Approve only concrete contributions. Approval automatically adds 10 points to the manager's 130-point growth target.</p></div><button className="pa3-secondary" onClick={()=>void refresh()}><RefreshCw/> Refresh</button></div><div className="sa-idea-admin-list">{rows.map(row=><article key={row.id}><header><div><strong>{row.title}</strong><span>{row.manager_name} · {row.manager_email}</span></div><span className={`pa3-status pa3-status-${statusClass(row.status)}`}>{row.status}</span></header><p>{row.description}</p>{row.expected_impact&&<div><small>Expected impact</small><p>{row.expected_impact}</p></div>}<footer><span>{when(row.submitted_at)}</span>{row.admin_note&&<b>{row.admin_note}</b>}{row.status==="PENDING"&&<div className="sa-actions"><button className="pa3-primary" disabled={!!busy} onClick={()=>void approve(row)}><Check/> Approve +10</button><button className="pa3-danger" disabled={!!busy} onClick={()=>void reject(row)}><X/> Reject</button></div>}</footer></article>)}{!rows.length&&<div className="pa3-empty">No growth ideas submitted yet.</div>}</div></section></div>;
+}
+
+function EquityAwardView({ award, busy, error, confirm, refresh }: { award: EquityAwardAdmin | null; busy: string; error: string; confirm: (row: EquityAwardAdmin) => Promise<void>; refresh: () => Promise<void> }) {
+  return <div className="sa-stack">{error&&<div className="pa3-error">{error}</div>}<section className="pa3-panel sa-equity-panel"><div className="sa-toolbar"><div><small>FIRST TO 1,000</small><h2>3% equity award review</h2><p>The platform records only the first manager to complete all three category targets. Legal ownership transfer remains subject to administrator confirmation and legal documentation.</p></div><button className="pa3-secondary" onClick={()=>void refresh()}><RefreshCw/> Refresh</button></div>{award?<div className="sa-equity-winner"><Trophy/><div><small>RECORDED WINNER</small><h3>{award.manager_name}</h3><p>{award.manager_email} · reached 1,000 points {when(award.reached_at)}</p><AdminScoreBars score={award.score}/><div className="sa-equity-status"><span>Equity award</span><strong>{award.equity_percent}%</strong><span>Status</span><strong>{award.status.replaceAll("_"," ")}</strong></div>{award.status!=="CONFIRMED"&&<button className="pa3-primary" disabled={!!busy} onClick={()=>void confirm(award)}><Check/> Confirm administrator review</button>}{award.admin_note&&<div className="pa3-note">{award.admin_note}</div>}</div></div>:<div className="pa3-empty"><Trophy/><span>No manager has completed all three targets yet.</span></div>}</section></div>;
 }
 
 function WithdrawalsView({ rows, busy, error, confirm, reject, refresh }: { rows: Withdrawal[]; busy: string; error: string; confirm: (row: Withdrawal) => Promise<void>; reject: (row: Withdrawal) => Promise<void>; refresh: () => Promise<void> }) {

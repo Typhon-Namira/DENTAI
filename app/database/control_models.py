@@ -341,3 +341,65 @@ class SalesWithdrawalRequest(Base):
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     paid_reference: Mapped[str | None] = mapped_column(String(200))
     admin_note: Mapped[str | None] = mapped_column(Text)
+
+
+class SalesGrowthIdea(Base):
+    __tablename__ = "platform_sales_growth_ideas"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    manager_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("platform_sales_managers.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(180))
+    description: Mapped[str] = mapped_column(Text)
+    expected_impact: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(24), default="PENDING", index=True)
+    admin_note: Mapped[str | None] = mapped_column(Text)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class SalesScoreEvent(Base):
+    __tablename__ = "platform_sales_score_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_type",
+            "source_id",
+            "category",
+            name="uq_sales_score_event_source_category",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    manager_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("platform_sales_managers.id", ondelete="RESTRICT"), index=True
+    )
+    category: Mapped[str] = mapped_column(String(32), index=True)
+    points: Mapped[int] = mapped_column(Integer)
+    source_type: Mapped[str] = mapped_column(String(40), index=True)
+    source_id: Mapped[str] = mapped_column(String(100), index=True)
+    description: Mapped[str] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
+
+
+class SalesEquityAward(Base):
+    __tablename__ = "platform_sales_equity_awards"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    award_key: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    manager_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("platform_sales_managers.id", ondelete="RESTRICT"), index=True
+    )
+    points_at_award: Mapped[int] = mapped_column(Integer, default=1000)
+    equity_percent_bps: Mapped[int] = mapped_column(Integer, default=300)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING_ADMIN_REVIEW", index=True)
+    reached_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    admin_note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -12,6 +12,7 @@ import {
   Gift,
   HeartPulse,
   KeyRound,
+  Lightbulb,
   LockKeyhole,
   Mail,
   MessageCircle,
@@ -21,6 +22,7 @@ import {
   Search,
   ShieldCheck,
   Trash2,
+  Trophy,
   UserRound,
   UsersRound,
   X,
@@ -195,6 +197,8 @@ type AdminTab =
   | "payments"
   | "requests"
   | "sales"
+  | "sales-ideas"
+  | "sales-award"
   | "sales-payouts"
   | "traffic"
   | "health"
@@ -431,6 +435,8 @@ export function PlatformAdminControlCenter() {
     ["payments", "Payments & revenue", CircleDollarSign, dashboard?.payments.verified_count],
     ["requests", "Access requests", Mail, dashboard?.summary.pending_requests],
     ["sales", "Sales managers", UsersRound, undefined],
+    ["sales-ideas", "Growth ideas", Lightbulb, undefined],
+    ["sales-award", "3% equity award", Trophy, undefined],
     ["sales-payouts", "Sales payouts", CreditCard, undefined],
     ["traffic", "Traffic", BarChart3, undefined],
     ["health", "System health", HeartPulse, platformOverview?.metrics.emails_failed_100],
@@ -473,6 +479,8 @@ export function PlatformAdminControlCenter() {
         {tab === "payments" && <Payments dashboard={dashboard} />}
         {tab === "requests" && <Requests rows={requests} selected={selectedRequest} setSelected={setSelectedRequest} token={token} busy={busy} mutate={mutate} />}
         {tab === "sales" && <SalesAdminPanel token={token} mode="managers" />}
+        {tab === "sales-ideas" && <SalesAdminPanel token={token} mode="ideas" />}
+        {tab === "sales-award" && <SalesAdminPanel token={token} mode="award" />}
         {tab === "sales-payouts" && <SalesAdminPanel token={token} mode="withdrawals" />}
         {tab === "traffic" && <Traffic dashboard={dashboard} />}
         {tab === "health" && <SystemHealth overview={platformOverview} dashboard={dashboard} />}

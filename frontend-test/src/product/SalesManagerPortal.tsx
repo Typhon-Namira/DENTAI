@@ -6,13 +6,17 @@ import {
   ClipboardList,
   CreditCard,
   History,
+  Lightbulb,
   LogOut,
   Plus,
   RefreshCw,
   Save,
   Send,
   ShieldCheck,
+  Sparkles,
+  Target,
   Trash2,
+  Trophy,
   UserRound,
   WalletCards,
   X,
@@ -72,6 +76,49 @@ type Withdrawal = {
   admin_note?: string | null;
 };
 
+type ScoreCategory = {
+  key: string;
+  label: string;
+  points: number;
+  raw_points: number;
+  target: number;
+  unit_points: number;
+  completed: boolean;
+  percent: number;
+};
+
+type ScoreSummary = {
+  total: number;
+  target: number;
+  percent: number;
+  all_complete: boolean;
+  categories: {
+    reports: ScoreCategory;
+    clinics: ScoreCategory;
+    growth: ScoreCategory;
+  };
+  award?: {
+    id: string;
+    status: string;
+    manager_id: string;
+    reached_at: string;
+    equity_percent: number;
+    is_winner: boolean;
+    whatsapp: string;
+  } | null;
+};
+
+type GrowthIdea = {
+  id: string;
+  title: string;
+  description: string;
+  expected_impact?: string | null;
+  status: string;
+  admin_note?: string | null;
+  submitted_at: string;
+  reviewed_at?: string | null;
+};
+
 type Dashboard = {
   manager: ManagerProfile;
   summary: {
@@ -80,6 +127,7 @@ type Dashboard = {
     commission_events: number;
     today_report_status: string;
   };
+  score: ScoreSummary;
   balances: Balance[];
   recent_commissions: Commission[];
   withdrawals: Withdrawal[];
@@ -112,7 +160,7 @@ type DailyReport = {
   clinics: ReportClinic[];
 };
 
-type Tab = "overview" | "report" | "history" | "earnings" | "payout";
+type Tab = "overview" | "report" | "history" | "ideas" | "earnings" | "payout";
 
 function apiUrl(path: string) {
   return `${API_BASE_URL}${path}`;
@@ -172,7 +220,9 @@ export function SalesManagerPortal() {
   const [profile, setProfile] = useState<ManagerProfile | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [reports, setReports] = useState<DailyReport[]>([]);
+  const [ideas, setIdeas] = useState<GrowthIdea[]>([]);
   const [tab, setTab] = useState<Tab>("overview");
+  const [celebration, setCelebration] = useState<"reports" | "clinics" | "growth" | "winner" | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -194,14 +244,16 @@ export function SalesManagerPortal() {
   }, [active]);
 
   const load = useCallback(async (sessionToken: string) => {
-    const [me, nextDashboard, nextReports] = await Promise.all([
+    const [me, nextDashboard, nextReports, nextIdeas] = await Promise.all([
       requestJson<ManagerProfile>("/api/v1/platform/sales-managers/me", sessionToken),
       requestJson<Dashboard>("/api/v1/platform/sales-managers/dashboard", sessionToken),
       requestJson<DailyReport[]>("/api/v1/platform/sales-managers/reports", sessionToken),
+      requestJson<GrowthIdea[]>("/api/v1/platform/sales-managers/ideas", sessionToken),
     ]);
     setProfile(me);
     setDashboard(nextDashboard);
     setReports(nextReports);
+    setIdeas(nextIdeas);
     setError("");
   }, []);
 
@@ -236,6 +288,7 @@ export function SalesManagerPortal() {
     setProfile(null);
     setDashboard(null);
     setReports([]);
+    setIdeas([]);
   }
 
   async function reload() {
@@ -247,6 +300,28 @@ export function SalesManagerPortal() {
     } finally {
       setBusy(false);
     }
+  }
+
+  useEffect(() => {
+    if (!profile || !dashboard?.score || celebration) return;
+    const storageKey = `teta2-sales-score-milestones:${profile.id}`;
+    const seen = new Set<string>(JSON.parse(localStorage.getItem(storageKey) || "[]"));
+    const score = dashboard.score;
+    let next: "reports" | "clinics" | "growth" | "winner" | null = null;
+    if (score.award?.is_winner && score.all_complete && !seen.has("winner")) next = "winner";
+    else if (score.categories.reports.completed && !seen.has("reports")) next = "reports";
+    else if (score.categories.clinics.completed && !seen.has("clinics")) next = "clinics";
+    else if (score.categories.growth.completed && !seen.has("growth")) next = "growth";
+    if (next) setCelebration(next);
+  }, [profile, dashboard, celebration]);
+
+  function closeCelebration() {
+    if (!profile || !celebration) return;
+    const storageKey = `teta2-sales-score-milestones:${profile.id}`;
+    const seen = new Set<string>(JSON.parse(localStorage.getItem(storageKey) || "[]"));
+    seen.add(celebration);
+    localStorage.setItem(storageKey, JSON.stringify([...seen]));
+    setCelebration(null);
   }
 
   if (profile.must_change_password) {
@@ -261,6 +336,7 @@ export function SalesManagerPortal() {
     ["overview", "Overview", Activity],
     ["report", "Daily report", ClipboardList],
     ["history", "Activity history", History],
+    ["ideas", "Growth ideas", Lightbulb],
     ["earnings", "Commissions", Banknote],
     ["payout", "Payouts", WalletCards],
   ];
@@ -278,9 +354,11 @@ export function SalesManagerPortal() {
       {tab === "overview" && <Overview dashboard={dashboard} setTab={setTab}/>}
       {tab === "report" && <ReportEditor token={token} reports={reports} onSaved={reload}/>}
       {tab === "history" && <ReportHistory reports={reports}/>}
+      {tab === "ideas" && <GrowthIdeas token={token} ideas={ideas} onSaved={reload}/>}
       {tab === "earnings" && <Earnings dashboard={dashboard}/>}
       {tab === "payout" && <Payouts token={token} dashboard={dashboard} profile={profile} onSaved={reload}/>}
     </section>
+    {celebration && dashboard && <MilestoneModal kind={celebration} score={dashboard.score} close={closeCelebration}/>}
   </main>;
 }
 
@@ -361,10 +439,51 @@ function Overview({ dashboard, setTab }: { dashboard: Dashboard | null; setTab: 
     ["Today's report", dashboard.summary.today_report_status.replaceAll("_", " "), Check],
   ] as const;
   return <div className="sm-stack">
+    <ScoreProgress score={dashboard.score}/>
     <section className="sm-metrics">{cards.map(([title, value, Icon]) => <article key={title}><Icon/><small>{title}</small><strong>{value}</strong></article>)}</section>
     <section className="sm-panel"><div className="sm-panel-head"><div><small>AVAILABLE TO WITHDRAW</small><h2>Commission balance</h2></div><button className="sm-secondary" onClick={() => setTab("payout")}>Open payouts</button></div><div className="sm-balance-grid">{dashboard.balances.length ? dashboard.balances.map((balance) => <article key={balance.currency}><span>{balance.currency}</span><strong>{money(balance.available, balance.currency)}</strong><small>Earned {money(balance.earned, balance.currency)} · Paid {money(balance.paid_out, balance.currency)}</small></article>) : <p className="sm-muted">No verified commission has been credited yet.</p>}</div></section>
     <section className="sm-panel"><div className="sm-panel-head"><div><small>DAILY DISCIPLINE</small><h2>Today's clinic report</h2></div><button className="sm-primary" onClick={() => setTab("report")}><ClipboardList/> {dashboard.summary.today_report_status === "SUBMITTED" ? "View report" : "Complete report"}</button></div><p className="sm-muted">Record every clinic conversation, the negotiation result and the next step. Submitted reports are preserved as the attribution record.</p></section>
   </div>;
+}
+
+function ScoreProgress({ score }: { score: ScoreSummary }) {
+  const rows: Array<[keyof ScoreSummary["categories"], string, string]> = [
+    ["reports", "Daily reporting", "3 points per submitted daily report · 270 target"],
+    ["clinics", "Paid clinic growth", "30 points per newly attributed clinic with verified first subscription · 600 target"],
+    ["growth", "Startup growth participation", "10 points per approved idea or administrator-awarded contribution · 130 target"],
+  ];
+  return <section className="sm-panel sm-score-panel">
+    <div className="sm-score-head"><div><small>ROAD TO 1,000</small><h2>Senior Business Manager challenge</h2><p>All three targets must be completed. Extra points in one category cannot replace another category.</p></div><div className="sm-score-total"><Target/><strong>{score.total}</strong><span>/ {score.target}</span></div></div>
+    <div className="sm-score-bars">{rows.map(([key,title,help]) => { const item=score.categories[key]; return <article key={key} className={item.completed ? "complete" : ""}><div><strong>{title}</strong><span>{item.points} / {item.target} points</span></div><div className="sm-progress-track"><i style={{width:`${Math.min(100,item.percent)}%`}}/></div><small>{help}</small>{item.completed && <b><Check/> Target completed</b>}</article>; })}</div>
+    <div className="sm-score-footer"><span><Trophy/> Total progress {score.total}/1000</span><strong>{Math.round(score.percent)}%</strong></div>
+  </section>;
+}
+
+function GrowthIdeas({ token, ideas, onSaved }: { token: string; ideas: GrowthIdea[]; onSaved: () => Promise<void> }) {
+  const [title,setTitle]=useState("");
+  const [description,setDescription]=useState("");
+  const [impact,setImpact]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [message,setMessage]=useState("");
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true); setMessage("");
+    try {
+      await requestJson("/api/v1/platform/sales-managers/ideas", token, {method:"POST",body:JSON.stringify({title:title.trim(),description:description.trim(),expected_impact:impact.trim()||null})});
+      setTitle(""); setDescription(""); setImpact("");
+      setMessage("Idea submitted for administrator review.");
+      await onSaved();
+    } catch(reason) { setMessage(reason instanceof Error ? reason.message : "Could not submit idea"); }
+    finally { setBusy(false); }
+  }
+  return <div className="sm-stack"><section className="sm-panel"><div className="sm-panel-head"><div><small>PRODUCT & GROWTH</small><h2>Propose a growth idea</h2></div><span className="sm-pill">+10 points if approved</span></div><p className="sm-muted">Submit a concrete idea that can improve Teta2's product, sales process, partnerships, retention or market growth. Points are awarded only after platform administration approves it.</p><form className="sm-idea-form" onSubmit={submit}><label className="sm-field">Idea title<input required minLength={3} maxLength={180} value={title} onChange={e=>setTitle(e.target.value)}/></label><label className="sm-field">Proposal<textarea required minLength={10} rows={5} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Explain the problem, your proposed improvement and how it should work."/></label><label className="sm-field">Expected impact<textarea rows={3} value={impact} onChange={e=>setImpact(e.target.value)} placeholder="Expected business or product impact."/></label>{message&&<div className="sm-note">{message}</div>}<button className="sm-primary" disabled={busy}><Send/> {busy?"Submitting…":"Submit idea for review"}</button></form></section><section className="sm-panel"><div className="sm-panel-head"><div><small>REVIEW HISTORY</small><h2>Your proposals</h2></div><b>{ideas.length}</b></div><div className="sm-idea-list">{ideas.map(row=><article key={row.id}><div><strong>{row.title}</strong><span className={`sm-idea-status ${row.status.toLowerCase()}`}>{row.status}</span></div><p>{row.description}</p>{row.expected_impact&&<small>Impact: {row.expected_impact}</small>}<footer><span>{stamp(row.submitted_at)}</span>{row.admin_note&&<b>Admin: {row.admin_note}</b>}</footer></article>)}{!ideas.length&&<p className="sm-muted">No growth ideas submitted yet.</p>}</div></section></div>;
+}
+
+function MilestoneModal({ kind, score, close }: { kind: "reports"|"clinics"|"growth"|"winner"; score: ScoreSummary; close: () => void }) {
+  const remaining = Object.values(score.categories).filter(item=>!item.completed).map(item=>item.label);
+  const copy = kind==="reports" ? ["Daily reporting target complete","You reached 270/270 reporting points."] : kind==="clinics" ? ["Paid clinic target complete","You reached 600/600 clinic growth points."] : kind==="growth" ? ["Growth participation target complete","You reached 130/130 growth participation points."] : ["1,000-point challenge completed","You are the first sales manager recorded by Teta2 to complete all three performance targets."];
+  const whatsappText=encodeURIComponent("Hello Teta2, I completed the 1,000-point Sales Manager challenge. I am contacting you to continue the legal process for the 3% equity award and Senior Business Manager role.");
+  return <div className={`sm-milestone-layer ${kind==="winner"?"winner":""}`}><div className="sm-light-burst"/><section className="sm-milestone-card"><div className="sm-milestone-icon">{kind==="winner"?<Trophy/>:<Sparkles/>}</div><small>{kind==="winner"?"TETA2 MILESTONE":"TARGET COMPLETED"}</small><h2>{copy[0]}</h2><p>{copy[1]}</p>{kind==="winner" ? <><div className="sm-equity-callout"><strong>3% equity award · pending legal transfer and administrator confirmation</strong><span>Your performance target has been recorded. Contact Teta2 on WhatsApp to begin the legal ownership-transfer process.</span></div><a className="sm-primary sm-whatsapp" href={`https://wa.me/37493700251?text=${whatsappText}`} target="_blank" rel="noreferrer">Message +374 93 700251 on WhatsApp</a></> : <div className="sm-next-targets"><strong>Keep going.</strong><span>{remaining.length ? `Remaining target${remaining.length>1?"s":""}: ${remaining.join(", ")}.` : "All category targets are complete."}</span></div>}<button className="sm-secondary" onClick={close}>Continue</button></section></div>;
 }
 
 function ReportEditor({ token, reports, onSaved }: { token: string; reports: DailyReport[]; onSaved: () => Promise<void> }) {

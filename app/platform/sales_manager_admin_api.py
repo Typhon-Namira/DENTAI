@@ -17,6 +17,8 @@ from app.database.control_models import (
     PlatformAdminAudit,
     SalesCommission,
     SalesDailyReport,
+    SalesEquityAward,
+    SalesGrowthIdea,
     SalesManager,
     SalesManagerActivity,
     SalesManagerSession,
@@ -29,10 +31,14 @@ from app.database.sessions import control_session
 from app.platform.api import require_platform_admin
 from app.platform.sales_manager_service import (
     COMMISSION_RATE_BPS,
+    EQUITY_AWARD_KEY,
+    SCORE_GROWTH_POINTS,
+    add_score_event,
     confirm_attribution,
     create_commission_for_payment,
     decrypt_bank_card,
     manager_balances,
+    sales_score_summary,
 )
 from app.platform.service import (
     platform_settings,
@@ -74,6 +80,18 @@ class PaidRenewal(BaseModel):
     amount: int = Field(gt=0, le=1_000_000_000)
     currency: str = Field(min_length=2, max_length=12)
     reference: str = Field(min_length=2, max_length=200)
+
+
+class GrowthIdeaDecision(BaseModel):
+    note: str | None = Field(default=None, max_length=3000)
+
+
+class GrowthContributionCreate(BaseModel):
+    note: str = Field(min_length=3, max_length=3000)
+
+
+class EquityAwardConfirm(BaseModel):
+    note: str | None = Field(default=None, max_length=3000)
 
 
 def _valid_photo_signature(content_type: str, data: bytes) -> bool:
@@ -199,8 +217,225 @@ async def list_sales_managers(db: Annotated[AsyncSession, Depends(control_sessio
         payload = _manager_payload(row)
         payload["stats"] = await _manager_stats(db, row.id)
         payload["balances"] = await manager_balances(db, row.id)
+        payload["score"] = await sales_score_summary(db, row.id)
         result.append(payload)
+    await db.commit()
     return result
+
+
+@router.get("/sales-growth-ideas", dependencies=[Depends(require_platform_admin)])
+async def list_sales_growth_ideas(db: Annotated[AsyncSession, Depends(control_session)]):
+    rows = list(
+        (
+            await db.scalars(
+                select(SalesGrowthIdea).order_by(SalesGrowthIdea.submitted_at.desc()).limit(1000)
+            )
+        ).all()
+    )
+    manager_ids = {row.manager_id for row in rows}
+    managers = (
+        {
+            row.id: row
+            for row in (
+                await db.scalars(select(SalesManager).where(SalesManager.id.in_(manager_ids)))
+            ).all()
+        }
+        if manager_ids
+        else {}
+    )
+    return [
+        {
+            "id": str(row.id),
+            "manager_id": str(row.manager_id),
+            "manager_name": (
+                f"{managers[row.manager_id].first_name} {managers[row.manager_id].last_name}".strip()
+                if row.manager_id in managers
+                else "Unknown manager"
+            ),
+            "manager_email": managers[row.manager_id].email if row.manager_id in managers else None,
+            "title": row.title,
+            "description": row.description,
+            "expected_impact": row.expected_impact,
+            "status": row.status,
+            "admin_note": row.admin_note,
+            "submitted_at": row.submitted_at,
+            "reviewed_at": row.reviewed_at,
+        }
+        for row in rows
+    ]
+
+
+@router.post(
+    "/sales-growth-ideas/{idea_id}/approve",
+    dependencies=[Depends(require_platform_admin)],
+)
+async def approve_sales_growth_idea(
+    idea_id: uuid.UUID,
+    body: GrowthIdeaDecision,
+    db: Annotated[AsyncSession, Depends(control_session)],
+):
+    row = await db.get(SalesGrowthIdea, idea_id)
+    if not row:
+        raise AppError("SALES_GROWTH_IDEA_NOT_FOUND", "Growth idea was not found.", 404)
+    if row.status != "PENDING":
+        raise AppError("SALES_GROWTH_IDEA_FINAL", "This idea has already been reviewed.", 409)
+    now = datetime.now(UTC)
+    row.status = "APPROVED"
+    row.admin_note = body.note.strip() if body.note else None
+    row.reviewed_at = now
+    row.updated_at = now
+    await add_score_event(
+        db,
+        manager_id=row.manager_id,
+        category="GROWTH",
+        points=SCORE_GROWTH_POINTS,
+        source_type="APPROVED_IDEA",
+        source_id=str(row.id),
+        description=f"Approved product growth idea: {row.title}",
+    )
+    score = await sales_score_summary(db, row.manager_id)
+    await _audit(
+        db,
+        action="SALES_GROWTH_IDEA_APPROVED",
+        target_type="SALES_GROWTH_IDEA",
+        target_id=str(row.id),
+        details={"manager_id": str(row.manager_id), "points": SCORE_GROWTH_POINTS},
+    )
+    await db.commit()
+    return {"approved": True, "score": score}
+
+
+@router.post(
+    "/sales-growth-ideas/{idea_id}/reject",
+    dependencies=[Depends(require_platform_admin)],
+)
+async def reject_sales_growth_idea(
+    idea_id: uuid.UUID,
+    body: GrowthIdeaDecision,
+    db: Annotated[AsyncSession, Depends(control_session)],
+):
+    row = await db.get(SalesGrowthIdea, idea_id)
+    if not row:
+        raise AppError("SALES_GROWTH_IDEA_NOT_FOUND", "Growth idea was not found.", 404)
+    if row.status != "PENDING":
+        raise AppError("SALES_GROWTH_IDEA_FINAL", "This idea has already been reviewed.", 409)
+    now = datetime.now(UTC)
+    row.status = "REJECTED"
+    row.admin_note = body.note.strip() if body.note else None
+    row.reviewed_at = now
+    row.updated_at = now
+    await _audit(
+        db,
+        action="SALES_GROWTH_IDEA_REJECTED",
+        target_type="SALES_GROWTH_IDEA",
+        target_id=str(row.id),
+        details={"manager_id": str(row.manager_id)},
+    )
+    await db.commit()
+    return {"rejected": True}
+
+
+@router.post(
+    "/sales-managers/{manager_id}/growth-contribution",
+    dependencies=[Depends(require_platform_admin)],
+)
+async def add_sales_growth_contribution(
+    manager_id: uuid.UUID,
+    body: GrowthContributionCreate,
+    db: Annotated[AsyncSession, Depends(control_session)],
+):
+    manager = await db.get(SalesManager, manager_id)
+    if not manager or not manager.is_active:
+        raise AppError("SALES_MANAGER_NOT_FOUND", "Active sales manager was not found.", 404)
+    source_id = str(uuid.uuid4())
+    await add_score_event(
+        db,
+        manager_id=manager.id,
+        category="GROWTH",
+        points=SCORE_GROWTH_POINTS,
+        source_type="ADMIN_GROWTH_CONTRIBUTION",
+        source_id=source_id,
+        description=body.note.strip(),
+    )
+    score = await sales_score_summary(db, manager.id)
+    await _audit(
+        db,
+        action="SALES_GROWTH_CONTRIBUTION_AWARDED",
+        target_type="SALES_MANAGER",
+        target_id=str(manager.id),
+        details={
+            "points": SCORE_GROWTH_POINTS,
+            "note": body.note.strip(),
+            "source_id": source_id,
+        },
+    )
+    await db.commit()
+    return {"awarded": True, "points": SCORE_GROWTH_POINTS, "score": score}
+
+
+@router.get("/sales-equity-award", dependencies=[Depends(require_platform_admin)])
+async def sales_equity_award(db: Annotated[AsyncSession, Depends(control_session)]):
+    award = await db.scalar(
+        select(SalesEquityAward).where(SalesEquityAward.award_key == EQUITY_AWARD_KEY)
+    )
+    if not award:
+        return {"award": None}
+    manager = await db.get(SalesManager, award.manager_id)
+    score = await sales_score_summary(db, award.manager_id)
+    await db.commit()
+    return {
+        "award": {
+            "id": str(award.id),
+            "manager_id": str(award.manager_id),
+            "manager_name": (
+                f"{manager.first_name} {manager.last_name}".strip()
+                if manager
+                else "Unknown manager"
+            ),
+            "manager_email": manager.email if manager else None,
+            "status": award.status,
+            "points_at_award": award.points_at_award,
+            "equity_percent": award.equity_percent_bps / 100,
+            "reached_at": award.reached_at,
+            "reviewed_at": award.reviewed_at,
+            "admin_note": award.admin_note,
+            "score": score,
+        }
+    }
+
+
+@router.post(
+    "/sales-equity-award/{award_id}/confirm",
+    dependencies=[Depends(require_platform_admin)],
+)
+async def confirm_sales_equity_award(
+    award_id: uuid.UUID,
+    body: EquityAwardConfirm,
+    db: Annotated[AsyncSession, Depends(control_session)],
+):
+    row = await db.get(SalesEquityAward, award_id)
+    if not row:
+        raise AppError("SALES_EQUITY_AWARD_NOT_FOUND", "Equity award was not found.", 404)
+    row.status = "CONFIRMED"
+    row.reviewed_at = datetime.now(UTC)
+    row.admin_note = body.note.strip() if body.note else None
+    row.updated_at = datetime.now(UTC)
+    manager = await db.get(SalesManager, row.manager_id)
+    if manager:
+        manager.title = "Senior Business Manager"
+        manager.updated_at = datetime.now(UTC)
+    await _audit(
+        db,
+        action="SALES_EQUITY_AWARD_CONFIRMED",
+        target_type="SALES_EQUITY_AWARD",
+        target_id=str(row.id),
+        details={
+            "manager_id": str(row.manager_id),
+            "equity_percent": row.equity_percent_bps / 100,
+        },
+    )
+    await db.commit()
+    return {"confirmed": True}
 
 
 @router.post("/sales-managers", dependencies=[Depends(require_platform_admin)], status_code=201)
