@@ -15,6 +15,7 @@ from app.core.rate_limit import sensitive_limit
 from app.database.control_models import (
     SalesCommission,
     SalesDailyReport,
+    SalesGrowthIdea,
     SalesManager,
     SalesReportClinic,
     SalesWithdrawalRequest,
@@ -28,12 +29,15 @@ from app.platform.sales_manager_auth import (
     require_sales_manager,
 )
 from app.platform.sales_manager_service import (
+    SCORE_REPORT_POINTS,
+    add_score_event,
     encrypt_bank_card,
     manager_balances,
     normalize_email,
     normalize_name,
     normalize_phone,
     normalize_website,
+    sales_score_summary,
 )
 from app.storage.providers import LocalStorageProvider, storage_provider
 
@@ -88,6 +92,12 @@ class DailyReportUpsert(BaseModel):
 class WithdrawalCreate(BaseModel):
     amount: int = Field(gt=0, le=1_000_000_000)
     currency: str = Field(min_length=2, max_length=12)
+
+
+class GrowthIdeaCreate(BaseModel):
+    title: str = Field(min_length=3, max_length=180)
+    description: str = Field(min_length=10, max_length=8000)
+    expected_impact: str | None = Field(default=None, max_length=4000)
 
 
 def _manager_payload(manager: SalesManager) -> dict:
@@ -309,6 +319,7 @@ async def manager_dashboard(ctx: Annotated[SalesManagerContext, Depends(require_
             SalesDailyReport.report_date == date.today(),
         )
     )
+    score = await sales_score_summary(db, ctx.manager.id)
     await record_sales_activity(ctx, action="DASHBOARD_VIEWED")
     await db.commit()
     return {
@@ -319,6 +330,7 @@ async def manager_dashboard(ctx: Annotated[SalesManagerContext, Depends(require_
             "commission_events": commission_count,
             "today_report_status": today_report.status if today_report else "NOT_STARTED",
         },
+        "score": score,
         "balances": await manager_balances(db, ctx.manager.id),
         "recent_commissions": [
             {
@@ -455,6 +467,16 @@ async def manager_upsert_report(
     if body.submit:
         row.status = "SUBMITTED"
         row.submitted_at = now
+        await add_score_event(
+            db,
+            manager_id=ctx.manager.id,
+            category="REPORTS",
+            points=SCORE_REPORT_POINTS,
+            source_type="DAILY_REPORT",
+            source_id=str(row.id),
+            description=f"Submitted daily sales report for {report_date.isoformat()}",
+        )
+        await sales_score_summary(db, ctx.manager.id)
     await record_sales_activity(
         ctx,
         action="REPORT_SUBMITTED" if body.submit else "REPORT_SAVED",
@@ -465,6 +487,75 @@ async def manager_upsert_report(
     await db.commit()
     await db.refresh(row)
     return await _report_payload(db, row)
+
+
+@router.get("/ideas")
+async def manager_growth_ideas(
+    ctx: Annotated[SalesManagerContext, Depends(require_sales_manager)],
+):
+    rows = list(
+        (
+            await ctx.db.scalars(
+                select(SalesGrowthIdea)
+                .where(SalesGrowthIdea.manager_id == ctx.manager.id)
+                .order_by(SalesGrowthIdea.submitted_at.desc())
+            )
+        ).all()
+    )
+    await record_sales_activity(ctx, action="GROWTH_IDEAS_VIEWED")
+    await ctx.db.commit()
+    return [
+        {
+            "id": str(row.id),
+            "title": row.title,
+            "description": row.description,
+            "expected_impact": row.expected_impact,
+            "status": row.status,
+            "admin_note": row.admin_note,
+            "submitted_at": row.submitted_at,
+            "reviewed_at": row.reviewed_at,
+        }
+        for row in rows
+    ]
+
+
+@router.post("/ideas", status_code=201)
+async def submit_growth_idea(
+    body: GrowthIdeaCreate,
+    ctx: Annotated[SalesManagerContext, Depends(require_sales_manager)],
+):
+    now = datetime.now(UTC)
+    row = SalesGrowthIdea(
+        manager_id=ctx.manager.id,
+        title=body.title.strip(),
+        description=body.description.strip(),
+        expected_impact=body.expected_impact.strip() if body.expected_impact else None,
+        status="PENDING",
+        submitted_at=now,
+        created_at=now,
+        updated_at=now,
+    )
+    ctx.db.add(row)
+    await ctx.db.flush()
+    await record_sales_activity(
+        ctx,
+        action="GROWTH_IDEA_SUBMITTED",
+        entity_type="GROWTH_IDEA",
+        entity_id=str(row.id),
+        details={"title": row.title},
+    )
+    await ctx.db.commit()
+    await ctx.db.refresh(row)
+    return {
+        "id": str(row.id),
+        "title": row.title,
+        "description": row.description,
+        "expected_impact": row.expected_impact,
+        "status": row.status,
+        "admin_note": row.admin_note,
+        "submitted_at": row.submitted_at,
+        "reviewed_at": row.reviewed_at,
+    }
 
 
 @router.get("/withdrawals")
