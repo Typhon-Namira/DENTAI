@@ -176,7 +176,15 @@ async function requestJson<T>(path: string, token?: string, init?: RequestInit):
     },
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body?.error?.message || body?.detail || "Request failed");
+  if (!response.ok) {
+    const detail = body?.error?.message ?? body?.detail;
+    const message = Array.isArray(detail)
+      ? detail.map((item: { loc?: (string | number)[]; msg?: string }) =>
+          `${(item.loc || []).filter((part) => part !== "body").join(".") || "Input"}: ${item.msg || "Invalid value"}`
+        ).join("; ")
+      : typeof detail === "string" ? detail : "Request failed";
+    throw new Error(message);
+  }
   return body as T;
 }
 
@@ -506,6 +514,15 @@ function ReportEditor({ token, reports, onSaved }: { token: string; reports: Dai
   }
 
   async function save(submit: boolean) {
+    if (busy) return;
+    const invalid = clinics.findIndex((row) =>
+      row.clinic_name.trim().length < 2 || row.country.trim().length < 2 ||
+      row.city.trim().length < 2 || row.negotiation_result.trim().length < 2
+    );
+    if (invalid !== -1) {
+      setMessage(`Clinic ${invalid + 1}: enter a clinic name, country, city and negotiation result (at least 2 characters each) before ${submit ? "submitting" : "saving"}. `);
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -532,7 +549,11 @@ function ReportEditor({ token, reports, onSaved }: { token: string; reports: Dai
         }),
       });
       setMessage(submit ? "Daily report submitted and locked." : "Draft saved.");
-      await onSaved();
+      try {
+        await onSaved();
+      } catch {
+        setMessage("Report saved on the server, but refreshing the report list failed. Use Refresh to reload it.");
+      }
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : "Could not save report");
     } finally {
@@ -558,7 +579,7 @@ function ReportEditor({ token, reports, onSaved }: { token: string; reports: Dai
       <label className="sm-field wide">Next step<textarea rows={2} value={clinic.next_step} onChange={(e) => update(index, "next_step", e.target.value)} placeholder="Call again, send materials, payment expected, meeting date…"/></label>
       <label className="sm-field wide">Internal notes<textarea rows={2} value={clinic.notes} onChange={(e) => update(index, "notes", e.target.value)}/></label>
     </div></section>)}
-    <div className="sm-report-actions"><button className="sm-secondary" onClick={() => setClinics((rows) => [...rows, emptyClinic()])}><Plus/> Add clinic</button><span>{message}</span><button className="sm-secondary" disabled={busy} onClick={() => void save(false)}><Save/> Save draft</button><button className="sm-primary" disabled={busy} onClick={() => void save(true)}><Send/> Submit daily report</button></div>
+    <div className="sm-report-actions"><button className="sm-secondary" onClick={() => setClinics((rows) => [...rows, emptyClinic()])}><Plus/> Add clinic</button><span>{message}</span><button className="sm-secondary" disabled={busy} onClick={() => void save(false)}><Save/> {busy ? "Processing…" : "Save draft"}</button><button className="sm-primary" disabled={busy} onClick={() => void save(true)}><Send/> {busy ? "Processing…" : "Submit daily report"}</button></div>
   </div>;
 }
 
